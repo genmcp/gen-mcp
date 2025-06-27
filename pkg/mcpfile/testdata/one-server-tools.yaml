@@ -1,0 +1,17 @@
+mcpFileVersion: 0.0.1
+servers:
+- name: test-server
+  version: 1.0.0
+  tools:
+  - name: get_weather
+    title: Weather Information Provider
+    description: Get current weather information for a location
+    inputSchema:
+      type: object
+      properties:
+        location:
+          type: string
+          description: City name or zip code
+      required:
+      - location
+    url: http://example.com/weather
