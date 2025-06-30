@@ -106,12 +106,15 @@ func (t *Tool) GetMCPToolOpts() []mcp.ToolOption {
 }
 
 func (t *Tool) HandleRequest(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	fmt.Printf("received tool request\n")
 	args := req.GetRawArguments()
 
 	argsMap, ok := args.(map[string]any)
 	if !ok {
 		return mcp.NewToolResultError("arguments were not a valid object"), nil
 	}
+
+	fmt.Printf("received arguments: %+v\n", args)
 
 	// TODO: validation of all the properties in the request
 
@@ -130,6 +133,7 @@ func (t *Tool) HandleRequest(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	}
 	defer response.Body.Close()
 
-	body, _ := io.ReadAll(request.Body)
+	body, _ := io.ReadAll(response.Body)
+	fmt.Printf("received response: %s\n", string(body))
 	return mcp.NewToolResultText(string(body)), nil
 }

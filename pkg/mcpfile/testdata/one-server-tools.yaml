@@ -3,15 +3,16 @@ servers:
 - name: test-server
   version: 1.0.0
   tools:
-  - name: get_weather
-    title: Weather Information Provider
-    description: Get current weather information for a location
+  - name: get_user_by_company
+    title: Users Provider
+    description: Get list of users from a given company
     inputSchema:
       type: object
       properties:
-        location:
+        companyName:
           type: string
-          description: City name or zip code
+          description: Name of the company
       required:
-      - location
-    url: http://example.com/weather
+      - companyName
+    url: http://localhost:5000
+
