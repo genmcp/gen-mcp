@@ -99,6 +99,10 @@ func (t *Tool) Validate() error {
 		err = errors.Join(err, fmt.Errorf("invalid tool: inputSchema is not valid: %v", schemaErr))
 	}
 
+	if t.InputSchema.Type != JsonSchemaTypeObject {
+		err = errors.Join(err, fmt.Errorf("invalid tool: inputScheme must be type object at the root"))
+	}
+
 	if schemaErr := t.OutputSchema.Validate(); schemaErr != nil {
 		err = errors.Join(err, fmt.Errorf("invalid tool: outputSchema is not valid: %v", schemaErr))
 	}
