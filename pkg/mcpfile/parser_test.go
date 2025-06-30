@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var exampleWeatherUrl, _ = url.Parse("http://example.com/weather")
+var exampleUrl, _ = url.Parse("http://localhost:5000")
 
 func TestParseMcpFile(t *testing.T) {
 	tt := map[string]struct {
@@ -44,20 +44,20 @@ func TestParseMcpFile(t *testing.T) {
 						Version: "1.0.0",
 						Tools: []*Tool{
 							{
-								Name: "get_weather",
-								Title: "Weather Information Provider",
-								Description: "Get current weather information for a location",
+								Name: "get_user_by_company",
+								Title: "Users Provider",
+								Description: "Get list of users from a given company",
 								InputSchema: &JsonSchema{
 									Type: JsonSchemaTypeObject,
 									Properties: map[string]*JsonSchema{
-										"location": {
+										"companyName": {
 											Type: JsonSchemaTypeString,
-											Description: "City name or zip code",
+											Description: "Name of the company",
 										},
 									},
-									Required: []string{"location"},
+									Required: []string{"companyName"},
 								},
-								URL: *exampleWeatherUrl,
+								URL: *exampleUrl,
 							},
 						},
 					},
