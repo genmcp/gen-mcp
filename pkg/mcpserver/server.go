@@ -1,4 +1,4 @@
-package server
+package mcpserver
 
 import (
 	"github.com/mark3labs/mcp-go/mcp"
