@@ -14,5 +14,8 @@ servers:
           description: Name of the company
       required:
       - companyName
-    url: http://localhost:5000
+    invocation:
+      http:
+        url: http://localhost:5000
+        method: POST
 

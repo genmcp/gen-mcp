@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ghodss/yaml"
 )
@@ -35,7 +36,7 @@ func (t *Tool) UnmarshalJSON(data []byte) error {
 	type Doppleganger Tool
 
 	tmp := struct {
-		URL string `json:"url"`
+		Invocation map[string]any `json:"invocation"`
 		*Doppleganger
 	}{
 		Doppleganger: (*Doppleganger)(t),
@@ -46,11 +47,58 @@ func (t *Tool) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	parsedUrl, err := url.Parse(tmp.URL)
+	if len(tmp.Invocation) != 1 {
+		return fmt.Errorf("only one invocation handler should be defined per tool")
+	}
+
+	for k, v := range tmp.Invocation {
+		d, err := json.Marshal(v)
+		if err != nil {
+			// this should never happen
+			return err
+		}
+
+		switch k {
+		case InvocationTypeHttp:
+			httpInvocation := &HttpInvocation{}
+			err = json.Unmarshal(d, httpInvocation)
+			if err != nil {
+				return err
+			}
+
+			t.Invocation = httpInvocation
+		default:
+			return fmt.Errorf("unrecognized invocation format")
+			
+		}
+
+	}
+
+	return nil
+}
+
+func (h *HttpInvocation) UnmarshalJSON(data []byte) error {
+	type Doppleganger HttpInvocation
+
+	tmp := struct {
+		URL string `json:"url"`
+		*Doppleganger
+	}{
+		Doppleganger: (*Doppleganger)(h),
+	}
+
+	err := json.Unmarshal(data, &tmp)
 	if err != nil {
 		return err
 	}
-	t.URL = *parsedUrl
+
+	u, err := url.Parse(tmp.URL)
+	if err != nil {
+		return err
+	}
+
+	h.URL = *u
+	h.Method = strings.ToUpper(h.Method)
 
 	return nil
 }

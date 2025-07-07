@@ -2,6 +2,7 @@ package mcpfile
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"testing"
 
@@ -57,7 +58,10 @@ func TestParseMcpFile(t *testing.T) {
 									},
 									Required: []string{"companyName"},
 								},
-								URL: *exampleUrl,
+								Invocation: &HttpInvocation{
+									URL: *exampleUrl,
+									Method: http.MethodPost,
+								},
 							},
 						},
 					},
