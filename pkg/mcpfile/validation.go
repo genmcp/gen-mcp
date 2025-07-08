@@ -3,8 +3,18 @@ package mcpfile
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 )
+
+var validHttpMethods = map[string]struct{}{
+	http.MethodGet:    {},
+	http.MethodHead:   {},
+	http.MethodPost:   {},
+	http.MethodPut:    {},
+	http.MethodPatch:  {},
+	http.MethodDelete: {},
+}
 
 func (js *JsonSchema) Validate() error {
 	if js == nil {
@@ -107,6 +117,10 @@ func (t *Tool) Validate() error {
 		err = errors.Join(err, fmt.Errorf("invalid tool: outputSchema is not valid: %v", schemaErr))
 	}
 
+	if invocationErr := t.Invocation.Validate(); invocationErr != nil {
+		err = errors.Join(err, fmt.Errorf("invalid tool: invocation is not valid: %v", invocationErr))
+	}
+
 	return err
 }
 
@@ -127,4 +141,13 @@ func (s *MCPServer) Validate() error {
 	}
 
 	return err
+}
+
+func (h *HttpInvocation) Validate() error {
+	_, ok := validHttpMethods[h.Method]
+	if !ok {
+		return fmt.Errorf("invalid http request method for http invocation")
+	}
+
+	return nil
 }
