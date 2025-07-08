@@ -17,7 +17,7 @@ Whether you are a developer aiming to expose your work through MCP, or a consume
 interact with existing APIs through an MCP server that hasn't been built yet, AutoMCP is your
 solution.
 
-~![AutoMCP System Diagram](./docs/automcp-system-diagram.jpg) 
+![AutoMCP System Diagram](./docs/automcp-system-diagram.jpg) 
 
 ## Features
 
