@@ -1,8 +1,6 @@
 package mcpserver
 
 import (
-	"fmt"
-
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	mcpserver "github.com/mark3labs/mcp-go/server"

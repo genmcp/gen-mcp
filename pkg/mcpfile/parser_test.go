@@ -3,13 +3,10 @@ package mcpfile
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-var exampleUrl, _ = url.Parse("http://localhost:5000")
 
 func TestParseMcpFile(t *testing.T) {
 	tt := map[string]struct {
@@ -45,22 +42,56 @@ func TestParseMcpFile(t *testing.T) {
 						Version: "1.0.0",
 						Tools: []*Tool{
 							{
-								Name: "get_user_by_company",
-								Title: "Users Provider",
+								Name:        "get_user_by_company",
+								Title:       "Users Provider",
 								Description: "Get list of users from a given company",
 								InputSchema: &JsonSchema{
 									Type: JsonSchemaTypeObject,
 									Properties: map[string]*JsonSchema{
 										"companyName": {
-											Type: JsonSchemaTypeString,
+											Type:        JsonSchemaTypeString,
 											Description: "Name of the company",
 										},
 									},
 									Required: []string{"companyName"},
 								},
 								Invocation: &HttpInvocation{
-									URL: *exampleUrl,
+									URL:    "http://localhost:5000",
 									Method: http.MethodPost,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"one server, with tools and http params": {
+			testFileName: "one-server-tools-http-params.yaml",
+			expected: &MCPFile{
+				FileVersion: MCPFileVersion,
+				Servers: []*MCPServer{
+					{
+						Name:    "test-server",
+						Version: "1.0.0",
+						Tools: []*Tool{
+							{
+								Name:        "get_user_by_company",
+								Title:       "Users Provider",
+								Description: "Get list of users from a given company",
+								InputSchema: &JsonSchema{
+									Type: JsonSchemaTypeObject,
+									Properties: map[string]*JsonSchema{
+										"companyName": {
+											Type:        JsonSchemaTypeString,
+											Description: "Name of the company",
+										},
+									},
+									Required: []string{"companyName"},
+								},
+								Invocation: &HttpInvocation{
+									URL:            "http://localhost:5000/{}/users",
+									Method:         http.MethodGet,
+									pathParameters: []string{"companyName"},
 								},
 							},
 						},

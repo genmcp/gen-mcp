@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
+	neturl "net/url"
 	"slices"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -64,7 +67,32 @@ func (t *Tool) GetMCPToolOpts() []mcp.ToolOption {
 	return opts
 }
 
-func (h *HttpInvocation) HandleRequest(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func (t *Tool) parseToolCallParameter(name string, req mcp.CallToolRequest) (any, error) {
+	param := t.InputSchema.Properties[name]
+	switch param.Type {
+	case JsonSchemaTypeArray:
+		switch param.Items.Type {
+		}
+		return nil, nil
+	case JsonSchemaTypeBoolean:
+		return req.RequireBool(name)
+	case JsonSchemaTypeInteger:
+		return req.RequireInt(name)
+	case JsonSchemaTypeNull:
+		return nil, nil // TODO: think if we really want to support this
+	case JsonSchemaTypeNumber:
+		return req.RequireFloat(name)
+	case JsonSchemaTypeObject:
+		// TODO: figure out this recursive parsing stuff
+		return nil, nil
+	case JsonSchemaTypeString:
+		return req.RequireString(name)
+	default:
+		panic("this should never happen: encountered unknown runtime type")
+	}
+}
+
+func (h *HttpInvocation) HandleRequest(ctx context.Context, req mcp.CallToolRequest, t *Tool) (*mcp.CallToolResult, error) {
 	fmt.Printf("received tool request\n")
 	args := req.GetRawArguments()
 
@@ -75,14 +103,54 @@ func (h *HttpInvocation) HandleRequest(ctx context.Context, req mcp.CallToolRequ
 
 	fmt.Printf("received arguments: %+v\n", args)
 
-	// TODO: validation of all the properties in the request
-
-	jsonData, err := json.Marshal(argsMap)
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("could not marshal arguments to a json request body: %s", err.Error())), nil
+	var err error = nil
+	pathParmValues := []any{}
+	for _, paramName := range h.pathParameters {
+		val, parseErr := t.parseToolCallParameter(paramName, req)
+		err = errors.Join(err, parseErr)
+		pathParmValues = append(pathParmValues, val)
 	}
 
-	request, err := http.NewRequest(h.Method, h.URL.String(), bytes.NewBuffer(jsonData))
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("encountered error while parsing path parameters: %s", err.Error())), nil
+	}
+
+	url := fmt.Sprintf(h.URL, pathParmValues...)
+
+	remainingArgs := map[string]any{}
+	for paramName := range maps.Keys(argsMap) {
+		if _, ok := t.InputSchema.Properties[paramName]; !ok && (t.InputSchema.AdditionalProperties == nil || !*t.InputSchema.AdditionalProperties) {
+			continue
+		}
+		val, parseErr := t.parseToolCallParameter(paramName, req)
+		if parseErr != nil {
+			err = errors.Join(err, parseErr)
+			continue
+		}
+		remainingArgs[paramName] = val
+	}
+
+	// build query string or request body
+	var reqBody io.Reader = nil
+	if h.Method == http.MethodGet || h.Method == http.MethodDelete || h.Method == http.MethodHead {
+		queryParams := neturl.Values{}
+		for k, v := range remainingArgs {
+			queryParams.Add(k, fmt.Sprintf("%v", v))
+		}
+		url = fmt.Sprintf("%s?%s", url, queryParams.Encode())
+	} else {
+		jsonData, err := json.Marshal(remainingArgs)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("could not marshal arguments to a json request body: %s", err.Error())), nil
+		}
+
+		reqBody = bytes.NewBuffer(jsonData)
+	}
+
+	request, err := http.NewRequest(h.Method, url, reqBody)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("could not create request: %s", err.Error())), nil
+	}
 	request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 
 	client := &http.Client{}
@@ -98,5 +166,5 @@ func (h *HttpInvocation) HandleRequest(ctx context.Context, req mcp.CallToolRequ
 }
 
 func (t *Tool) HandleRequest(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	return t.Invocation.HandleRequest(ctx, req)
+	return t.Invocation.HandleRequest(ctx, req, t)
 }
