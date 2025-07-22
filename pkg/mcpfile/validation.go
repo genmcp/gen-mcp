@@ -117,7 +117,7 @@ func (t *Tool) Validate() error {
 		err = errors.Join(err, fmt.Errorf("invalid tool: outputSchema is not valid: %v", schemaErr))
 	}
 
-	if invocationErr := t.Invocation.Validate(); invocationErr != nil {
+	if invocationErr := t.Invocation.Validate(t); invocationErr != nil {
 		err = errors.Join(err, fmt.Errorf("invalid tool: invocation is not valid: %v", invocationErr))
 	}
 
@@ -143,11 +143,53 @@ func (s *MCPServer) Validate() error {
 	return err
 }
 
-func (h *HttpInvocation) Validate() error {
+func (h *HttpInvocation) Validate(t *Tool) error {
+	var err error = nil
 	_, ok := validHttpMethods[h.Method]
 	if !ok {
-		return fmt.Errorf("invalid http request method for http invocation")
+		err = fmt.Errorf("invalid http request method for http invocation")
 	}
 
-	return nil
+	urlParts := strings.Split(h.URL, "{}")
+	formattedUrlParts := []string{}
+	// this isn't strictly validation, but it allows us to create typed format string
+	for _, paramName := range h.pathParameters {
+		if t.InputSchema.Properties == nil {
+			err = errors.Join(err, fmt.Errorf("http invocation has %s path parameter, but there are no properties defined on the input schema", paramName))
+			continue
+		}
+
+		param, ok := t.InputSchema.Properties[paramName]
+		if !ok {
+			err = errors.Join(err, fmt.Errorf("http invocation has %s path parameter, but there is no corresponding property defined on the input schema", paramName))
+		}
+
+		switch param.Type {
+		case JsonSchemaTypeArray, JsonSchemaTypeNull, JsonSchemaTypeObject:
+			err = errors.Join(err, fmt.Errorf(
+				"http invocation path parameter %s has type %s in the input schema, which is not one of (string, number, integer, boolean)",
+				paramName,
+				param.Type,
+			))
+		case JsonSchemaTypeBoolean:
+			formattedUrlParts = append(formattedUrlParts, urlParts[0], "%t")
+			urlParts = urlParts[1:]
+		case JsonSchemaTypeInteger:
+			formattedUrlParts = append(formattedUrlParts, urlParts[0], "%d")
+			urlParts = urlParts[1:]
+		case JsonSchemaTypeNumber:
+			formattedUrlParts = append(formattedUrlParts, urlParts[0], "%f")
+			urlParts = urlParts[1:]
+		case JsonSchemaTypeString:
+			formattedUrlParts = append(formattedUrlParts, urlParts[0], "%s")
+			urlParts = urlParts[1:]
+		}
+	}
+
+	if err == nil {
+		formattedUrlParts = append(formattedUrlParts, urlParts...)
+		h.URL = strings.Join(formattedUrlParts, "")
+	}
+
+	return err
 }

@@ -2,7 +2,6 @@ package mcpfile
 
 import (
 	"context"
-	"net/url"
 
 	"github.com/mark3labs/mcp-go/mcp"
 )
@@ -29,13 +28,14 @@ type JsonSchema struct {
 }
 
 type Invocation interface {
-	HandleRequest(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) // handle the relevant tool call request
-	Validate() error
+	HandleRequest(ctx context.Context, req mcp.CallToolRequest, t *Tool) (*mcp.CallToolResult, error) // handle the relevant tool call request
+	Validate(*Tool) error
 }
 
 type HttpInvocation struct {
-	URL    url.URL `json:"url"`    // the url to make the request to
-	Method string  `json:"method"` // the request method
+	URL            string   `json:"url"`    // the url to make the request to
+	Method         string   `json:"method"` // the request method
+	pathParameters []string // parameters to extract from the InputSchema into the URL path
 }
 
 var _ Invocation = &HttpInvocation{}
