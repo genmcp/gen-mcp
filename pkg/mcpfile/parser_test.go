@@ -89,9 +89,60 @@ func TestParseMcpFile(t *testing.T) {
 									Required: []string{"companyName"},
 								},
 								Invocation: &HttpInvocation{
-									URL:            "http://localhost:5000/{}/users",
+									URL:            "http://localhost:5000/%s/users",
 									Method:         http.MethodGet,
 									pathParameters: []string{"companyName"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"one server, cli invocation": {
+			testFileName: "one-server-cli-tools.yaml",
+			expected: &MCPFile{
+				FileVersion: MCPFileVersion,
+				Servers: []*MCPServer{
+					{
+						Name:    "test-server",
+						Version: "1.0.0",
+						Tools: []*Tool{
+							{
+								Name:        "clone_repo",
+								Title:       "Clone git repository",
+								Description: "Clone a git repository from a url to the local machine",
+								InputSchema: &JsonSchema{
+									Type: JsonSchemaTypeObject,
+									Properties: map[string]*JsonSchema{
+										"repoUrl": {
+											Type:        JsonSchemaTypeString,
+											Description: "The git url of the repo to clone",
+										},
+										"depth": {
+											Type:        JsonSchemaTypeInteger,
+											Description: "The number of commits to clone",
+										},
+										"verbose": {
+											Type:        JsonSchemaTypeBoolean,
+											Description: "Whether to return verbose logs",
+										},
+									},
+									Required: []string{"repoUrl"},
+								},
+								Invocation: &CliInvocation{
+									Command: "git clone %s %s %s",
+									TemplateVariables: map[string]*TemplateVariable{
+										"depth": {
+											Format:           "--depth %d",
+											formatParameters: []string{"depth"},
+										},
+										"verbose": {
+											Format:      "--verbose",
+											OmitIfFalse: true,
+										},
+									},
+									commandParameters: []string{"repoUrl", "depth", "verbose"},
 								},
 							},
 						},

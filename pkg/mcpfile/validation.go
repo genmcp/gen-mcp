@@ -193,3 +193,114 @@ func (h *HttpInvocation) Validate(t *Tool) error {
 
 	return err
 }
+
+func (c *CliInvocation) Validate(t *Tool) error {
+	var err error = nil
+
+	for k, v := range c.TemplateVariables {
+		if templateVariableErr := v.Validate(t); templateVariableErr != nil {
+			err = errors.Join(err, fmt.Errorf("invalid cli invocation: templateVariables.%s is invalid: %v", k, templateVariableErr))
+		}
+	}
+	for _, tv := range c.TemplateVariables {
+		err = errors.Join(err, tv.Validate(t))
+	}
+
+	commandParts := strings.Split(c.Command, "{}")
+	formattedCommandParts := []string{}
+	for _, paramName := range c.commandParameters {
+		if t.InputSchema.Properties == nil {
+			err = errors.Join(err, fmt.Errorf("cli invocation has %s command parameter, but there are no properties defined on the input schema", paramName))
+			continue
+		}
+
+		tv, ok := c.TemplateVariables[paramName]
+		if ok && tv.Property != "" {
+			paramName = tv.Property
+		}
+
+		param, paramOk := t.InputSchema.Properties[paramName]
+		if !paramOk {
+			err = errors.Join(err, fmt.Errorf("cli invocation has %s command parameter, but there is no corresponding property defined on the input schema", paramName))
+		}
+
+		switch param.Type {
+		case JsonSchemaTypeArray, JsonSchemaTypeNull, JsonSchemaTypeObject:
+			err = errors.Join(err, fmt.Errorf(
+				"cli invocation command parameter %s has type %s in the input schema, which is not one of (string, number, integer, boolean)",
+				paramName,
+				param.Type,
+			))
+		case JsonSchemaTypeBoolean:
+			if ok {
+				tv.setFormatVariable("%t")
+				formattedCommandParts = append(formattedCommandParts, commandParts[0], "%s")
+				commandParts = commandParts[1:]
+			} else {
+				formattedCommandParts = append(formattedCommandParts, commandParts[0], "%t")
+				commandParts = commandParts[1:]
+			}
+		case JsonSchemaTypeInteger:
+			if ok {
+				tv.setFormatVariable("%d")
+				formattedCommandParts = append(formattedCommandParts, commandParts[0], "%s")
+				commandParts = commandParts[1:]
+			} else {
+				formattedCommandParts = append(formattedCommandParts, commandParts[0], "%d")
+				commandParts = commandParts[1:]
+			}
+		case JsonSchemaTypeNumber:
+			if ok {
+				tv.setFormatVariable("%f")
+				formattedCommandParts = append(formattedCommandParts, commandParts[0], "%s")
+				commandParts = commandParts[1:]
+			} else {
+				formattedCommandParts = append(formattedCommandParts, commandParts[0], "%f")
+				commandParts = commandParts[1:]
+			}
+		case JsonSchemaTypeString:
+			if ok {
+				tv.setFormatVariable("%s")
+				formattedCommandParts = append(formattedCommandParts, commandParts[0], "%s")
+				commandParts = commandParts[1:]
+			} else {
+				formattedCommandParts = append(formattedCommandParts, commandParts[0], "%s")
+				commandParts = commandParts[1:]
+			}
+		}
+	}
+
+	if err == nil {
+		formattedCommandParts = append(formattedCommandParts, commandParts...)
+		c.Command = strings.Join(formattedCommandParts, "")
+	}
+
+	return err
+}
+
+func (tv *TemplateVariable) Validate(t *Tool) error {
+	var err error = nil
+
+	if len(tv.formatParameters) > 1 {
+		err = errors.Join(err, fmt.Errorf("template variable has more than one parameters defined on it, when it should only have one"))
+	}
+
+	if len(tv.formatParameters) == 0 {
+		return err
+	}
+
+	if _, ok := t.InputSchema.Properties[tv.formatParameters[0]]; !ok && tv.formatParameters[0] != tv.Property {
+		err = errors.Join(err, fmt.Errorf("template format has a variable name that does not match the property name and is not set on the input schema"))
+	}
+
+	return err
+}
+
+func (tc *TemplateVariable) setFormatVariable(formatVariable string) {
+	offset := strings.Index(tc.Format, "{}")
+	if offset == -1 {
+		return
+	}
+
+	tc.Format = tc.Format[:offset] + formatVariable + tc.Format[offset+2:]
+}

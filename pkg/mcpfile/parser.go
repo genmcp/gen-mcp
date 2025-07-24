@@ -75,6 +75,14 @@ func (t *Tool) UnmarshalJSON(data []byte) error {
 			}
 
 			t.Invocation = httpInvocation
+		case InvocationTypeCli:
+			cliInvocation := &CliInvocation{}
+			err = json.Unmarshal(d, cliInvocation)
+			if err != nil {
+				return err
+			}
+
+			t.Invocation = cliInvocation
 		default:
 			return fmt.Errorf("unrecognized invocation format")
 
@@ -139,6 +147,114 @@ func (h *HttpInvocation) UnmarshalJSON(data []byte) error {
 
 	if len(paramNames) > 0 {
 		h.pathParameters = paramNames
+	}
+
+	return nil
+}
+
+func (c *CliInvocation) UnmarshalJSON(data []byte) error {
+	type Doppleganger CliInvocation
+
+	tmp := struct {
+		Command string `json:"command"`
+		*Doppleganger
+	}{
+		Doppleganger: (*Doppleganger)(c),
+	}
+
+	err := json.Unmarshal(data, &tmp)
+	if err != nil {
+		return err
+	}
+
+	// iterate over the (possibly) templated command string and:
+	// 1. collect any parameters - in order
+	// 2. replace each path parameter with %s
+
+	chunks := []string{}
+	paramNames := []string{}
+	var chunk strings.Builder
+	for i := 0; i < len(tmp.Command); {
+		if tmp.Command[i] == '{' {
+			chunks = append(chunks, chunk.String(), "{}")
+			chunk.Reset()
+
+			offset := strings.Index(tmp.Command[i:], "}") + i
+			if offset - i == -1 {
+				return fmt.Errorf("unterminated path parameter found in URL")
+			}
+
+			paramName := tmp.Command[i+1 : offset]
+
+			paramNames = append(paramNames, paramName)
+
+			i = offset + 1
+			continue
+		} else if tmp.Command[i] == '}' {
+			return fmt.Errorf("no opening bracket for a closing bracket in URL")
+		}
+
+		chunk.WriteByte(tmp.Command[i])
+		i++
+	}
+
+	chunks = append(chunks, chunk.String())
+	c.Command = strings.Join(chunks, "")
+
+	if len(paramNames) > 0 {
+		c.commandParameters = paramNames
+	}
+
+	return nil
+}
+
+func (tv *TemplateVariable) UnmarshalJSON(data []byte) error {
+	type Doppleganger TemplateVariable
+
+	tmp := struct {
+		Format string `json:"format"`
+		*Doppleganger
+	}{
+		Doppleganger: (*Doppleganger)(tv),
+	}
+
+	err := json.Unmarshal(data, &tmp)
+	if err != nil {
+		return err
+	}
+
+	chunks := []string{}
+	paramNames := []string{}
+	var chunk strings.Builder
+	for i := 0; i < len(tmp.Format); {
+		if tmp.Format[i] == '{' {
+			chunks = append(chunks, chunk.String(), "{}")
+			chunk.Reset()
+
+			offset := strings.Index(tmp.Format[i:], "}") + i
+			if offset - i == -1 {
+				return fmt.Errorf("unterminated parameter found in template variable format")
+			}
+
+			paramName := tmp.Format[i+1:offset]
+
+			paramNames = append(paramNames, paramName)
+
+			i = offset + 1
+			continue
+		} else if tmp.Format[i] == '}' {
+			return fmt.Errorf("no opening bracket for a closing bracket in template variable format")
+		}
+
+		chunk.WriteByte(tmp.Format[i])
+		i++
+	}
+
+	chunks = append(chunks, chunk.String())
+	tv.Format = strings.Join(chunks, "")
+
+	if len(paramNames) > 0 {
+		tv.formatParameters = paramNames
 	}
 
 	return nil

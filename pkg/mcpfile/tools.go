@@ -7,10 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"maps"
 	"net/http"
 	neturl "net/url"
+	"os/exec"
 	"slices"
+	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
 )
@@ -118,7 +119,10 @@ func (h *HttpInvocation) HandleRequest(ctx context.Context, req mcp.CallToolRequ
 	url := fmt.Sprintf(h.URL, pathParmValues...)
 
 	remainingArgs := map[string]any{}
-	for paramName := range maps.Keys(argsMap) {
+	for paramName := range argsMap {
+		if slices.Contains(h.pathParameters, paramName) {
+			continue
+		}
 		if _, ok := t.InputSchema.Properties[paramName]; !ok && (t.InputSchema.AdditionalProperties == nil || !*t.InputSchema.AdditionalProperties) {
 			continue
 		}
@@ -163,6 +167,69 @@ func (h *HttpInvocation) HandleRequest(ctx context.Context, req mcp.CallToolRequ
 	body, _ := io.ReadAll(response.Body)
 	fmt.Printf("received response: %s\n", string(body))
 	return mcp.NewToolResultText(string(body)), nil
+}
+
+func (tv *TemplateVariable) formatValue(value any) string {
+	return fmt.Sprintf(tv.Format, value)
+}
+
+func (c *CliInvocation) HandleRequest(ctx context.Context, req mcp.CallToolRequest, t *Tool) (*mcp.CallToolResult, error) {
+	fmt.Printf("received tool request\n")
+	args := req.GetRawArguments()
+
+	argsMap, ok := args.(map[string]any)
+	if !ok {
+		return mcp.NewToolResultError("arguments were not a valid object"), nil
+	}
+
+	fmt.Printf("received arguments: %+v\n", args)
+
+	var err error = nil
+	pathParamValues := []any{}
+	for _, paramName := range c.commandParameters {
+		val, parseErr := t.parseToolCallParameter(paramName, req)
+		err = errors.Join(err, parseErr)
+		if tv, ok := c.TemplateVariables[paramName]; ok {
+			val = tv.formatValue(val)
+		}
+
+		pathParamValues = append(pathParamValues, val)
+	}
+
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("encountered error while parsing path parameters: %s", err.Error())), nil
+	}
+
+	remainingArgs := []string{}
+	for paramName := range argsMap {
+		if slices.Contains(c.commandParameters, paramName) {
+			continue
+		}
+
+		if _, ok := t.InputSchema.Properties[paramName]; !ok && (t.InputSchema.AdditionalProperties == nil || !*t.InputSchema.AdditionalProperties) {
+			continue
+		}
+		val, parseErr := t.parseToolCallParameter(paramName, req)
+		if parseErr != nil {
+			err = errors.Join(err, parseErr)
+			continue
+		}
+
+		remainingArgs = append(remainingArgs, fmt.Sprintf("--%s=%v", paramName, val))
+	}
+
+	command := fmt.Sprintf(c.Command, pathParamValues...) + " " + strings.Join(remainingArgs, " ")
+
+	fmt.Printf("running command %s\n", command)
+
+	cmd := exec.Command("bash", "-c", command)
+
+	output, err := cmd.Output()
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("encountered error while calling command: %s", err.Error())), nil
+	}
+
+	return mcp.NewToolResultText(string(output)), nil
 }
 
 func (t *Tool) HandleRequest(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
