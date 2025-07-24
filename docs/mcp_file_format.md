@@ -29,6 +29,7 @@ An `MCPServer` object defines a single logical server and its set of tools.
 |---|---|---|---|
 | `name` | string | The name of the server. | Yes |
 | `version` | string | The semantic version of the server's toolset. | Yes |
+| `runtime` | `ServerRuntime` | The runtime settings for the server. If omitted, it defaults to `streamablehttp` on port `3000`. | No |
 | `tools` | array of `Tool` | The tools provided by this server. | No |
 
 ### Example
@@ -36,11 +37,35 @@ An `MCPServer` object defines a single logical server and its set of tools.
 ```yaml
 - name: my-awesome-server
   version: 1.2.3
+  runtime:
+    transportProtocol: streamablehttp
+    streamableHttpConfig:
+      port: 8080
   tools:
     # ... tool definitions
 ```
 
-## 4. Tool Object
+## 4. ServerRuntime Object
+
+The `ServerRuntime` object specifies the transport protocol and its configuration for the server.
+
+| Field | Type | Description | Required |
+|---|---|---|---|
+| `transportProtocol` | string | The transport protocol to use. Must be one of `streamablehttp` or `stdio`. | Yes |
+| `streamableHttpConfig` | `StreamableHTTPConfig` | Configuration for the `streamablehttp` transport protocol. Required if `transportProtocol` is `streamablehttp`. | No |
+| `stdioConfig` | `StdioConfig` | Configuration for the `stdio` transport protocol. Required if `transportProtocol` is `stdio`. | No |
+
+### 4.1. StreamableHTTPConfig Object
+
+| Field | Type | Description | Required |
+|---|---|---|---|
+| `port` | integer | The port for the server to listen on. | Yes |
+
+### 4.2. StdioConfig Object
+
+This object is currently empty and serves as a placeholder for future configuration options.
+
+## 5. Tool Object
 
 A `Tool` object describes a specific, invokable function.
 
@@ -53,7 +78,7 @@ A `Tool` object describes a specific, invokable function.
 | `outputSchema` | `JsonSchema` | A JSON Schema object defining the structure of the tool's output. | No |
 | `invocation` | `Invocation` | An object describing how to execute the tool. Must contain a single key: either `http` or `cli`. | Yes |
 
-## 5. JsonSchema Object
+## 6. JsonSchema Object
 
 The `inputSchema` and `outputSchema` fields use the JSON Schema standard to define data structures.
 
@@ -79,11 +104,11 @@ inputSchema:
     - location
 ```
 
-## 6. Invocation Object
+## 7. Invocation Object
 
 The `invocation` object specifies how a tool is executed. It must contain exactly one of the following keys.
 
-### 6.1. HTTP Invocation
+### 7.1. HTTP Invocation
 
 The `http` invocation type is used for tools that are called via an HTTP request.
 
@@ -101,7 +126,7 @@ invocation:
     url: http://localhost:8080/users/{userId}
 ```
 
-### 6.2. CLI Invocation
+### 7.2. CLI Invocation
 
 The `cli` invocation type is used for tools that are executed via a shell command.
 
@@ -140,13 +165,15 @@ invocation:
         omitIfFalse: true
 ```
 
-## 7. Complete Example
+## 8. Complete Example
 
 ```yaml
 mcpFileVersion: "0.0.1"
 servers:
 - name: git-tools
   version: "1.0.0"
+  runtime:
+    transportProtocol: stdio
   tools:
   - name: clone_repo
     title: "Clone Git Repository"
@@ -181,6 +208,10 @@ servers:
 
 - name: user-service
   version: "2.1.0"
+  runtime:
+    transportProtocol: streamablehttp
+    streamableHttpConfig:
+      port: 3000
   tools:
   - name: get_user
     title: "Get User"
