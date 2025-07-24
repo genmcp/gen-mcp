@@ -106,7 +106,7 @@ func (t *Tool) Validate() error {
 	if t.InputSchema == nil {
 		err = errors.Join(err, fmt.Errorf("invalid tool: inputSchema is required"))
 	} else if schemaErr := t.InputSchema.Validate(); schemaErr != nil {
-		err = errors.Join(err, fmt.Errorf("invalid tool: inputSchema is not valid: %v", schemaErr))
+		err = errors.Join(err, fmt.Errorf("invalid tool: inputSchema is not valid: %w", schemaErr))
 	}
 
 	if t.InputSchema.Type != JsonSchemaTypeObject {
@@ -114,11 +114,11 @@ func (t *Tool) Validate() error {
 	}
 
 	if schemaErr := t.OutputSchema.Validate(); schemaErr != nil {
-		err = errors.Join(err, fmt.Errorf("invalid tool: outputSchema is not valid: %v", schemaErr))
+		err = errors.Join(err, fmt.Errorf("invalid tool: outputSchema is not valid: %w", schemaErr))
 	}
 
 	if invocationErr := t.Invocation.Validate(t); invocationErr != nil {
-		err = errors.Join(err, fmt.Errorf("invalid tool: invocation is not valid: %v", invocationErr))
+		err = errors.Join(err, fmt.Errorf("invalid tool: invocation is not valid: %w", invocationErr))
 	}
 
 	return err
@@ -134,9 +134,46 @@ func (s *MCPServer) Validate() error {
 		err = errors.Join(err, fmt.Errorf("invalid server: version is required"))
 	}
 
+	if runtimeErr := s.Runtime.Validate(); runtimeErr != nil {
+		err = errors.Join(err, fmt.Errorf("invalid server, runtime is invalid: %w", err))
+	}
+
 	for i, t := range s.Tools {
 		if toolErr := t.Validate(); toolErr != nil {
-			err = errors.Join(err, fmt.Errorf("invalid server: tools[%d] is invalid: %v", i, toolErr))
+			err = errors.Join(err, fmt.Errorf("invalid server: tools[%d] is invalid: %w", i, toolErr))
+		}
+	}
+
+	return err
+}
+
+func (r *ServerRuntime) Validate() error {
+	var err error = nil
+	if r.TransportProtocol != TransportProtocolStdio && r.TransportProtocol != TransportProtocolStreamableHttp {
+		err = errors.Join(
+			err,
+			fmt.Errorf(
+				"invalid runtime: transport protocol must be one of (%s, %s), received %s",
+				TransportProtocolStdio,
+				TransportProtocolStreamableHttp,
+				r.TransportProtocol,
+			),
+		)
+	}
+
+	if r.TransportProtocol == TransportProtocolStreamableHttp {
+		if r.StreamableHTTPConfig == nil {
+			err = errors.Join(
+				err,
+				fmt.Errorf(
+					"transportProtocol is %s, but streamableHttpConfig is not set",
+					TransportProtocolStreamableHttp,
+				),
+			)
+		}
+
+		if r.StreamableHTTPConfig.Port <= 0 {
+			err = errors.Join(err, fmt.Errorf("streamableHttpConfig.port must be greater than 0"))
 		}
 	}
 

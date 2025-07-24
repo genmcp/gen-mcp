@@ -7,16 +7,18 @@ import (
 )
 
 const (
-	MCPFileVersion        = "0.0.1"
-	JsonSchemaTypeArray   = "array"
-	JsonSchemaTypeBoolean = "boolean"
-	JsonSchemaTypeInteger = "integer"
-	JsonSchemaTypeNumber  = "number"
-	JsonSchemaTypeNull    = "null"
-	JsonSchemaTypeObject  = "object"
-	JsonSchemaTypeString  = "string"
-	InvocationTypeHttp    = "http"
-	InvocationTypeCli     = "cli"
+	MCPFileVersion                  = "0.0.1"
+	JsonSchemaTypeArray             = "array"
+	JsonSchemaTypeBoolean           = "boolean"
+	JsonSchemaTypeInteger           = "integer"
+	JsonSchemaTypeNumber            = "number"
+	JsonSchemaTypeNull              = "null"
+	JsonSchemaTypeObject            = "object"
+	JsonSchemaTypeString            = "string"
+	InvocationTypeHttp              = "http"
+	InvocationTypeCli               = "cli"
+	TransportProtocolStreamableHttp = "streamablehttp"
+	TransportProtocolStdio          = "stdio"
 )
 
 type JsonSchema struct {
@@ -63,10 +65,24 @@ type Tool struct {
 	Invocation   Invocation  `json:"invocation"`             // how the tool should be invoked
 }
 
+type StreamableHTTPConfig struct {
+	Port int `json:"port"` // the port to start listening on
+}
+
+type StdioConfig struct {
+}
+
+type ServerRuntime struct {
+	TransportProtocol    string                `json:"transportProtocol"`              // which transport protocol to use
+	StreamableHTTPConfig *StreamableHTTPConfig `json:"streamableHttpConfig,omitempty"` // config for the streamable http transport protocol
+	StdioConfig          *StdioConfig          `json:"stdioConfig,omitempty"`          // config for the stdio transport protocol
+}
+
 type MCPServer struct {
-	Name    string  `json:"name"`            // name of the server
-	Version string  `json:"version"`         // version of the server
-	Tools   []*Tool `json:"tools,omitempty"` // set of tools available to the server
+	Name    string         `json:"name"`              // name of the server
+	Version string         `json:"version"`           // version of the server
+	Runtime *ServerRuntime `json:"runtime,omitempty"` // runtime settings for the server
+	Tools   []*Tool        `json:"tools,omitempty"`   // set of tools available to the server
 }
 
 type MCPFile struct {

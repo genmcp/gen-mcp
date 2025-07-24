@@ -40,6 +40,39 @@ func ParseMCPFile(path string) (*MCPFile, error) {
 	return mcpFile, nil
 }
 
+func (s *MCPServer) UnmarshalJSON(data []byte) error {
+	type Doppleganger MCPServer
+
+	tmp := struct {
+		*Doppleganger
+	}{
+		Doppleganger: (*Doppleganger)(s),
+	}
+
+	err := json.Unmarshal(data, &tmp)
+	if err != nil {
+		return err
+	}
+
+	if s.Runtime == nil {
+		s.Runtime = &ServerRuntime{
+			TransportProtocol: TransportProtocolStreamableHttp,
+			StreamableHTTPConfig: &StreamableHTTPConfig{
+				Port: 3000,
+			},
+		}
+	}
+
+	if s.Runtime.TransportProtocol == TransportProtocolStreamableHttp && s.Runtime.StreamableHTTPConfig == nil {
+		s.Runtime.StreamableHTTPConfig = &StreamableHTTPConfig{
+			Port: 3000,
+		}
+	}
+
+	return nil
+
+}
+
 func (t *Tool) UnmarshalJSON(data []byte) error {
 	type Doppleganger Tool
 
@@ -180,7 +213,7 @@ func (c *CliInvocation) UnmarshalJSON(data []byte) error {
 			chunk.Reset()
 
 			offset := strings.Index(tmp.Command[i:], "}") + i
-			if offset - i == -1 {
+			if offset-i == -1 {
 				return fmt.Errorf("unterminated path parameter found in URL")
 			}
 
@@ -232,11 +265,11 @@ func (tv *TemplateVariable) UnmarshalJSON(data []byte) error {
 			chunk.Reset()
 
 			offset := strings.Index(tmp.Format[i:], "}") + i
-			if offset - i == -1 {
+			if offset-i == -1 {
 				return fmt.Errorf("unterminated parameter found in template variable format")
 			}
 
-			paramName := tmp.Format[i+1:offset]
+			paramName := tmp.Format[i+1 : offset]
 
 			paramNames = append(paramNames, paramName)
 

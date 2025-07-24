@@ -28,6 +28,12 @@ func TestParseMcpFile(t *testing.T) {
 					{
 						Name:    "test-server",
 						Version: "1.0.0",
+						Runtime: &ServerRuntime{
+							TransportProtocol: TransportProtocolStreamableHttp,
+							StreamableHTTPConfig: &StreamableHTTPConfig{
+								Port: 3000,
+							},
+						},
 					},
 				},
 			},
@@ -40,6 +46,12 @@ func TestParseMcpFile(t *testing.T) {
 					{
 						Name:    "test-server",
 						Version: "1.0.0",
+						Runtime: &ServerRuntime{
+							TransportProtocol: TransportProtocolStreamableHttp,
+							StreamableHTTPConfig: &StreamableHTTPConfig{
+								Port: 3000,
+							},
+						},
 						Tools: []*Tool{
 							{
 								Name:        "get_user_by_company",
@@ -73,6 +85,12 @@ func TestParseMcpFile(t *testing.T) {
 					{
 						Name:    "test-server",
 						Version: "1.0.0",
+						Runtime: &ServerRuntime{
+							TransportProtocol: TransportProtocolStreamableHttp,
+							StreamableHTTPConfig: &StreamableHTTPConfig{
+								Port: 3000,
+							},
+						},
 						Tools: []*Tool{
 							{
 								Name:        "get_user_by_company",
@@ -107,6 +125,66 @@ func TestParseMcpFile(t *testing.T) {
 					{
 						Name:    "test-server",
 						Version: "1.0.0",
+						Runtime: &ServerRuntime{
+							TransportProtocol: TransportProtocolStreamableHttp,
+							StreamableHTTPConfig: &StreamableHTTPConfig{
+								Port: 3000,
+							},
+						},
+						Tools: []*Tool{
+							{
+								Name:        "clone_repo",
+								Title:       "Clone git repository",
+								Description: "Clone a git repository from a url to the local machine",
+								InputSchema: &JsonSchema{
+									Type: JsonSchemaTypeObject,
+									Properties: map[string]*JsonSchema{
+										"repoUrl": {
+											Type:        JsonSchemaTypeString,
+											Description: "The git url of the repo to clone",
+										},
+										"depth": {
+											Type:        JsonSchemaTypeInteger,
+											Description: "The number of commits to clone",
+										},
+										"verbose": {
+											Type:        JsonSchemaTypeBoolean,
+											Description: "Whether to return verbose logs",
+										},
+									},
+									Required: []string{"repoUrl"},
+								},
+								Invocation: &CliInvocation{
+									Command: "git clone %s %s %s",
+									TemplateVariables: map[string]*TemplateVariable{
+										"depth": {
+											Format:           "--depth %d",
+											formatParameters: []string{"depth"},
+										},
+										"verbose": {
+											Format:      "--verbose",
+											OmitIfFalse: true,
+										},
+									},
+									commandParameters: []string{"repoUrl", "depth", "verbose"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"server runtime stdio": {
+			testFileName: "server-runtime-stdio.yaml",
+			expected: &MCPFile{
+				FileVersion: MCPFileVersion,
+				Servers: []*MCPServer{
+					{
+						Name:    "test-server",
+						Version: "1.0.0",
+						Runtime: &ServerRuntime{
+							TransportProtocol: "stdio",
+						},
 						Tools: []*Tool{
 							{
 								Name:        "clone_repo",
