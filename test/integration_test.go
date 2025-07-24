@@ -138,3 +138,115 @@ servers:
 
 	assert.JSONEq(t, `{"status": "ok"}`, textResult.Text)
 }
+
+func TestIntegrationCLI(t *testing.T) {
+	// 1. Define the MCP file in YAML
+	mcpYAML := `
+mcpFileVersion: 0.0.1
+servers:
+  - name: test-server
+    version: "1.0"
+    tools:
+      - name: list_files
+        description: "List files in a directory"
+        inputSchema:
+          type: object
+          properties:
+            path:
+              type: string
+          required:
+            - path
+        outputSchema:
+          type: object
+          properties:
+            stdout:
+              type: string
+        invocation:
+          cli:
+            command: "ls -a {path}"
+`
+
+	// 2. Write the MCP file to a temporary file
+	tmpfile, err := os.CreateTemp("", "mcp-*.yaml")
+	require.NoError(t, err)
+	defer os.Remove(tmpfile.Name())
+
+	_, err = tmpfile.WriteString(mcpYAML)
+	require.NoError(t, err)
+	err = tmpfile.Close()
+	require.NoError(t, err)
+
+	// 3. Parse the MCP file
+	mcpConfig, err := mcpfile.ParseMCPFile(tmpfile.Name())
+	require.NoError(t, err)
+
+	// 4. Create and start the MCP server
+	mcpServer := mcpserver.MakeServer(mcpConfig.Servers[0])
+
+	httpMCPServer := server.NewStreamableHTTPServer(mcpServer)
+	go func() {
+		if err := httpMCPServer.Start(":8009"); err != nil && err != http.ErrServerClosed {
+			require.Failf(t, "unexpected mcp server error: %s", err.Error())
+		}
+		fmt.Printf("shutdown the mcp server\n")
+	}()
+
+	defer func() {
+		fmt.Printf("shutting down the mcp server\n")
+		err = httpMCPServer.Shutdown(context.Background())
+		require.NoError(t, err)
+	}()
+
+	// 5. Create an MCP client
+	mcpServerURL := "http://localhost:8009/mcp"
+	streamableHttpTransport, err := transport.NewStreamableHTTP(mcpServerURL)
+	require.NoError(t, err)
+	client := mcpclient.NewClient(
+		streamableHttpTransport,
+	)
+	require.NoError(t, err)
+
+	defer func() {
+		fmt.Printf("sending client close request\n")
+		err := client.Close()
+		fmt.Printf("closed client\n")
+		require.NoError(t, err, "closing the client should not fail")
+	}()
+
+	initRequest := mcp.InitializeRequest{
+		Params: mcp.InitializeParams{
+			ProtocolVersion: mcp.LATEST_PROTOCOL_VERSION,
+			ClientInfo: mcp.Implementation{
+				Name:    "test client",
+				Version: "0.0.1",
+			},
+		},
+	}
+	_, err = client.Initialize(context.Background(), initRequest)
+	require.NoError(t, err, "client should connect to the server")
+
+	// 6. Call the tool
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	toolCall := mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "list_files",
+			Arguments: map[string]any{
+				"path": ".",
+			},
+		},
+	}
+
+	res, err := client.CallTool(ctx, toolCall)
+	require.NoError(t, err)
+
+	// 7. Assert the results
+	require.NotNil(t, res)
+	require.IsType(t, res.Content[0], mcp.TextContent{})
+
+	textResult, ok := res.Content[0].(mcp.TextContent)
+	require.True(t, ok)
+
+	assert.Contains(t, textResult.Text, "integration_test.go")
+}

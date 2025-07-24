@@ -16,6 +16,7 @@ const (
 	JsonSchemaTypeObject  = "object"
 	JsonSchemaTypeString  = "string"
 	InvocationTypeHttp    = "http"
+	InvocationTypeCli     = "cli"
 )
 
 type JsonSchema struct {
@@ -36,6 +37,19 @@ type HttpInvocation struct {
 	URL            string   `json:"url"`    // the url to make the request to
 	Method         string   `json:"method"` // the request method
 	pathParameters []string // parameters to extract from the InputSchema into the URL path
+}
+
+type TemplateVariable struct {
+	Property         string   `json:"property,omitempty"`                    // the property on the input schema
+	Format           string   `json:"format,omitempty"`                      // the format to output this variable
+	OmitIfFalse      bool     `json:"omitIfFalse,omitempty" default:"false"` // whether to omit the variable if it is false
+	formatParameters []string // parameters to place into the variable format from the input property
+}
+
+type CliInvocation struct {
+	Command           string                       `json:"command"`                     // the terminal command to run
+	TemplateVariables map[string]*TemplateVariable `json:"templateVariables,omitempty"` // information on how to map the template variables
+	commandParameters []string                     // parameters found in the command, in order
 }
 
 var _ Invocation = &HttpInvocation{}
