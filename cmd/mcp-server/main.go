@@ -3,12 +3,12 @@ package main
 import (
 	"log"
 	"os"
+	"sync"
 
 	"github.com/Cali0707/AutoMCP/pkg/mcpfile"
 	"github.com/Cali0707/AutoMCP/pkg/mcpserver"
-	"github.com/mark3labs/mcp-go/server"
 )
- 
+
 func main() {
 	mcpFilePath := os.Getenv("MCP_FILE_PATH")
 
@@ -17,15 +17,18 @@ func main() {
 		log.Panicf("failed to parse mcp file: %s", err.Error())
 	}
 
-	servers := make([]*server.MCPServer, 0, len(mcp.Servers))
+	var wg sync.WaitGroup
+	wg.Add(len(mcp.Servers))
+
 	for _, s := range mcp.Servers {
-		servers = append(servers, mcpserver.MakeServer(s))
+		go func() {
+			err := mcpserver.RunServer(s)
+			if err != nil {
+				log.Printf("error running server: %s", err.Error())
+			}
+			wg.Done()
+		}()
 	}
 
-	httpServer := server.NewStreamableHTTPServer(servers[0])
-	if err := httpServer.Start(":8080"); err != nil {
-		log.Fatal(err)
-	}
-	// TODO: run servers somehow
+	wg.Wait()
 }
- 
