@@ -25,3 +25,7 @@ solution.
 simple MCP file
 2. **[Coming soon] OpenAPI to MCP File Conversion**: Effortlessly create MCP files directly
 from your existing OpenAPI docs.
+
+## Documentation
+
+To learn how to write your own MCP Files, please read [the MCP file format docs](./docs/mcp_file_format.md)
