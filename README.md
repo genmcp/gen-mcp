@@ -29,3 +29,13 @@ from your existing OpenAPI docs.
 ## Documentation
 
 To learn how to write your own MCP Files, please read [the MCP file format docs](./docs/mcp_file_format.md)
+
+## How to Run
+
+To run the MCP server with AutoMCP, you first need to build the Go binary from the `cmd` directory. Then, you can run the binary with the `MCP_FILE_PATH` environment variable set to the path of your MCP file.
+
+```bash
+go build ./cmd/mcp-server/
+MCP_FILE_PATH=<path-to-your-mcp-file> ./mcp-server
+```
+
