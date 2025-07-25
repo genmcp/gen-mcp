@@ -94,7 +94,6 @@ func (t *Tool) parseToolCallParameter(name string, req mcp.CallToolRequest) (any
 }
 
 func (h *HttpInvocation) HandleRequest(ctx context.Context, req mcp.CallToolRequest, t *Tool) (*mcp.CallToolResult, error) {
-	fmt.Printf("received tool request\n")
 	args := req.GetRawArguments()
 
 	argsMap, ok := args.(map[string]any)
@@ -102,21 +101,20 @@ func (h *HttpInvocation) HandleRequest(ctx context.Context, req mcp.CallToolRequ
 		return mcp.NewToolResultError("arguments were not a valid object"), nil
 	}
 
-	fmt.Printf("received arguments: %+v\n", args)
-
 	var err error = nil
-	pathParmValues := []any{}
+	pathParamValues := []any{}
 	for _, paramName := range h.pathParameters {
 		val, parseErr := t.parseToolCallParameter(paramName, req)
 		err = errors.Join(err, parseErr)
-		pathParmValues = append(pathParmValues, val)
+		pathParamValues = append(pathParamValues, val)
 	}
 
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("encountered error while parsing path parameters: %s", err.Error())), nil
 	}
 
-	url := fmt.Sprintf(h.URL, pathParmValues...)
+	fmt.Println(h.URL)
+	url := fmt.Sprintf(h.URL, pathParamValues...)
 
 	remainingArgs := map[string]any{}
 	for paramName := range argsMap {
@@ -165,16 +163,18 @@ func (h *HttpInvocation) HandleRequest(ctx context.Context, req mcp.CallToolRequ
 	defer response.Body.Close()
 
 	body, _ := io.ReadAll(response.Body)
-	fmt.Printf("received response: %s\n", string(body))
 	return mcp.NewToolResultText(string(body)), nil
 }
 
 func (tv *TemplateVariable) formatValue(value any) string {
-	return fmt.Sprintf(tv.Format, value)
+	if len(tv.formatParameters) > 0 {
+		return fmt.Sprintf(tv.Format, value)
+	}
+
+	return tv.Format
 }
 
 func (c *CliInvocation) HandleRequest(ctx context.Context, req mcp.CallToolRequest, t *Tool) (*mcp.CallToolResult, error) {
-	fmt.Printf("received tool request\n")
 	args := req.GetRawArguments()
 
 	argsMap, ok := args.(map[string]any)
@@ -182,12 +182,16 @@ func (c *CliInvocation) HandleRequest(ctx context.Context, req mcp.CallToolReque
 		return mcp.NewToolResultError("arguments were not a valid object"), nil
 	}
 
-	fmt.Printf("received arguments: %+v\n", args)
 
 	var err error = nil
 	pathParamValues := []any{}
 	for _, paramName := range c.commandParameters {
 		val, parseErr := t.parseToolCallParameter(paramName, req)
+		if parseErr != nil && !slices.Contains(t.InputSchema.Required, paramName) {
+			pathParamValues = append(pathParamValues, "")
+			continue
+		}
+
 		err = errors.Join(err, parseErr)
 		if tv, ok := c.TemplateVariables[paramName]; ok {
 			val = tv.formatValue(val)
@@ -220,11 +224,9 @@ func (c *CliInvocation) HandleRequest(ctx context.Context, req mcp.CallToolReque
 
 	command := fmt.Sprintf(c.Command, pathParamValues...) + " " + strings.Join(remainingArgs, " ")
 
-	fmt.Printf("running command %s\n", command)
-
 	cmd := exec.Command("bash", "-c", command)
 
-	output, err := cmd.Output()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("encountered error while calling command: %s", err.Error())), nil
 	}

@@ -228,6 +228,114 @@ func TestParseMcpFile(t *testing.T) {
 				},
 			},
 		},
+		"full demo": {
+			testFileName: "full-demo.yaml",
+			expected: &MCPFile{
+				FileVersion: MCPFileVersion,
+				Servers: []*MCPServer{
+					{
+						Name:    "git-github-example",
+						Version: "1.0.0",
+						Runtime: &ServerRuntime{
+							TransportProtocol: "streamablehttp",
+							StreamableHTTPConfig: &StreamableHTTPConfig{
+								Port: 8008,
+							},
+						},
+						Tools: []*Tool{
+							{
+								Name:        "clone_repo",
+								Title:       "Clone git repository",
+								Description: "Clone a git repository from a url to the local machine",
+								InputSchema: &JsonSchema{
+									Type: JsonSchemaTypeObject,
+									Properties: map[string]*JsonSchema{
+										"repoUrl": {
+											Type:        JsonSchemaTypeString,
+											Description: "The git url of the repo to clone. If cloning with ssh, this should be the ssh url, if cloning with https this should be the https url.",
+										},
+										"depth": {
+											Type:        JsonSchemaTypeInteger,
+											Description: "The number of commits to clone",
+										},
+										"verbose": {
+											Type:        JsonSchemaTypeBoolean,
+											Description: "Whether to return verbose logs",
+										},
+										"path": {
+											Type:        JsonSchemaTypeString,
+											Description: "The relative or absolute path to clone the repo to, if not cloning to {current directory}/{repo name}",
+										},
+									},
+									Required: []string{"repoUrl"},
+								},
+								Invocation: &CliInvocation{
+									Command: "git clone %s %s %s %s",
+									TemplateVariables: map[string]*TemplateVariable{
+										"depth": {
+											Format:           "--depth %d",
+											formatParameters: []string{"depth"},
+										},
+										"verbose": {
+											Format:      "--verbose",
+											OmitIfFalse: true,
+										},
+									},
+									commandParameters: []string{"depth", "verbose", "repoUrl", "path"},
+								},
+							},
+							{
+								Name:        "ensure_dir_exists",
+								Title:       "Ensure directory exists",
+								Description: "Ensure that a given directory exists on the machine",
+								InputSchema: &JsonSchema{
+									Type: JsonSchemaTypeObject,
+									Properties: map[string]*JsonSchema{
+										"path": {
+											Type:        JsonSchemaTypeString,
+											Description: "The path to the directory",
+										},
+									},
+									Required: []string{"path"},
+								},
+								Invocation: &CliInvocation{
+									Command:           "mkdir -p %s",
+									commandParameters: []string{"path"},
+								},
+							},
+							{
+								Name:        "get_repo_url",
+								Title:       "Get repository url",
+								Description: "Get the https or ssh url for a git repository given the organization name and repo name",
+								InputSchema: &JsonSchema{
+									Type: JsonSchemaTypeObject,
+									Properties: map[string]*JsonSchema{
+										"org": {
+											Type:        JsonSchemaTypeString,
+											Description: "The name of the github organization",
+										},
+										"repoName": {
+											Type:        JsonSchemaTypeString,
+											Description: "The name of the github repository",
+										},
+										"scheme": {
+											Type:        JsonSchemaTypeString,
+											Description: "The scheme of the returned url. Must be one of https or ssh",
+										},
+									},
+									Required: []string{"org", "repoName"},
+								},
+								Invocation: &HttpInvocation{
+									URL:            "http://localhost:9090/repos/%s/%s",
+									Method:         http.MethodGet,
+									pathParameters: []string{"org", "repoName"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for testName, testCase := range tt {
