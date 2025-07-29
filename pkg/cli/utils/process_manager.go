@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -14,6 +15,19 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+
+	// ensure that the processes file exists
+	filePath = filepath.Join(filePath, "processes")
+	_, err = os.Stat(filePath)
+	if err != nil {
+		f, err := os.Create(filePath)
+		if err != nil {
+			panic(err)
+		}
+		f.WriteString("{}")
+		f.Close()
+	}
+
 	manager = &ProcessManager{
 		filePath: filePath,
 	}

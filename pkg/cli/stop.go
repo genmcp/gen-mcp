@@ -52,5 +52,7 @@ func executeStopCmd(cobraCmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("successfully started AutoMCP server...\n")
+	processManager.DeleteProcessId(mcpFilePath)
+
+	fmt.Printf("successfully stopped AutoMCP server...\n")
 }
