@@ -23,7 +23,7 @@ solution.
 
 1. **Automatic MCP Server Creation**: Create fully functional MCP servers diretly from a
 simple MCP file
-2. **[Coming soon] OpenAPI to MCP File Conversion**: Effortlessly create MCP files directly
+2. **OpenAPI to MCP File Conversion**: Effortlessly create MCP files directly
 from your existing OpenAPI docs.
 
 ## Documentation
