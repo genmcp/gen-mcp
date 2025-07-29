@@ -63,7 +63,7 @@ func executeConvertCmd(cobraCmd *cobra.Command, args []string) {
 		return
 	}
 
-	err = os.WriteFile(outputPath, mcpFileBytes, os.ModePerm)
+	err = os.WriteFile(outputPath, mcpFileBytes, 0644)
 	if err != nil {
 		fmt.Printf("could not write mcpfile to file at path %s: %s", outputPath, err.Error())
 	}
