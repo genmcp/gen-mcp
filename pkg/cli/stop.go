@@ -15,7 +15,7 @@ func init() {
 }
 
 var stopCmd = &cobra.Command{
-	Use:   "run",
+	Use:   "stop",
 	Short: "Run a MCP server",
 	Run:   executeStopCmd,
 }
