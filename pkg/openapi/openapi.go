@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/Cali0707/AutoMCP/pkg/mcpfile"
@@ -34,6 +35,7 @@ func McpFileFromOpenApiModel(model *v3high.Document) (*mcpfile.MCPFile, error) {
 	res := &mcpfile.MCPFile{
 		FileVersion: mcpfile.MCPFileVersion,
 	}
+
 	server := &mcpfile.MCPServer{
 		Runtime: &mcpfile.ServerRuntime{
 			TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
@@ -41,18 +43,30 @@ func McpFileFromOpenApiModel(model *v3high.Document) (*mcpfile.MCPFile, error) {
 				Port: 7007,
 			},
 		},
-		Tools: []*mcpfile.Tool{},
+		Tools:   []*mcpfile.Tool{},
+		Version: "0.0.1",
 	}
+
+	title := "mcpfile-generated"
+	if model.Info != nil && model.Info.Title != "" {
+		title = model.Info.Title
+	}
+
+	server.Name = title
 
 	baseUrl := ""
 	if len(model.Servers) > 0 {
 		baseUrl = model.Servers[0].URL
-
 	}
+
+	var err error
 
 	for pathName, pathItem := range model.Paths.PathItems.FromOldest() {
 		for operationMethod, operation := range pathItem.GetOperations().FromOldest() {
 			tool := &mcpfile.Tool{
+				Name:        fmt.Sprintf("%s.%s", pathName, operationMethod),
+				Title:       operation.Summary,
+				Description: operation.Description,
 				InputSchema: &mcpfile.JsonSchema{
 					Type:       mcpfile.JsonSchemaTypeObject,
 					Properties: make(map[string]*mcpfile.JsonSchema),
@@ -76,30 +90,53 @@ func McpFileFromOpenApiModel(model *v3high.Document) (*mcpfile.MCPFile, error) {
 				}
 			}
 
+			if operation.RequestBody != nil {
+				jsonSchema, ok := operation.RequestBody.Content.Get("application/json")
+				if !ok {
+					err = errors.Join(err, fmt.Errorf("no JSON schema defined on request body for %s, skipping tool", tool.Name))
+					continue
+				}
+
+				reqSchema := convertSchema(jsonSchema.Schema)
+
+				if reqSchema.Type != mcpfile.JsonSchemaTypeObject {
+					// TODO: we probably want better error handling here
+					err = errors.Join(err, fmt.Errorf("JSON schema defined on request body for %s is not an object, skipping tool", tool.Name))
+					continue
+				}
+
+				maps.Copy(tool.InputSchema.Properties, reqSchema.Properties)
+
+				tool.InputSchema.Required = append(tool.InputSchema.Required, reqSchema.Required...)
+
+				tool.InputSchema.AdditionalProperties = reqSchema.AdditionalProperties
+
+			}
+
 			// hack to make sure everything is parsed correctly
-			toolJson, err := json.Marshal(tool)
-			if err != nil {
-				return nil, fmt.Errorf("converted tool failed to serialize to mcpfile spec: %w", err)
+			toolJson, jsonErr := json.Marshal(tool)
+			if jsonErr != nil {
+				err = errors.Join(err, fmt.Errorf("failed to serialize tool %s into json, skipping tool: %w", tool.Name, jsonErr))
 			}
 
 			t := &mcpfile.Tool{}
-			err = json.Unmarshal(toolJson, t)
-			if err != nil {
-				return nil, fmt.Errorf("converted tool failed to deserialize with mcpfile spec: %w", err)
+			jsonErr = json.Unmarshal(toolJson, t)
+			if jsonErr != nil {
+				err = errors.Join(err, fmt.Errorf("failed to deserialize tool %s from json, skipping tool: %w", tool.Name, jsonErr))
 			}
 
 			server.Tools = append(server.Tools, t)
 		}
 	}
 
-	err := server.Validate()
-	if err != nil {
-		return nil, fmt.Errorf("invalid converted server: %w", err)
+	validationErr := server.Validate()
+	if validationErr != nil {
+		return nil, errors.Join(err, fmt.Errorf("failed to validate converted server: %w", validationErr))
 	}
 
 	res.Servers = []*mcpfile.MCPServer{server}
 
-	return res, nil
+	return res, err
 }
 
 func convertSchema(proxy *highbase.SchemaProxy) *mcpfile.JsonSchema {
@@ -109,7 +146,7 @@ func convertSchema(proxy *highbase.SchemaProxy) *mcpfile.JsonSchema {
 		Description: schema.Description,
 	}
 
-	switch s.Type {
+	switch schema.Type[0] {
 	case mcpfile.JsonSchemaTypeArray:
 		if schema.Items.IsA() {
 			s.Items = convertSchema(schema.Items.A)
@@ -119,6 +156,11 @@ func convertSchema(proxy *highbase.SchemaProxy) *mcpfile.JsonSchema {
 		for k, v := range schema.Properties.FromOldest() {
 			s.Properties[k] = convertSchema(v)
 		}
+	}
+
+	if schema.AdditionalProperties != nil && (schema.AdditionalProperties.IsA() || (schema.AdditionalProperties.IsB() && schema.AdditionalProperties.B)) {
+		val := true
+		s.AdditionalProperties = &val
 	}
 
 	return s
