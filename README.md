@@ -30,12 +30,68 @@ from your existing OpenAPI docs.
 
 To learn how to write your own MCP Files, please read [the MCP file format docs](./docs/mcp_file_format.md)
 
-## How to Run
+## Getting Started
 
-To run the MCP server with AutoMCP, you first need to build the Go binary from the `cmd` directory. Then, you can run the binary with the `MCP_FILE_PATH` environment variable set to the path of your MCP file.
+To get started with AutoMCP, you first need to build the CLI and server binaries. Then, you can use the CLI to manage your MCP servers.
+
+### Building the Binaries
+
+Both the `automcp` CLI and the `automcp-server` can be built from the `cmd` directory:
 
 ```bash
-go build ./cmd/mcp-server/
-MCP_FILE_PATH=<path-to-your-mcp-file> ./mcp-server
+go build -o automcp ./cmd/automcp
+go build -o automcp-server ./cmd/automcp-server
+```
+
+Once built, it is recommended to add the binaries to your path. For example, by moving them to `/usr/local/bin`:
+
+```bash
+mv automcp automcp-server /usr/local/bin
+```
+
+### CLI Usage
+
+The `automcp` CLI provides several commands to help you manage your MCP servers.
+
+#### `run`
+
+The `run` command starts an MCP server. It requires an `mcpfile.yaml` to be present in the current directory, or you can specify a path to the file using the `-f` or `--file` flag.
+
+```bash
+automcp run -f /path/to/your/mcpfile.yaml
+```
+
+By default, the server runs in the foreground. To run it in the background, use the `-d` or `--detach` flag.
+
+```bash
+automcp run -d
+```
+
+#### `stop`
+
+The `stop` command stops a detached MCP server. It uses the `mcpfile.yaml` to find the process ID of the server to stop.
+
+```bash
+automcp stop -f /path/to/your/mcpfile.yaml
+```
+
+If the `mcpfile.yaml` is in the current directory, you can just run:
+
+```bash
+automcp stop
+```
+
+#### `convert`
+
+The `convert` command converts an OpenAPI specification to an `mcpfile.yaml`. It takes the path to the OpenAPI spec as an argument. The spec can be a local file or a remote URL.
+
+```bash
+automcp convert /path/to/your/openapi.json
+```
+
+By default, the output is written to `mcpfile.yaml`. You can specify a different output path with the `-o` or `--out` flag.
+
+```bash
+automcp convert https://petstore.swagger.io/v2/swagger.json -o my-petstore.yaml
 ```
 
