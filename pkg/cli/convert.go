@@ -15,9 +15,11 @@ import (
 func init() {
 	rootCmd.AddCommand(convertCmd)
 	convertCmd.Flags().StringVarP(&outputPath, "out", "o", "mcpfile.yaml", "the path to write the mcp file to")
+	convertCmd.Flags().StringVarP(&host, "host", "H", "", "the base host for the API, if different than in the OpenAPI spec")
 }
 
 var outputPath string
+var host string
 
 var convertCmd = &cobra.Command{
 	Use:   "convert",
@@ -45,7 +47,7 @@ func executeConvertCmd(cobraCmd *cobra.Command, args []string) {
 		}
 	}
 
-	mcpFile, err := openapi.DocumentToMcpFile(openApiBytes)
+	mcpFile, err := openapi.DocumentToMcpFile(openApiBytes, host)
 	if err != nil {
 		fmt.Printf("encountered errors while converting openapi document to mcp file: %s\n", err.Error())
 	}
