@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 
 	"github.com/Cali0707/AutoMCP/pkg/openapi"
 	"github.com/ghodss/yaml"
@@ -16,13 +15,15 @@ import (
 func init() {
 	rootCmd.AddCommand(convertCmd)
 	convertCmd.Flags().StringVarP(&outputPath, "out", "o", "mcpfile.yaml", "the path to write the mcp file to")
+	convertCmd.Flags().StringVarP(&host, "host", "H", "", "the base host for the API, if different than in the OpenAPI spec")
 }
 
 var outputPath string
+var host string
 
 var convertCmd = &cobra.Command{
 	Use:   "convert",
-	Short: "Run a MCP server",
+	Short: "Convert an OpenAPI v3 spec into a MCPFile",
 	Args:  cobra.ExactArgs(1),
 	Run:   executeConvertCmd,
 }
@@ -46,13 +47,7 @@ func executeConvertCmd(cobraCmd *cobra.Command, args []string) {
 		}
 	}
 
-	openApiDoc, err := openapi.ParseDocument(openApiBytes)
-	if err != nil {
-		fmt.Printf("could not parse openapi document: %s\n", err.Error())
-		return
-	}
-
-	mcpFile, err := openapi.McpFileFromOpenApiModel(&openApiDoc.Model)
+	mcpFile, err := openapi.DocumentToMcpFile(openApiBytes, host)
 	if err != nil {
 		fmt.Printf("encountered errors while converting openapi document to mcp file: %s\n", err.Error())
 	}
@@ -90,9 +85,4 @@ func isRemoteFile(location string) bool {
 		return false
 	}
 	return u.Scheme == "http" || u.Scheme == "https"
-}
-
-func fileName(location string) string {
-	_, f := path.Split(location)
-	return f
 }

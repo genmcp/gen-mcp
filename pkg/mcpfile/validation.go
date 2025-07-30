@@ -109,7 +109,7 @@ func (t *Tool) Validate() error {
 		err = errors.Join(err, fmt.Errorf("invalid tool: inputSchema is not valid: %w", schemaErr))
 	}
 
-	if t.InputSchema.Type != JsonSchemaTypeObject {
+	if t.InputSchema != nil && t.InputSchema.Type != JsonSchemaTypeObject {
 		err = errors.Join(err, fmt.Errorf("invalid tool: inputScheme must be type object at the root"))
 	}
 
@@ -117,7 +117,9 @@ func (t *Tool) Validate() error {
 		err = errors.Join(err, fmt.Errorf("invalid tool: outputSchema is not valid: %w", schemaErr))
 	}
 
-	if invocationErr := t.Invocation.Validate(t); invocationErr != nil {
+	if t.Invocation == nil {
+		err = errors.Join(err, fmt.Errorf("invalid tool: invocation is not set for the tool"))
+	} else if invocationErr := t.Invocation.Validate(t); invocationErr != nil {
 		err = errors.Join(err, fmt.Errorf("invalid tool: invocation is not valid: %w", invocationErr))
 	}
 
@@ -182,7 +184,7 @@ func (r *ServerRuntime) Validate() error {
 
 func (h *HttpInvocation) Validate(t *Tool) error {
 	var err error = nil
-	_, ok := validHttpMethods[h.Method]
+	ok := IsValidHttpMethod(h.Method)
 	if !ok {
 		err = fmt.Errorf("invalid http request method for http invocation")
 	}
@@ -199,6 +201,7 @@ func (h *HttpInvocation) Validate(t *Tool) error {
 		param, ok := t.InputSchema.Properties[paramName]
 		if !ok {
 			err = errors.Join(err, fmt.Errorf("http invocation has %s path parameter, but there is no corresponding property defined on the input schema", paramName))
+			continue
 		}
 
 		switch param.Type {
@@ -340,4 +343,9 @@ func (tc *TemplateVariable) setFormatVariable(formatVariable string) {
 	}
 
 	tc.Format = tc.Format[:offset] + formatVariable + tc.Format[offset+2:]
+}
+
+func IsValidHttpMethod(method string) bool {
+	_, ok := validHttpMethods[strings.ToUpper(method)]
+	return ok
 }
