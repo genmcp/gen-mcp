@@ -40,7 +40,7 @@ servers:
     invocation:
       http:
         method: PUT
-        url: /api/v3/pet
+        url: https://petstore3.swagger.io/api/v3/pet
     name: /pet.put
     title: Update an existing pet.
   - description: Add a new pet to the store.
@@ -77,7 +77,7 @@ servers:
     invocation:
       http:
         method: POST
-        url: /api/v3/pet
+        url: https://petstore3.swagger.io/api/v3/pet
     name: /pet.post
     title: Add a new pet to the store.
   - description: Multiple status values can be provided with comma separated strings.
@@ -89,7 +89,7 @@ servers:
     invocation:
       http:
         method: GET
-        url: /api/v3/pet/findByStatus
+        url: https://petstore3.swagger.io/api/v3/pet/findByStatus
     name: /pet/findByStatus.get
     title: Finds Pets by status.
   - description: Multiple tags can be provided with comma separated strings. Use tag1,
@@ -104,7 +104,7 @@ servers:
     invocation:
       http:
         method: GET
-        url: /api/v3/pet/findByTags
+        url: https://petstore3.swagger.io/api/v3/pet/findByTags
     name: /pet/findByTags.get
     title: Finds Pets by tags.
   - description: Returns a single pet.
@@ -118,7 +118,7 @@ servers:
     invocation:
       http:
         method: GET
-        url: /api/v3/pet/{petId}
+        url: https://petstore3.swagger.io/api/v3/pet/{petId}
     name: /pet/{petId}.get
     title: Find pet by ID.
   - description: Updates a pet resource based on the form data.
@@ -136,7 +136,7 @@ servers:
     invocation:
       http:
         method: POST
-        url: /api/v3/pet/{petId}
+        url: https://petstore3.swagger.io/api/v3/pet/{petId}
     name: /pet/{petId}.post
     title: Updates a pet in the store with form data.
   - description: Delete a pet.
@@ -152,7 +152,7 @@ servers:
     invocation:
       http:
         method: DELETE
-        url: /api/v3/pet/{petId}
+        url: https://petstore3.swagger.io/api/v3/pet/{petId}
     name: /pet/{petId}.delete
     title: Deletes a pet.
   - description: Returns a map of status codes to quantities.
@@ -161,7 +161,7 @@ servers:
     invocation:
       http:
         method: GET
-        url: /api/v3/store/inventory
+        url: https://petstore3.swagger.io/api/v3/store/inventory
     name: /store/inventory.get
     title: Returns pet inventories by status.
   - description: Place a new order in the store.
@@ -184,7 +184,7 @@ servers:
     invocation:
       http:
         method: POST
-        url: /api/v3/store/order
+        url: https://petstore3.swagger.io/api/v3/store/order
     name: /store/order.post
     title: Place an order for a pet.
   - description: For valid response try integer IDs with value <= 5 or > 10. Other
@@ -199,7 +199,7 @@ servers:
     invocation:
       http:
         method: GET
-        url: /api/v3/store/order/{orderId}
+        url: https://petstore3.swagger.io/api/v3/store/order/{orderId}
     name: /store/order/{orderId}.get
     title: Find purchase order by ID.
   - description: For valid response try integer IDs with value < 1000. Anything above
@@ -214,7 +214,7 @@ servers:
     invocation:
       http:
         method: DELETE
-        url: /api/v3/store/order/{orderId}
+        url: https://petstore3.swagger.io/api/v3/store/order/{orderId}
     name: /store/order/{orderId}.delete
     title: Delete purchase order by identifier.
   - description: This can only be done by the logged in user.
@@ -241,7 +241,7 @@ servers:
     invocation:
       http:
         method: POST
-        url: /api/v3/user
+        url: https://petstore3.swagger.io/api/v3/user
     name: /user.post
     title: Create user.
   - description: Log into the system.
@@ -255,7 +255,7 @@ servers:
     invocation:
       http:
         method: GET
-        url: /api/v3/user/login
+        url: https://petstore3.swagger.io/api/v3/user/login
     name: /user/login.get
     title: Logs user into the system.
   - description: Log user out of the system.
@@ -264,7 +264,7 @@ servers:
     invocation:
       http:
         method: GET
-        url: /api/v3/user/logout
+        url: https://petstore3.swagger.io/api/v3/user/logout
     name: /user/logout.get
     title: Logs out current logged in user session.
   - description: Get user detail based on username.
@@ -278,7 +278,7 @@ servers:
     invocation:
       http:
         method: GET
-        url: /api/v3/user/{username}
+        url: https://petstore3.swagger.io/api/v3/user/{username}
     name: /user/{username}.get
     title: Get user by user name.
   - description: This can only be done by the logged in user.
@@ -307,7 +307,7 @@ servers:
     invocation:
       http:
         method: PUT
-        url: /api/v3/user/{username}
+        url: https://petstore3.swagger.io/api/v3/user/{username}
     name: /user/{username}.put
     title: Update user resource.
   - description: This can only be done by the logged in user.
@@ -321,7 +321,7 @@ servers:
     invocation:
       http:
         method: DELETE
-        url: /api/v3/user/{username}
+        url: https://petstore3.swagger.io/api/v3/user/{username}
     name: /user/{username}.delete
     title: Delete user resource.
   version: 0.0.1

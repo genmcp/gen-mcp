@@ -5,13 +5,38 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"slices"
 	"strings"
 
 	"github.com/Cali0707/AutoMCP/pkg/mcpfile"
 	"github.com/pb33f/libopenapi"
 	highbase "github.com/pb33f/libopenapi/datamodel/high/base"
+	v2high "github.com/pb33f/libopenapi/datamodel/high/v2"
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
 )
+
+func DocumentToMcpFile(document []byte) (*mcpfile.MCPFile, error) {
+	doc, err := libopenapi.NewDocument(document)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create openapi document: %w", err)
+	}
+
+	if strings.HasPrefix(doc.GetVersion(), "3") {
+		docModel, errs := doc.BuildV3Model()
+		err = errors.Join(errs...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build OpenAPI V3 model: %w", err)
+		}
+		return McpFileFromOpenApiV3Model(&docModel.Model)
+	}
+
+	docModel, errs := doc.BuildV2Model()
+	err = errors.Join(errs...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build OpenAPI V3 model: %w", err)
+	}
+	return McpFileFromOpenApiV2Model(&docModel.Model)
+}
 
 func ParseDocument(document []byte) (*libopenapi.DocumentModel[v3high.Document], error) {
 	doc, err := libopenapi.NewDocument(document)
@@ -28,7 +53,112 @@ func ParseDocument(document []byte) (*libopenapi.DocumentModel[v3high.Document],
 	return docModel, nil
 }
 
-func McpFileFromOpenApiModel(model *v3high.Document) (*mcpfile.MCPFile, error) {
+func McpFileFromOpenApiV2Model(model *v2high.Swagger) (*mcpfile.MCPFile, error) {
+	// 1. Set top level MCP file info
+	// 2. Create a server in the MCP file, default to streamablehttp transport w. port 7007
+	// 3 for each (path, operation) in the document, add one tool to the server w. http invoke
+	res := &mcpfile.MCPFile{
+		FileVersion: mcpfile.MCPFileVersion,
+	}
+
+	server := &mcpfile.MCPServer{
+		Runtime: &mcpfile.ServerRuntime{
+			TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
+			StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
+				Port: 7007,
+			},
+		},
+		Tools:   []*mcpfile.Tool{},
+		Version: "0.0.1",
+	}
+
+	title := "mcpfile-generated"
+	if model.Info != nil && model.Info.Title != "" {
+		title = model.Info.Title
+	}
+
+	server.Name = title
+
+	var scheme string
+	if slices.Contains(model.Schemes, "https") {
+		scheme = "https"
+	} else if slices.Contains(model.Schemes, "http") {
+		scheme = "http"
+	} else {
+		return nil, fmt.Errorf("no valid scheme set on swagger document: AutoMCP requires one of (http, https)")
+	}
+
+	baseUrl := fmt.Sprintf("%s://%s%s", scheme, model.Host, model.BasePath)
+
+	var err error
+
+	for pathName, pathItem := range model.Paths.PathItems.FromOldest() {
+		for operationMethod, operation := range pathItem.GetOperations().FromOldest() {
+			tool := &mcpfile.Tool{
+				Name:        fmt.Sprintf("%s.%s", pathName, operationMethod),
+				Title:       operation.Summary,
+				Description: operation.Description,
+				InputSchema: &mcpfile.JsonSchema{
+					Type:       mcpfile.JsonSchemaTypeObject,
+					Properties: make(map[string]*mcpfile.JsonSchema),
+					Required:   []string{},
+				},
+				Invocation: &mcpfile.HttpInvocation{
+					URL:    fmt.Sprintf("%s%s", baseUrl, pathName),
+					Method: strings.ToUpper(operationMethod),
+				},
+			}
+
+			numPathParams := 0
+			for _, param := range operation.Parameters {
+				if param == nil {
+					continue
+				}
+
+				tool.InputSchema.Properties[param.Name] = convertSchema(param.Schema)
+
+				if (param.Required != nil && *param.Required) || strings.ToLower(param.In) == "path" {
+					tool.InputSchema.Required = append(tool.InputSchema.Required, param.Name)
+					numPathParams++
+				}
+			}
+
+			consumes := model.Consumes
+			if len(operation.Consumes) > 0 {
+				consumes = operation.Consumes
+			}
+
+			if len(tool.InputSchema.Properties) > numPathParams && (!slices.Contains(consumes, "application/json")) {
+				err = errors.Join(err, fmt.Errorf("endpoint for %s does not consumer application/json, skipping tool", tool.Name))
+				continue
+			}
+
+			// hack to make sure everything is parsed correctly
+			toolJson, jsonErr := json.Marshal(tool)
+			if jsonErr != nil {
+				err = errors.Join(err, fmt.Errorf("failed to serialize tool %s into json, skipping tool: %w", tool.Name, jsonErr))
+			}
+
+			t := &mcpfile.Tool{}
+			jsonErr = json.Unmarshal(toolJson, t)
+			if jsonErr != nil {
+				err = errors.Join(err, fmt.Errorf("failed to deserialize tool %s from json, skipping tool: %w", tool.Name, jsonErr))
+			}
+
+			server.Tools = append(server.Tools, t)
+		}
+	}
+
+	validationErr := server.Validate()
+	if validationErr != nil {
+		return nil, errors.Join(err, fmt.Errorf("failed to validate converted server: %w", validationErr))
+	}
+
+	res.Servers = []*mcpfile.MCPServer{server}
+
+	return res, err
+}
+func McpFileFromOpenApiV3Model(model *v3high.Document) (*mcpfile.MCPFile, error) {
 	// 1. Set top level MCP file info
 	// 2. Create a server in the MCP file, default to streamablehttp transport w. port 7007
 	// 3 for each (path, operation) in the document, add one tool to the server w. http invoke
