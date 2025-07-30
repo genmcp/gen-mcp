@@ -23,7 +23,7 @@ var host string
 
 var convertCmd = &cobra.Command{
 	Use:   "convert",
-	Short: "Convert an OpenAPI v3 spec into a MCPFile",
+	Short: "Convert an OpenAPI v2/v3 spec into a MCPFile",
 	Args:  cobra.ExactArgs(1),
 	Run:   executeConvertCmd,
 }
