@@ -1,0 +1,14 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: feature-request-demo
+  labels:
+    app: feature-request-demo
+spec:
+  to:
+    kind: Service
+    name: feature-request-demo
+    weight: 100
+  port:
+    targetPort: http
+  wildcardPolicy: None

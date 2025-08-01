@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feature-request-demo
+  labels:
+    app: feature-request-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: feature-request-demo
+  template:
+    metadata:
+      labels:
+        app: feature-request-demo
+    spec:
+      containers:
+      - name: feature-request-demo
+        image: ko://github.com/Cali0707/AutoMCP/demo
+        ports:
+        - containerPort: 9090
+          name: http
+        env:
+        - name: PORT
+          value: "9090"

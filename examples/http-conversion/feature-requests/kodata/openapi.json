@@ -1,0 +1,392 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Feature Request API",
+    "description": "A simple API for managing feature requests with voting functionality",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:9090",
+      "description": "Development server"
+    }
+  ],
+  "paths": {
+    "/features": {
+      "get": {
+        "summary": "Get all features",
+        "description": "Returns a list of all features sorted by upvotes (highest first)",
+        "responses": {
+          "200": {
+            "description": "List of feature summaries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FeatureSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add new feature",
+        "description": "Create a new feature request",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeatureRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Feature created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Feature"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid JSON or missing title",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/features/top": {
+      "get": {
+        "summary": "Get top feature",
+        "description": "Returns the feature with the most upvotes",
+        "responses": {
+          "200": {
+            "description": "Top feature summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureSummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No features found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/features/{id}": {
+      "get": {
+        "summary": "Get feature details",
+        "description": "Returns detailed information about a specific feature",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Feature ID",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feature details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Feature"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid feature ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Feature not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete feature",
+        "description": "Delete a specific feature request",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Feature ID",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Feature deleted successfully"
+          },
+          "400": {
+            "description": "Invalid feature ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Feature not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/features/vote": {
+      "post": {
+        "summary": "Vote for feature",
+        "description": "Increment the upvote count for a specific feature",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Vote recorded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Feature"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Feature not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/features/complete": {
+      "post": {
+        "summary": "Mark feature as completed",
+        "description": "Mark a specific feature request as completed",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Feature marked as completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Feature"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Feature not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Feature": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Unique identifier for the feature"
+          },
+          "title": {
+            "type": "string",
+            "description": "Feature title"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description of the feature"
+          },
+          "details": {
+            "type": "string",
+            "description": "Detailed implementation notes for the feature"
+          },
+          "upvotes": {
+            "type": "integer",
+            "description": "Number of upvotes received"
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Whether the feature has been completed"
+          }
+        },
+        "required": ["id", "title", "description", "upvotes", "completed"]
+      },
+      "FeatureSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Unique identifier for the feature"
+          },
+          "title": {
+            "type": "string",
+            "description": "Feature title"
+          },
+          "upvotes": {
+            "type": "integer",
+            "description": "Number of upvotes received"
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Whether the feature has been completed"
+          }
+        },
+        "required": ["id", "title", "upvotes", "completed"]
+      },
+      "FeatureRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Feature title"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description of the feature"
+          },
+          "details": {
+            "type": "string",
+            "description": "Detailed implementation notes for the feature"
+          }
+        },
+        "required": ["title"]
+      },
+      "VoteRequest": {
+        "type": "object",
+        "properties": {
+          "feature_id": {
+            "type": "integer",
+            "description": "ID of the feature to vote for"
+          }
+        },
+        "required": ["feature_id"]
+      },
+      "CompleteRequest": {
+        "type": "object",
+        "properties": {
+          "feature_id": {
+            "type": "integer",
+            "description": "ID of the feature to mark as completed"
+          }
+        },
+        "required": ["feature_id"]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          }
+        },
+        "required": ["error"]
+      }
+    }
+  }
+}

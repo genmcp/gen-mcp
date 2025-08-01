@@ -1,16 +1,37 @@
 # 🤖 Talk to Ollama with AutoMCP!
 
-This example demonstrates how to use AutoMCP to wrap the Ollama API, instantly turning your local LLMs into tools accessible via the MCP standard.
+📹 **[Watch the demo video](https://youtu.be/yqJV9rNwfg8)** to see this example in action!
 
-It's like giving your AI a superpower! 🚀
+This directory demonstrates two different approaches to integrate Ollama with AutoMCP: HTTP-based and CLI-based methods.
 
-## How to Use It
+## Two Integration Methods
 
-1.  **Make sure Ollama is running** locally (usually at `http://localhost:11434`).
-2.  With `automcp` in your path, run the `mcpfile` with `automcp`:
+### HTTP-based Integration (`ollama-http.yaml`)
+Uses Ollama's REST API endpoints directly:
+- Requires Ollama to be running locally at `http://localhost:11434`
+- Provides tools for completions, embeddings, model management via HTTP calls
+- More reliable and provides structured JSON responses
 
-    ```bash
-    automcp run -f examples/ollama/mcpfile.yaml
-    ```
+### CLI-based Integration (`ollama-cli.yaml`) 
+Uses Ollama's command-line interface:
+- Executes `ollama` CLI commands directly
+- Useful when you prefer command-line interaction
+- Provides tools for starting Ollama, pulling models, and generating completions
 
-And that's it! AutoMCP will start a server, exposing Ollama endpoints as tools, allowing you to generate completions, list running models, pull new models, and more. You can now send requests to this server to interact with your Ollama models as if they were any other MCP tool.
+## How to Use
+
+### HTTP Method (Recommended)
+1. **Make sure Ollama is running** locally (usually at `http://localhost:11434`).
+2. Run the HTTP-based integration:
+   ```bash
+   automcp run examples/ollama/ollama-http.yaml
+   ```
+
+### CLI Method  
+1. **Ensure Ollama is installed** and available in your PATH.
+2. Run the CLI-based integration:
+   ```bash
+   automcp run examples/ollama/ollama-cli.yaml
+   ```
+
+Both methods expose Ollama functionality as MCP tools, allowing AI assistants to interact with your local language models seamlessly!
