@@ -182,7 +182,6 @@ func (c *CliInvocation) HandleRequest(ctx context.Context, req mcp.CallToolReque
 		return mcp.NewToolResultError("arguments were not a valid object"), nil
 	}
 
-
 	var err error = nil
 	pathParamValues := []any{}
 	for _, paramName := range c.commandParameters {
@@ -198,10 +197,6 @@ func (c *CliInvocation) HandleRequest(ctx context.Context, req mcp.CallToolReque
 		}
 
 		pathParamValues = append(pathParamValues, val)
-	}
-
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("encountered error while parsing path parameters: %s", err.Error())), nil
 	}
 
 	remainingArgs := []string{}
@@ -228,7 +223,7 @@ func (c *CliInvocation) HandleRequest(ctx context.Context, req mcp.CallToolReque
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("encountered error while calling command: %s", err.Error())), nil
+		return mcp.NewToolResultError(fmt.Sprintf("encountered error while calling command: %s. output was: %s", err.Error(), string(output))), nil
 	}
 
 	return mcp.NewToolResultText(string(output)), nil

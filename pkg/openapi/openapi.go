@@ -95,11 +95,11 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 	for pathName, pathItem := range model.Paths.PathItems.FromOldest() {
 		for operationMethod, operation := range pathItem.GetOperations().FromOldest() {
 			if !mcpfile.IsValidHttpMethod(operationMethod) {
-				err = errors.Join(err, fmt.Errorf("%s is not a supported http method, skipping %s.%s", operationMethod, pathName, operationMethod))
+				err = errors.Join(err, fmt.Errorf("%s is not a supported http method, skipping %s", operationMethod, toolName(pathName, operationMethod)))
 				continue
 			}
 			tool := &mcpfile.Tool{
-				Name:        fmt.Sprintf("%s.%s", pathName, operationMethod),
+				Name:        toolName(pathName, operationMethod),
 				Title:       operation.Summary,
 				Description: operation.Description,
 				InputSchema: &mcpfile.JsonSchema{
@@ -205,16 +205,20 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 		baseUrl = model.Servers[0].URL
 	}
 
+	if host != "" {
+		baseUrl = host
+	}
+
 	var err error
 
 	for pathName, pathItem := range model.Paths.PathItems.FromOldest() {
 		for operationMethod, operation := range pathItem.GetOperations().FromOldest() {
 			if !mcpfile.IsValidHttpMethod(operationMethod) {
-				err = errors.Join(err, fmt.Errorf("%s is not a supported http method, skipping %s.%s", operationMethod, pathName, operationMethod))
+				err = errors.Join(err, fmt.Errorf("%s is not a supported http method, skipping %s", operationMethod, toolName(pathName, operationMethod)))
 				continue
 			}
 			tool := &mcpfile.Tool{
-				Name:        fmt.Sprintf("%s.%s", pathName, operationMethod),
+				Name:        toolName(pathName, operationMethod),
 				Title:       operation.Summary,
 				Description: operation.Description,
 				InputSchema: &mcpfile.JsonSchema{
@@ -374,4 +378,9 @@ func convertV2Parameter(param *v2high.Parameter, visited map[*highbase.SchemaPro
 	}
 
 	return s
+}
+
+func toolName(path, operation string) string {
+	pathParts := strings.Split(path, "/")
+	return fmt.Sprintf("%s_%s", operation, strings.Join(pathParts, "-"))
 }
