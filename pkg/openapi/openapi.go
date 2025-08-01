@@ -381,6 +381,9 @@ func convertV2Parameter(param *v2high.Parameter, visited map[*highbase.SchemaPro
 }
 
 func toolName(path, operation string) string {
+	path = strings.TrimPrefix(path, "/")
+	path = strings.ReplaceAll(path, "{", "")
+	path = strings.ReplaceAll(path, "}", "")
 	pathParts := strings.Split(path, "/")
 	return fmt.Sprintf("%s_%s", operation, strings.Join(pathParts, "-"))
 }
