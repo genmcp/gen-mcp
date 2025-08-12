@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: automcp-demo
+  labels:
+    app: automcp-demo
+spec:
+  selector:
+    app: automcp-demo
+  ports:
+  - port: 80
+    targetPort: 7007
+    protocol: TCP
+    name: http
+  type: ClusterIP
