@@ -15,7 +15,7 @@ gen-mcp eliminates the complexity of building Model Context Protocol (MCP) serve
 - 🤖 **AI Engineers** - Connect LLMs to external tools without custom server code  
 - 🛠️ **DevOps Teams** - Integrate legacy systems with modern AI workflows
 
-![gen-mcp System Diagram](./docs/automcp-system-diagram.jpg)
+![gen-mcp System Diagram](./docs/gen-mcp-system-diagram.jpg)
 
 ## ✨ Key Features
 
