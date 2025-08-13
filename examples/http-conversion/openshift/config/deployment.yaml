@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: automcp-demo
+  labels:
+    app: automcp-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: automcp-demo
+  template:
+    metadata:
+      labels:
+        app: automcp-demo
+    spec:
+      containers:
+      - name: automcp-demo
+        image: quay.io/cmurray/automcp/automcp-server-cb047495ee749d79922dead62115006a
+        ports:
+        - containerPort: 7007
+          name: http
+        env:
+        - name: MCP_FILE_PATH
+          value: /etc/config/mcpfile.yaml
+        volumeMounts:
+        - name: config
+          mountPath: /etc/config
+      volumes:
+      - name: config
+        configMap:
+          name: automcp-config

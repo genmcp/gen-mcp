@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: feature-request-demo
-        image: ko://github.com/Cali0707/AutoMCP/demo
+        image: ko://github.com/Cali0707/AutoMCP/examples/http-conversion/feature-requests
         ports:
         - containerPort: 9090
           name: http
