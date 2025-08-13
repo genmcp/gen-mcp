@@ -8,8 +8,8 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "automcp",
-	Short: "automcp manages AutoMCP servers, and their configuration",
+	Use:   "genmcp",
+	Short: "genmcp manages gen-mcp servers, and their configuration",
 }
 
 func Execute() {

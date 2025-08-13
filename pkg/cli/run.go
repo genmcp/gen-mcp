@@ -6,8 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/Cali0707/AutoMCP/pkg/cli/utils"
-	"github.com/Cali0707/AutoMCP/pkg/mcpfile"
+	"github.com/genmcp/gen-mcp/pkg/cli/utils"
+	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +27,7 @@ var runCmd = &cobra.Command{
 }
 
 func executeRunCmd(cobraCmd *cobra.Command, args []string) {
-	cmd := exec.Command("automcp-server")
+	cmd := exec.Command("genmcp-server")
 	mcpFilePath, err := filepath.Abs(mcpFilePath)
 	if err != nil {
 		fmt.Printf("failed to resolve mcp file path: %s\n", err.Error())
@@ -61,21 +61,21 @@ func executeRunCmd(cobraCmd *cobra.Command, args []string) {
 
 		err := cmd.Run()
 		if err != nil {
-			fmt.Printf("automcp-server failed with %s\n", err.Error())
+			fmt.Printf("genmcp-server failed with %s\n", err.Error())
 		}
 		return
 	}
 
 	err = cmd.Start()
 	if err != nil {
-		fmt.Printf("failed to start automcp-server: %s\n", err.Error())
+		fmt.Printf("failed to start genmcp-server: %s\n", err.Error())
 	}
 
 	processManager := utils.GetProcessManager()
 	err = processManager.SaveProcessId(mcpFilePath, cmd.Process.Pid)
 	if err != nil {
-		fmt.Printf("failed to save pid for automcp server, to stop the server you will need to manually kill pid %d: %s\n", cmd.Process.Pid, err.Error())
+		fmt.Printf("failed to save pid for genmcp server, to stop the server you will need to manually kill pid %d: %s\n", cmd.Process.Pid, err.Error())
 	}
 
-	fmt.Printf("successfully started AutoMCP server...\n")
+	fmt.Printf("successfully started gen-mcp server...\n")
 }

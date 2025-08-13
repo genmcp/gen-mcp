@@ -9,7 +9,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/Cali0707/AutoMCP/pkg/mcpfile"
+	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/pb33f/libopenapi"
 	highbase "github.com/pb33f/libopenapi/datamodel/high/base"
 	v2high "github.com/pb33f/libopenapi/datamodel/high/v2"
@@ -78,7 +78,7 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 	} else if slices.Contains(model.Schemes, "http") {
 		scheme = "http"
 	} else {
-		return nil, fmt.Errorf("no valid scheme set on swagger document: AutoMCP requires one of (http, https)")
+		return nil, fmt.Errorf("no valid scheme set on swagger document: gen-mcp requires one of (http, https)")
 	}
 
 	urlHost := model.Host

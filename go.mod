@@ -1,4 +1,4 @@
-module github.com/Cali0707/AutoMCP
+module github.com/genmcp/gen-mcp
 
 go 1.24.4
 

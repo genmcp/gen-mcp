@@ -8,7 +8,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
-	"github.com/Cali0707/AutoMCP/pkg/mcpfile"
+	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 )
 
 func MakeServer(mcpServer *mcpfile.MCPServer) *mcpserver.MCPServer {

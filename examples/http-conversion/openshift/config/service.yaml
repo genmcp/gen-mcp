@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: automcp-demo
+  name: genmcp-demo
   labels:
-    app: automcp-demo
+    app: genmcp-demo
 spec:
   selector:
-    app: automcp-demo
+    app: genmcp-demo
   ports:
   - port: 80
     targetPort: 7007

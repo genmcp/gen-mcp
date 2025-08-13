@@ -5,8 +5,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/Cali0707/AutoMCP/pkg/mcpfile"
-	"github.com/Cali0707/AutoMCP/pkg/mcpserver"
+	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 )
 
 func main() {

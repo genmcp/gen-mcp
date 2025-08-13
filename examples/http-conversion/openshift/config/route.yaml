@@ -1,13 +1,13 @@
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: automcp-demo
+  name: genmcp-demo
   labels:
-    app: automcp-demo
+    app: genmcp-demo
 spec:
   to:
     kind: Service
-    name: automcp-demo
+    name: genmcp-demo
     weight: 100
   port:
     targetPort: http
