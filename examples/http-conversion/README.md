@@ -2,7 +2,7 @@
 
 📹 **[Watch the demo video](https://youtu.be/boMyFzpgJoA)** to see this example in action!
 
-This example demonstrates AutoMCP's ability to automatically convert HTTP REST API endpoints into MCP tools. AutoMCP can expose any REST API as MCP tools that can be called by AI assistants, eliminating the need to write custom MCP server code.
+This example demonstrates gen-mcp's ability to automatically convert HTTP REST API endpoints into MCP tools. gen-mcp can expose any REST API as MCP tools that can be called by AI assistants, eliminating the need to write custom MCP server code.
 
 ## Getting Started
 
@@ -27,10 +27,10 @@ The API will be available at `http://localhost:9090` with endpoints:
 
 ### 2. Generate Initial MCP Configuration
 
-Use AutoMCP to automatically generate a starter configuration from the API:
+Use gen-mcp to automatically generate a starter configuration from the API:
 
 ```bash
-automcp convert http://localhost:9090/openapi.json
+genmcp convert http://localhost:9090/openapi.json
 ```
 
 This creates an initial `mcpfile.yaml` based on the OpenAPI specification.
@@ -51,15 +51,15 @@ Example customizations in this demo:
 
 ### 4. Start the MCP Server
 
-Launch the AutoMCP server:
+Launch the gen-mcp server:
 
 ```bash
-automcp run mcpfile.yaml
+genmcp run mcpfile.yaml
 ```
 
 The MCP server will run on port 7007 (as configured) and expose the HTTP endpoints as MCP tools that AI assistants can call seamlessly.
 
-## Key AutoMCP HTTP Conversion Features
+## Key gen-mcp HTTP Conversion Features
 
 - **Automatic Tool Generation**: HTTP endpoints become MCP tools automatically from OpenAPI specs
 - **Path Parameter Substitution**: URL templates like `{id}` are handled automatically  

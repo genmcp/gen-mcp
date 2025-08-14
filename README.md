@@ -1,4 +1,4 @@
-# AutoMCP: Zero-Code MCP Server Generation
+# gen-mcp: Zero-Code MCP Server Generation
 
 > Transform any API into an MCP server in seconds, not hours
 
@@ -8,14 +8,14 @@
 
 **⚠️ Early Preview**: This is a research project in active development. APIs and features may change.
 
-AutoMCP eliminates the complexity of building Model Context Protocol (MCP) servers. Instead of writing boilerplate code and learning protocol internals, simply describe your tools in a configuration file—AutoMCP handles the rest.
+gen-mcp eliminates the complexity of building Model Context Protocol (MCP) servers. Instead of writing boilerplate code and learning protocol internals, simply describe your tools in a configuration file—gen-mcp handles the rest.
 
 **Perfect for:**
 - 🔌 **API Developers** - Expose existing REST APIs to AI assistants instantly
 - 🤖 **AI Engineers** - Connect LLMs to external tools without custom server code  
 - 🛠️ **DevOps Teams** - Integrate legacy systems with modern AI workflows
 
-![AutoMCP System Diagram](./docs/automcp-system-diagram.jpg)
+![gen-mcp System Diagram](./docs/gen-mcp-system-diagram.jpg)
 
 ## ✨ Key Features
 
@@ -32,29 +32,29 @@ AutoMCP eliminates the complexity of building Model Context Protocol (MCP) serve
 
 ```bash
 # Clone and build
-git clone https://github.com/Cali0707/AutoMCP.git
-cd AutoMCP
+git clone https://github.com/genmcp/gen-mcp.git
+cd gen-mcp
 
 # Build CLI and server
-go build -o automcp ./cmd/automcp
-go build -o automcp-server ./cmd/automcp-server
+go build -o genmcp ./cmd/genmcp
+go build -o genmcp-server ./cmd/genmcp-server
 
 # Add to PATH (recommended)
-sudo mv automcp automcp-server /usr/local/bin
+sudo mv genmcp genmcp-server /usr/local/bin
 ```
 
 ### 2. Choose Your Own Adventure
 
 **Option A: Convert Existing API**
 ```bash
-automcp convert https://api.example.com/openapi.json
-automcp run
+genmcp convert https://api.example.com/openapi.json
+genmcp run
 ```
 
 **Option B: Create Custom Tools**
 ```bash
 # Create mcpfile.yaml with your tools (see documentation)
-automcp run
+genmcp run
 ```
 
 ### 3. See It In Action
@@ -72,44 +72,44 @@ automcp run
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `run` | Start MCP server | `automcp run -f myapi.yaml` |
-| `stop` | Stop running server | `automcp stop` |
-| `convert` | OpenAPI → MCP conversion | `automcp convert api-spec.json` |
+| `run` | Start MCP server | `genmcp run -f myapi.yaml` |
+| `stop` | Stop running server | `genmcp stop` |
+| `convert` | OpenAPI → MCP conversion | `genmcp convert api-spec.json` |
 
 ### Starting Your Server
 
 ```bash
 # Run in foreground (development)
-automcp run -f /path/to/mcpfile.yaml
+genmcp run -f /path/to/mcpfile.yaml
 
 # Run in background
-automcp run -d
+genmcp run -d
 
 # Auto-detect mcpfile.yaml in current directory
-automcp run
+genmcp run
 ```
 
 ### Converting Existing APIs
 
 ```bash
 # From local OpenAPI file
-automcp convert ./api-spec.json
+genmcp convert ./api-spec.json
 
 # From remote OpenAPI URL
-automcp convert https://api.example.com/openapi.json -o custom-name.yaml
+genmcp convert https://api.example.com/openapi.json -o custom-name.yaml
 
 # Petstore example
-automcp convert https://petstore.swagger.io/v2/swagger.json
+genmcp convert https://petstore.swagger.io/v2/swagger.json
 ```
 
 ### Managing Running Servers
 
 ```bash
 # Stop server (uses mcpfile.yaml to find process)
-automcp stop
+genmcp stop
 
 # Stop specific server
-automcp stop -f /path/to/mcpfile.yaml
+genmcp stop -f /path/to/mcpfile.yaml
 ```
 
 ## 📚 Examples & Tutorials
@@ -117,7 +117,7 @@ automcp stop -f /path/to/mcpfile.yaml
 ### 🤖 Ollama Integration
 **[📹 Watch Demo](https://youtu.be/yqJV9rNwfg8)** | **[View Code](./examples/ollama/)**
 
-Connect local language models to MCP Clients with AutoMCP in two ways: by wrapping the Ollama CLI, and by wrapping the Ollama http endpoints.
+Connect local language models to MCP Clients with gen-mcp in two ways: by wrapping the Ollama CLI, and by wrapping the Ollama http endpoints.
 
 **Features:**
 - ✅ HTTP REST API integration
@@ -131,10 +131,10 @@ Transform any REST API into MCP tools automatically:
 
 ```bash
 # 1. Convert OpenAPI spec
-automcp convert http://localhost:9090/openapi.json
+genmcp convert http://localhost:9090/openapi.json
 
 # 2. Run the generated MCP server
-automcp run
+genmcp run
 ```
 
 **Demonstrates:**
@@ -151,8 +151,8 @@ We welcome contributions! This is an early-stage research project with lots of r
 
 ### Development Setup
 ```bash
-git clone https://github.com/your-org/AutoMCP.git
-cd AutoMCP
+git clone https://github.com/genmcp/gen-mcp.git
+cd gen-mcp
 go mod download
 go test ./...
 ```
@@ -164,7 +164,7 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 ## 🔗 Links
 
 - **[Model Context Protocol](https://modelcontextprotocol.io/)** - Official MCP documentation
-- **[MCP File Format](./docs/mcp_file_format.md)** - AutoMCP configuration reference
+- **[MCP File Format](./docs/mcp_file_format.md)** - gen-mcp configuration reference
 - **[Examples](./examples/)** - Real-world integration examples
 
 ---

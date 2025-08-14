@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: automcp-demo
+  name: genmcp-demo
   labels:
-    app: automcp-demo
+    app: genmcp-demo
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: automcp-demo
+      app: genmcp-demo
   template:
     metadata:
       labels:
-        app: automcp-demo
+        app: genmcp-demo
     spec:
       containers:
-      - name: automcp-demo
+      - name: genmcp-demo
         image: quay.io/cmurray/automcp/automcp-server-cb047495ee749d79922dead62115006a
         ports:
         - containerPort: 7007
@@ -29,4 +29,4 @@ spec:
       volumes:
       - name: config
         configMap:
-          name: automcp-config
+          name: genmcp-config

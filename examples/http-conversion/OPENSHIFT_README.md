@@ -2,7 +2,7 @@
 
 📹 **[Watch the demo video](https://youtu.be/boMyFzpgJoA)** to see this example in action!
 
-This example demonstrates AutoMCP's ability to automatically convert HTTP REST API endpoints into MCP tools. AutoMCP can expose any REST API as MCP tools that can be called by AI assistants, eliminating the need to write custom MCP server code.
+This example demonstrates gen-mcp's ability to automatically convert HTTP REST API endpoints into MCP tools. gen-mcp can expose any REST API as MCP tools that can be called by AI assistants, eliminating the need to write custom MCP server code.
 
 ## Getting Started
 
@@ -27,10 +27,10 @@ The API will be available at the url associated with your route with endpoints:
 
 ### 2. Generate Initial MCP Configuration
 
-Use AutoMCP to automatically generate a starter configuration from the API:
+Use gen-mcp to automatically generate a starter configuration from the API:
 
 ```bash
-automcp convert <base route url>/openapi.json -H <base route url>
+genmcp convert <base route url>/openapi.json -H <base route url>
 ```
 
 Note: we are using the `-H` flag here to set the base host url for the api spec, as the openapi.json file says that the endpoints are available at `localhost:9090`.
@@ -56,20 +56,20 @@ Example customizations in this demo:
 First, we need to create a configmap to contain the mcpfile.yaml:
 
 ```bash
-kubectl create cm automcp-config --from-file=mcpfile.yaml
+kubectl create cm genmcp-config --from-file=mcpfile.yaml
 ```
 
-Next, we deploy the AutoMCP server:
+Next, we deploy the gen-mcp server:
 
 ```bash
 cd openshift
 kubectl apply -f config/deployment.yaml -f config/service.yaml -f config/route.yaml
 ```
 
-The MCP service will now be exposed through the `automcp-demo` route, at path `/mcp`. To connect to the server, you will need to use the `streamablehttp` protocol
-and the url `<automcp demo route url>/mcp`.
+The MCP service will now be exposed through the `genmcp-demo` route, at path `/mcp`. To connect to the server, you will need to use the `streamablehttp` protocol
+and the url `<genmcp demo route url>/mcp`.
 
-## Key AutoMCP HTTP Conversion Features
+## Key gen-mcp HTTP Conversion Features
 
 - **Automatic Tool Generation**: HTTP endpoints become MCP tools automatically from OpenAPI specs
 - **Path Parameter Substitution**: URL templates like `{id}` are handled automatically  

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Cali0707/AutoMCP/pkg/cli"
+	"github.com/genmcp/gen-mcp/pkg/cli"
 )
 
 func main() {

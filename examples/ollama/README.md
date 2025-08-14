@@ -1,8 +1,8 @@
-# 🤖 Talk to Ollama with AutoMCP!
+# 🤖 Talk to Ollama with gen-mcp!
 
 📹 **[Watch the demo video](https://youtu.be/yqJV9rNwfg8)** to see this example in action!
 
-This directory demonstrates two different approaches to integrate Ollama with AutoMCP: HTTP-based and CLI-based methods.
+This directory demonstrates two different approaches to integrate Ollama with gen-mcp: HTTP-based and CLI-based methods.
 
 ## Two Integration Methods
 
@@ -24,14 +24,14 @@ Uses Ollama's command-line interface:
 1. **Make sure Ollama is running** locally (usually at `http://localhost:11434`).
 2. Run the HTTP-based integration:
    ```bash
-   automcp run examples/ollama/ollama-http.yaml
+   genmcp run examples/ollama/ollama-http.yaml
    ```
 
 ### CLI Method  
 1. **Ensure Ollama is installed** and available in your PATH.
 2. Run the CLI-based integration:
    ```bash
-   automcp run examples/ollama/ollama-cli.yaml
+   genmcp run examples/ollama/ollama-cli.yaml
    ```
 
 Both methods expose Ollama functionality as MCP tools, allowing AI assistants to interact with your local language models seamlessly!

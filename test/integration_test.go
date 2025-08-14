@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Cali0707/AutoMCP/pkg/mcpfile"
-	"github.com/Cali0707/AutoMCP/pkg/mcpserver"
+	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	mcpclient "github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/client/transport"
 	"github.com/mark3labs/mcp-go/mcp"

@@ -50,18 +50,18 @@ func (pm *ProcessManager) GetProcessId(name string) (int, error) {
 
 	bytes, err := os.ReadFile(pm.filePath)
 	if err != nil {
-		return -1, fmt.Errorf("failed to read %s, unable to find pid for automcp instance: %w", pm.filePath, err)
+		return -1, fmt.Errorf("failed to read %s, unable to find pid for genmcp instance: %w", pm.filePath, err)
 	}
 
 	processes := processes{}
 	err = json.Unmarshal(bytes, &processes)
 	if err != nil {
-		return -1, fmt.Errorf("failed to deserialize the contents of %s, unable to find pid for automcp instance: %w", pm.filePath, err)
+		return -1, fmt.Errorf("failed to deserialize the contents of %s, unable to find pid for genmcp instance: %w", pm.filePath, err)
 	}
 
 	pid, ok := processes[name]
 	if !ok {
-		return -1, fmt.Errorf("no matching pid for automcp instance")
+		return -1, fmt.Errorf("no matching pid for genmcp instance")
 	}
 
 	return pid, nil
@@ -73,20 +73,20 @@ func (pm *ProcessManager) SaveProcessId(name string, pid int) error {
 
 	bytes, err := os.ReadFile(pm.filePath)
 	if err != nil {
-		return fmt.Errorf("failed to read %s, unable to save pid for automcp instance: %w", pm.filePath, err)
+		return fmt.Errorf("failed to read %s, unable to save pid for genmcp instance: %w", pm.filePath, err)
 	}
 
 	processes := processes{}
 	err = json.Unmarshal(bytes, &processes)
 	if err != nil {
-		return fmt.Errorf("failed to deserialize the contents of %s, unable to save pid for automcp instance: %w", pm.filePath, err)
+		return fmt.Errorf("failed to deserialize the contents of %s, unable to save pid for genmcp instance: %w", pm.filePath, err)
 	}
 
 	processes[name] = pid
 
 	bytes, err = json.Marshal(processes)
 	if err != nil {
-		return fmt.Errorf("failed to serialize the processes map, unable to save pid for automcp instance: %w", err)
+		return fmt.Errorf("failed to serialize the processes map, unable to save pid for genmcp instance: %w", err)
 	}
 
 	err = os.WriteFile(pm.filePath, bytes, 0644)
@@ -100,20 +100,20 @@ func (pm *ProcessManager) DeleteProcessId(name string) error {
 
 	bytes, err := os.ReadFile(pm.filePath)
 	if err != nil {
-		return fmt.Errorf("failed to read %s, unable to delete pid for automcp instance: %w", pm.filePath, err)
+		return fmt.Errorf("failed to read %s, unable to delete pid for genmcp instance: %w", pm.filePath, err)
 	}
 
 	processes := processes{}
 	err = json.Unmarshal(bytes, &processes)
 	if err != nil {
-		return fmt.Errorf("failed to deserialize the contents of %s, unable to delete pid for automcp instance: %w", pm.filePath, err)
+		return fmt.Errorf("failed to deserialize the contents of %s, unable to delete pid for genmcp instance: %w", pm.filePath, err)
 	}
 
 	delete(processes, name)
 
 	bytes, err = json.Marshal(processes)
 	if err != nil {
-		return fmt.Errorf("failed to serialize the processes map, unable to delete pid for automcp instance: %w", err)
+		return fmt.Errorf("failed to serialize the processes map, unable to delete pid for genmcp instance: %w", err)
 	}
 
 	err = os.WriteFile(pm.filePath, bytes, 0644)

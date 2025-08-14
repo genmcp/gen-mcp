@@ -12,7 +12,7 @@ func GetCacheDir() (string, error) {
 		return "", fmt.Errorf("failed to get user cache dir: %w", err)
 	}
 
-	dir := filepath.Join(base, ".automcp")
+	dir := filepath.Join(base, ".genmcp")
 
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {

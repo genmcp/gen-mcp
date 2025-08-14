@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/Cali0707/AutoMCP/pkg/openapi"
+	"github.com/genmcp/gen-mcp/pkg/openapi"
 	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
 )

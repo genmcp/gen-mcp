@@ -12,8 +12,8 @@ import (
 func TestConvertFromOpenApiSpec(t *testing.T) {
 	docBytes, _ := os.ReadFile("testdata/petstorev3.json")
 
-	mcpfile, err := DocumentToMcpFile(docBytes)
-	assert.Error(t, err, "creating the mcp file from the openapi model should have errors on endpoints automcp does not support")
+	mcpfile, err := DocumentToMcpFile(docBytes, "")
+	assert.Error(t, err, "creating the mcp file from the openapi model should have errors on endpoints genmcp does not support")
 	assert.NotNil(t, mcpfile)
 
 	mcpYaml, err := yaml.Marshal(mcpfile)

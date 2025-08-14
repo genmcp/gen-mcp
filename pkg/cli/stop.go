@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Cali0707/AutoMCP/pkg/cli/utils"
+	"github.com/genmcp/gen-mcp/pkg/cli/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +35,7 @@ func executeStopCmd(cobraCmd *cobra.Command, args []string) {
 	processManager := utils.GetProcessManager()
 	pid, err := processManager.GetProcessId(mcpFilePath)
 	if err != nil {
-		fmt.Printf("failed to get pid for automcp server\n")
+		fmt.Printf("failed to get pid for genmcp server\n")
 		return
 	}
 
@@ -48,11 +48,11 @@ func executeStopCmd(cobraCmd *cobra.Command, args []string) {
 
 	err = proc.Kill()
 	if err != nil {
-		fmt.Printf("failed to kill automcp process with pid %d: %s\n", pid, err.Error())
+		fmt.Printf("failed to kill genmcp process with pid %d: %s\n", pid, err.Error())
 		return
 	}
 
 	processManager.DeleteProcessId(mcpFilePath)
 
-	fmt.Printf("successfully stopped AutoMCP server...\n")
+	fmt.Printf("successfully stopped gen-mcp server...\n")
 }
