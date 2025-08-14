@@ -1,0 +1,32 @@
+apiVersion: toolhive.stacklok.dev/v1alpha1
+kind: MCPServer
+metadata:
+  name: genmcp
+spec:
+  image: ko://github.com/genmcp/gen-mcp/cmd/genmcp-server
+  transport: streamable-http
+  port: 7007
+  permissionProfile:
+    type: builtin
+    name: network
+  env:
+    - name: MCP_FILE_PATH
+      value: /etc/config/mcpfile.yaml
+  resources:
+    limits:
+      cpu: '100m'
+      memory: '128Mi'
+    requests:
+      cpu: '50m'
+      memory: '64Mi'
+  podTemplateSpec:
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: genmcp-config
+      containers:
+        - name: mcp
+          volumeMounts:
+            - mountPath: /etc/config
+              name: config
