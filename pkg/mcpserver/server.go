@@ -36,7 +36,7 @@ func RunServer(mcpServer *mcpfile.MCPServer) error {
 
 	switch strings.ToLower(mcpServer.Runtime.TransportProtocol) {
 	case mcpfile.TransportProtocolStreamableHttp:
-		httpServer := server.NewStreamableHTTPServer(s)
+		httpServer := server.NewStreamableHTTPServer(s, server.WithEndpointPath(mcpServer.Runtime.StreamableHTTPConfig.BasePath))
 		fmt.Printf("starting listen on :%d\n", mcpServer.Runtime.StreamableHTTPConfig.Port)
 		if err := httpServer.Start(fmt.Sprintf(":%d", mcpServer.Runtime.StreamableHTTPConfig.Port)); err != nil {
 			return err

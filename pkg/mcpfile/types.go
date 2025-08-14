@@ -66,7 +66,8 @@ type Tool struct {
 }
 
 type StreamableHTTPConfig struct {
-	Port int `json:"port"` // the port to start listening on
+	Port     int    `json:"port"`     // the port to start listening on
+	BasePath string `json:"basePath"` // the base path for the MCP server
 }
 
 type StdioConfig struct {

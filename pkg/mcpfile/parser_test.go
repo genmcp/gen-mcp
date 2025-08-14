@@ -32,6 +32,7 @@ func TestParseMcpFile(t *testing.T) {
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
 								Port: 3000,
+								BasePath: "/mcp",
 							},
 						},
 					},
@@ -50,6 +51,7 @@ func TestParseMcpFile(t *testing.T) {
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
 								Port: 3000,
+								BasePath: "/mcp",
 							},
 						},
 						Tools: []*Tool{
@@ -89,6 +91,7 @@ func TestParseMcpFile(t *testing.T) {
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
 								Port: 3000,
+								BasePath: "/mcp",
 							},
 						},
 						Tools: []*Tool{
@@ -129,6 +132,7 @@ func TestParseMcpFile(t *testing.T) {
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
 								Port: 3000,
+								BasePath: "/mcp",
 							},
 						},
 						Tools: []*Tool{
@@ -240,6 +244,7 @@ func TestParseMcpFile(t *testing.T) {
 							TransportProtocol: "streamablehttp",
 							StreamableHTTPConfig: &StreamableHTTPConfig{
 								Port: 8008,
+								BasePath: "/mcp",
 							},
 						},
 						Tools: []*Tool{
