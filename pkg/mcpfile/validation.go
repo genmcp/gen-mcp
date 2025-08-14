@@ -177,6 +177,10 @@ func (r *ServerRuntime) Validate() error {
 		if r.StreamableHTTPConfig.Port <= 0 {
 			err = errors.Join(err, fmt.Errorf("streamableHttpConfig.port must be greater than 0"))
 		}
+
+		if r.StreamableHTTPConfig.BasePath == "" {
+			r.StreamableHTTPConfig.BasePath = "/mcp"
+		}
 	}
 
 	return err
