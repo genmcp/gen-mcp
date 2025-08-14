@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: genmcp-demo
-        image: quay.io/cmurray/automcp/automcp-server-cb047495ee749d79922dead62115006a
+        image: ko://github.com/genmcp/gen-mcp/cmd/genmcp-server
         ports:
         - containerPort: 7007
           name: http
