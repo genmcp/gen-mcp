@@ -6,6 +6,7 @@ spec:
   image: ko://github.com/genmcp/gen-mcp/cmd/genmcp-server
   transport: streamable-http
   port: 7007
+  targetPort: 7007
   permissionProfile:
     type: builtin
     name: network
