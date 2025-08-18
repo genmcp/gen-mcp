@@ -6,6 +6,7 @@ This example demonstrates gen-mcp's ability to automatically convert HTTP REST A
 
 - Helm (v3.10+)
 - kubectl
+- ko
 - Docker or Podman
 - minikube or kind
 - Basic Kubernetes knowledge
@@ -64,7 +65,7 @@ The API will be available internally in the cluster with endpoints:
 Since we're not using ingress, use kubectl port-forward to access the API:
 
 ```bash
-kubectl port-forward service/feature-requests 9090:80
+kubectl port-forward service/feature-request-demo 9090:80
 ```
 
 Now the API will be available at `http://localhost:9090`. Keep this port-forward running in a separate terminal.
@@ -107,7 +108,7 @@ kubectl create configmap genmcp-config --from-file=mcpfile.yaml
 Next, deploy the gen-mcp server using the ToolHive operator:
 
 ```bash
-kubectl apply -f toolhive/mcp-server.yaml
+ko apply -f toolhive/mcp-server.yaml
 ```
 
 ### 8. Access the MCP Server
@@ -115,7 +116,7 @@ kubectl apply -f toolhive/mcp-server.yaml
 Use kubectl port-forward to access the MCP server:
 
 ```bash
-kubectl port-forward service/genmcp 7007:7007
+kubectl port-forward services/mcp-genmcp-proxy 7007:7007
 ```
 
 The MCP service will now be accessible at `http://localhost:7007/mcp`. To connect to the server, you will need to use the `streamablehttp` protocol and the url `http://localhost:7007/mcp`.
