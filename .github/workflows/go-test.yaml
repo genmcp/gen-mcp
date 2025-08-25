@@ -1,0 +1,41 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Merge upstream
+        if: github.event_name == 'pull_request'
+        run: |
+          if ! git config user.name > /dev/null; then
+            git config user.name "John Doe"
+          fi
+          if ! git config user.email > /dev/null; then
+            git config user.email "johndoe@localhost"
+          fi
+          git remote add upstream https://github.com/${{ github.repository }}.git
+          git fetch upstream ${{ github.base_ref }}
+          git pull --no-rebase --no-commit upstream ${{ github.base_ref }}
+        shell: bash
+
+      - name: Test
+        id: unit-tests
+        run: go test -v -race -count=1 ./...
