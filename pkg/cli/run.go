@@ -8,6 +8,7 @@ import (
 
 	"github.com/genmcp/gen-mcp/pkg/cli/utils"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +28,6 @@ var runCmd = &cobra.Command{
 }
 
 func executeRunCmd(cobraCmd *cobra.Command, args []string) {
-	cmd := exec.Command("genmcp-server")
 	mcpFilePath, err := filepath.Abs(mcpFilePath)
 	if err != nil {
 		fmt.Printf("failed to resolve mcp file path: %s\n", err.Error())
@@ -42,9 +42,8 @@ func executeRunCmd(cobraCmd *cobra.Command, args []string) {
 	mcpFile, err := mcpfile.ParseMCPFile(mcpFilePath)
 	if err != nil {
 		fmt.Printf("invalid mcp file: %s\n", err)
+		return
 	}
-
-	cmd.Env = append(cmd.Environ(), fmt.Sprintf("MCP_FILE_PATH=%s", mcpFilePath))
 
 	for _, s := range mcpFile.Servers {
 		if s.Runtime.TransportProtocol == mcpfile.TransportProtocolStdio && detach {
@@ -55,22 +54,23 @@ func executeRunCmd(cobraCmd *cobra.Command, args []string) {
 	}
 
 	if !detach {
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		err := cmd.Run()
+		// Run servers directly in the current process
+		err := mcpserver.RunServers(mcpFilePath)
 		if err != nil {
 			fmt.Printf("genmcp-server failed with %s\n", err.Error())
 		}
 		return
 	}
 
+	// Detached mode: spawn the same command without --detach flag
+	cmd := exec.Command(os.Args[0], "run", "-f", mcpFilePath)
 	err = cmd.Start()
 	if err != nil {
 		fmt.Printf("failed to start genmcp-server: %s\n", err.Error())
+		return
 	}
 
+	// Save PID for stop command
 	processManager := utils.GetProcessManager()
 	err = processManager.SaveProcessId(mcpFilePath, cmd.Process.Pid)
 	if err != nil {

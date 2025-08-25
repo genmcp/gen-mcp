@@ -2,7 +2,9 @@ package mcpserver
 
 import (
 	"fmt"
+	"log"
 	"strings"
+	"sync"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -52,4 +54,28 @@ func RunServer(mcpServer *mcpfile.MCPServer) error {
 	default:
 		return fmt.Errorf("tried running invalid transport protocol")
 	}
+}
+
+// RunServers runs all servers defined in the MCP file
+func RunServers(mcpFilePath string) error {
+	mcpConfig, err := mcpfile.ParseMCPFile(mcpFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to parse mcp file: %w", err)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(mcpConfig.Servers))
+
+	for _, s := range mcpConfig.Servers {
+		go func(server *mcpfile.MCPServer) {
+			defer wg.Done()
+			err := RunServer(server)
+			if err != nil {
+				log.Printf("error running server: %s", err.Error())
+			}
+		}(s)
+	}
+
+	wg.Wait()
+	return nil
 }
