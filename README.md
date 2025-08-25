@@ -35,12 +35,11 @@ gen-mcp eliminates the complexity of building Model Context Protocol (MCP) serve
 git clone https://github.com/genmcp/gen-mcp.git
 cd gen-mcp
 
-# Build CLI and server
+# Build CLI
 go build -o genmcp ./cmd/genmcp
-go build -o genmcp-server ./cmd/genmcp-server
 
 # Add to PATH (recommended)
-sudo mv genmcp genmcp-server /usr/local/bin
+sudo mv genmcp /usr/local/bin
 ```
 
 ### 2. Choose Your Own Adventure
