@@ -7,6 +7,17 @@ readonly KEYCLOAK_ADMIN_PASSWORD="admin"
 readonly KEYCLOAK_CONTAINER_NAME="keycloak"
 readonly TRUSTSTORE_PASS="password"
 
+if command -v docker &> /dev/null; then
+	echo "using docker to interact with keycloak containers"
+	CONTAINER_RUNTIME="docker"
+elif command -v podman &> /dev/null; then
+	echo "using podman to interact with keycloak containers"
+	CONTAINER_RUNTIME="podman"
+else
+	echo "neither docker nor podman installed on system, unable to interact with keycloak containers"
+	exit 1
+fi
+
 function abort() {
   echo "$@" > /dev/stderr
   exit 1
@@ -91,7 +102,7 @@ function start_keycloak() {
   fi
   
   # Start Keycloak container with TLS
-  docker run -d --name ${KEYCLOAK_CONTAINER_NAME} \
+  $CONTAINER_RUNTIME run -d --name ${KEYCLOAK_CONTAINER_NAME} \
     -p 8443:8443 \
     -p 8080:8080 \
     -v "${KEYCLOAK_CERTS}:/opt/keycloak/conf/certs" \
@@ -112,13 +123,13 @@ function start_keycloak() {
 
 function stop_keycloak() {
   echo "Stopping Keycloak..."
-  docker stop "${KEYCLOAK_CONTAINER_NAME}" || true
-  docker rm "${KEYCLOAK_CONTAINER_NAME}" || true
+  $CONTAINER_RUNTIME stop "${KEYCLOAK_CONTAINER_NAME}" || true
+  $CONTAINER_RUNTIME rm "${KEYCLOAK_CONTAINER_NAME}" || true
 }
 
 function keycloak_logs() {
   echo "Receiving Keycloak logs..."
-  docker logs "${KEYCLOAK_CONTAINER_NAME}" -f
+  $CONTAINER_RUNTIME logs "${KEYCLOAK_CONTAINER_NAME}" -f
 }
 
 function add_realm() {
@@ -131,12 +142,12 @@ function add_realm() {
   echo "Adding realm: $realm_name"
   
   # Check if container is running
-  if ! docker ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
+  if ! $CONTAINER_RUNTIME ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
     abort "Error: Keycloak container is not running. Start it with --start first."
   fi
   
   # Add realm using Keycloak admin CLI
-  docker exec -it "${KEYCLOAK_CONTAINER_NAME}" \
+  $CONTAINER_RUNTIME exec -it "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh create realms \
     -s realm="$realm_name" \
     -s enabled=true \
@@ -161,12 +172,12 @@ function add_client() {
   echo "Adding client '$client_id' to realm '$realm_name'"
   
   # Check if container is running
-  if ! docker ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
+  if ! $CONTAINER_RUNTIME ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
     abort "Error: Keycloak container is not running. Start it with --start first."
   fi
   
   # Add client using Keycloak admin CLI
-  docker exec -it "${KEYCLOAK_CONTAINER_NAME}" \
+  $CONTAINER_RUNTIME exec -it "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh create clients \
     -r "$realm_name" \
     -s clientId="$client_id" \
