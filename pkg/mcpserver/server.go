@@ -45,7 +45,7 @@ func RunServer(mcpServer *mcpfile.MCPServer) error {
 
 		// Add middleware
 		var handler http.Handler = httpServer
-		handler = oauth.Middleware(mcpServer)(handler) // middleware for PRM endpoint
+		handler = oauth.Middleware(mcpServer)(handler) // middleware for protected resource metadata endpoint
 
 		// Use custom server with middleware
 		srv := &http.Server{
