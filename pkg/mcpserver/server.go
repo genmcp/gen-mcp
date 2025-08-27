@@ -3,6 +3,7 @@ package mcpserver
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 	"sync"
 
@@ -11,6 +12,7 @@ import (
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+	"github.com/genmcp/gen-mcp/pkg/oauth"
 )
 
 func MakeServer(mcpServer *mcpfile.MCPServer) *mcpserver.MCPServer {
@@ -38,9 +40,21 @@ func RunServer(mcpServer *mcpfile.MCPServer) error {
 
 	switch strings.ToLower(mcpServer.Runtime.TransportProtocol) {
 	case mcpfile.TransportProtocolStreamableHttp:
+		// Create the base MCP HTTP server
 		httpServer := server.NewStreamableHTTPServer(s, server.WithEndpointPath(mcpServer.Runtime.StreamableHTTPConfig.BasePath))
+
+		// Add middleware
+		var handler http.Handler = httpServer
+		handler = oauth.Middleware(mcpServer)(handler) // middleware for PRM endpoint
+
+		// Use custom server with middleware
+		srv := &http.Server{
+			Addr:    fmt.Sprintf(":%d", mcpServer.Runtime.StreamableHTTPConfig.Port),
+			Handler: handler,
+		}
+
 		fmt.Printf("starting listen on :%d\n", mcpServer.Runtime.StreamableHTTPConfig.Port)
-		if err := httpServer.Start(fmt.Sprintf(":%d", mcpServer.Runtime.StreamableHTTPConfig.Port)); err != nil {
+		if err := srv.ListenAndServe(); err != nil {
 			return err
 		}
 
