@@ -1,0 +1,53 @@
+version: 2
+updates:
+  # Go dependencies
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "10:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "@genmcp/maintainers"
+    assignees:
+      - "@genmcp/maintainers"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    groups:
+      # Group patch and minor updates to reduce PR noise
+      go-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
+      # Separate major updates for careful review
+      go-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "first-tuesday"
+      time: "10:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "@genmcp/maintainers"
+    assignees:
+      - "@genmcp/maintainers"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
