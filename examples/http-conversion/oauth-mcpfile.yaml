@@ -1,0 +1,97 @@
+mcpFileVersion: 0.0.1
+servers:
+- name: Feature Request API
+  runtime:
+    streamableHttpConfig:
+      port: 7007
+      auth:
+        authorizationServers:
+          - http://localhost:8080/realms/master
+        scopesSupported:
+          - "read"
+          - "write"
+          - "admin"
+        bearerMethodsSupported:
+          - "header"
+          - "body"
+        jwksUri: "http://localhost:8080/realms/master/protocol/openid-connect/certs"
+    transportProtocol: streamablehttp
+  tools:
+  - description: Returns a list of all features sorted by upvotes (highest first)
+    inputSchema:
+      type: object
+    invocation:
+      http:
+        method: GET
+        url: http://localhost:9090/features
+    name: get_features
+    title: Get all features
+  - description: Create a new feature request
+    inputSchema:
+      properties:
+        description:
+          description: Detailed description of the feature
+          type: string
+        details:
+          description: Detailed implementation notes for the feature
+          type: string
+        title:
+          description: Feature title
+          type: string
+      type: object
+    invocation:
+      http:
+        method: POST
+        url: http://localhost:9090/features
+    name: post_features
+    title: Add new feature
+  - description: Returns the feature with the most upvotes. Always call get_features-id after, to give the user the full details of this feature.
+    inputSchema:
+      type: object
+    invocation:
+      http:
+        method: GET
+        url: http://localhost:9090/features/top
+    name: get_features-top
+    title: Get top feature
+  - description: Returns detailed information about a specific feature
+    inputSchema:
+      properties:
+        id:
+          type: integer
+      required:
+      - id
+      type: object
+    invocation:
+      http:
+        method: GET
+        url: http://localhost:9090/features/{id}
+    name: get_features-id
+    title: Get feature details
+  - description: Increment the upvote count for a specific feature
+    inputSchema:
+      properties:
+        feature_id:
+          description: ID of the feature to vote for
+          type: integer
+      type: object
+    invocation:
+      http:
+        method: POST
+        url: http://localhost:9090/features/vote
+    name: post_features-vote
+    title: Vote for feature
+  - description: Mark a specific feature request as completed
+    inputSchema:
+      properties:
+        feature_id:
+          description: ID of the feature to mark as completed
+          type: integer
+      type: object
+    invocation:
+      http:
+        method: POST
+        url: http://localhost:9090/features/complete
+    name: post_features-complete
+    title: Mark feature as completed
+  version: 0.0.1

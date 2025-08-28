@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+set -e
+set -o pipefail
+
 readonly REPO_ROOT="$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}")")")"
 readonly KEYCLOAK_CERTS="${REPO_ROOT}/hack/keycloak-certs"
 readonly KEYCLOAK_ADMIN="admin"
@@ -30,13 +33,14 @@ Usage: $0 [OPTIONS]
 Keycloak management script for development environment.
 
 OPTIONS:
-  --init                    Initialize Keycloak setup (create certificates)
-  --start                   Start Keycloak container with TLS
-  --stop                    Stop and remove Keycloak container
-  --logs                    Show Keycloak container logs (follow mode)
-  --add-realm REALM         Add a new realm to Keycloak
-  --add-client REALM CLIENT Add a new client to the specified realm
-  --help                    Show this help message
+  --init                          Initialize Keycloak setup (create certificates)
+  --start                         Start Keycloak container with TLS
+  --stop                          Stop and remove Keycloak container
+  --logs                          Show Keycloak container logs (follow mode)
+  --add-realm REALM               Add a new realm to Keycloak
+  --add-client REALM CLIENT       Add a new client to the specified realm
+  --disable-trusted-hosts REALM   Disable trusted hosts policy for specified realm
+  --help                          Show this help message
 
 EXAMPLES:
   $0 --init                           # Create certificates
@@ -49,6 +53,7 @@ NOTES:
   - Run --init first to create TLS certificates
   - Keycloak will be available at: https://localhost:8443
   - Admin console: https://localhost:8443/admin (admin/admin)
+  - Health endpoint: https://localhost:9000/health
   - Use with curl: curl --cacert ${KEYCLOAK_CERTS}/ca.crt https://localhost:8443
 EOF
 }
@@ -101,24 +106,36 @@ function start_keycloak() {
     abort "Error: TLS certificates not found. Run with --init first to create certificates."
   fi
   
-  # Start Keycloak container with TLS
+  # Start Keycloak container with TLS and HTTP
   $CONTAINER_RUNTIME run -d --name ${KEYCLOAK_CONTAINER_NAME} \
     -p 8443:8443 \
     -p 8080:8080 \
+    -p 9000:9000 \
     -v "${KEYCLOAK_CERTS}:/opt/keycloak/conf/certs" \
     -e KC_BOOTSTRAP_ADMIN_USERNAME=${KEYCLOAK_ADMIN} \
     -e KC_BOOTSTRAP_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD} \
     -e KC_HOSTNAME=localhost \
     -e KC_HTTPS_CERTIFICATE_FILE=/opt/keycloak/conf/certs/keycloak.crt \
     -e KC_HTTPS_CERTIFICATE_KEY_FILE=/opt/keycloak/conf/certs/keycloak.key \
+    -e KC_HTTP_ENABLED=true \
+    -e KC_HEALTH_ENABLED=true \
     quay.io/keycloak/keycloak:26.3 \
     start --hostname=localhost \
     --https-certificate-file=/opt/keycloak/conf/certs/keycloak.crt \
-    --https-certificate-key-file=/opt/keycloak/conf/certs/keycloak.key
-    
+    --https-certificate-key-file=/opt/keycloak/conf/certs/keycloak.key \
+    --http-enabled=true \
+    --health-enabled=true
+
   echo "Keycloak starting with TLS at https://localhost:8443"
   echo "Admin console: https://localhost:8443/admin (${KEYCLOAK_ADMIN}/${KEYCLOAK_ADMIN_PASSWORD})"
-  echo "Should be accessible in a few seconds. You can check the logs via the --logs parameter..."
+  echo "Health endpoint: https://localhost:9000/health"
+  
+  echo "Waiting for Keycloak to be ready..."
+  until curl -k -s https://localhost:9000/health/ready > /dev/null 2>&1; do
+    printf "."
+    sleep 2
+  done
+  echo " Keycloak is ready!"
 }
 
 function stop_keycloak() {
@@ -129,7 +146,7 @@ function stop_keycloak() {
 
 function keycloak_logs() {
   echo "Receiving Keycloak logs..."
-  $CONTAINER_RUNTIME logs "${KEYCLOAK_CONTAINER_NAME}" -f
+  $CONTAINER_RUNTIME logs -f "${KEYCLOAK_CONTAINER_NAME}"
 }
 
 function add_realm() {
@@ -147,7 +164,7 @@ function add_realm() {
   fi
   
   # Add realm using Keycloak admin CLI
-  $CONTAINER_RUNTIME exec -it "${KEYCLOAK_CONTAINER_NAME}" \
+  $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh create realms \
     -s realm="$realm_name" \
     -s enabled=true \
@@ -176,14 +193,16 @@ function add_client() {
     abort "Error: Keycloak container is not running. Start it with --start first."
   fi
   
-  # Add client using Keycloak admin CLI
-  $CONTAINER_RUNTIME exec -it "${KEYCLOAK_CONTAINER_NAME}" \
+  # Add client using Keycloak admin CLI with direct access grant enabled
+  $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh create clients \
     -r "$realm_name" \
     -s clientId="$client_id" \
     -s enabled=true \
     -s publicClient=true \
+    -s directAccessGrantsEnabled=true \
     -s 'redirectUris=["http://localhost:*"]' \
+    -s 'webOrigins=["*"]' \
     --server https://localhost:8443 \
     --realm master \
     --user "${KEYCLOAK_ADMIN}" \
@@ -194,6 +213,46 @@ function add_client() {
   echo "Client '$client_id' created successfully in realm '$realm_name'"
 }
 
+function disable_trusted_hosts() {
+  local realm_name="$1"
+
+  if [[ -z "$realm_name" ]]; then
+    abort "Error: Realm name is required for --disable-trusted-hosts"
+  fi
+
+  echo "Disabling trusted hosts policy for dynamic client registration in realm '$realm_name'..."
+
+  # Check if container is running
+  if ! $CONTAINER_RUNTIME ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
+    abort "Error: Keycloak container is not running. Start it with --start first."
+  fi
+
+  # Configure admin CLI credentials
+  $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+    /opt/keycloak/bin/kcadm.sh config credentials \
+    --server http://localhost:8080 \
+    --realm ${realm_name} \
+    --user "${KEYCLOAK_ADMIN}" \
+    --password "${KEYCLOAK_ADMIN_PASSWORD}"
+
+  # Find and delete the trusted hosts policy component
+  local trusted_hosts_id
+  trusted_hosts_id=$($CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+    /opt/keycloak/bin/kcadm.sh get components \
+    --realm "$realm_name" \
+    --query 'providerType=org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy' \
+    --fields id,providerId | \
+     jq -r '.[] | select(.providerId=="trusted-hosts") | .id')
+
+  if [[ -n "$trusted_hosts_id" ]]; then
+    $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+      /opt/keycloak/bin/kcadm.sh delete components/"$trusted_hosts_id" -r "$realm_name"
+    echo "Trusted hosts policy removed successfully from realm '$realm_name' (ID: $trusted_hosts_id)"
+  else
+    echo "No trusted hosts policy found in realm '$realm_name' - it may already be disabled"
+  fi
+}
+
 function main() {
   INITIALIZE=0
   START=0
@@ -202,6 +261,8 @@ function main() {
   REALM=""
   CLIENT_REALM=""
   CLIENT_ID=""
+  DISABLE_TRUSTED_HOSTS=0
+  TRUSTED_HOSTS_REALM=""
 
   while [[ $# -ne 0 ]]; do
     parameter=$1
@@ -212,6 +273,7 @@ function main() {
       --logs) LOGS=1 ;;
       --add-realm) shift; REALM="$1" ;;
       --add-client) shift; CLIENT_REALM="$1"; shift; CLIENT_ID="$1" ;;
+      --disable-trusted-hosts) shift; TRUSTED_HOSTS_REALM="$1" ;;
       --help) show_help; exit 0 ;;
       *) abort "error: unknown option ${parameter}. Check the usage via --help" ;;
     esac
@@ -236,6 +298,10 @@ function main() {
 
   if [[ -n "$CLIENT_REALM" && -n "$CLIENT_ID" ]]; then
     add_client "$CLIENT_REALM" "$CLIENT_ID"
+  fi
+
+  if [[ -n "$TRUSTED_HOSTS_REALM" ]]; then
+    disable_trusted_hosts "$TRUSTED_HOSTS_REALM"
   fi
 
   if [[ $STOP == 1 ]]; then

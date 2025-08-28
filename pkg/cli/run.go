@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -55,7 +56,7 @@ func executeRunCmd(cobraCmd *cobra.Command, args []string) {
 
 	if !detach {
 		// Run servers directly in the current process
-		err := mcpserver.RunServers(mcpFilePath)
+		err := mcpserver.RunServers(context.Background(), mcpFilePath)
 		if err != nil {
 			fmt.Printf("genmcp-server failed with %s\n", err.Error())
 		}

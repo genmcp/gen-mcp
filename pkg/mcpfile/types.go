@@ -66,8 +66,16 @@ type Tool struct {
 }
 
 type StreamableHTTPConfig struct {
-	Port     int    `json:"port"`     // the port to start listening on
-	BasePath string `json:"basePath"` // the base path for the MCP server
+	Port     int         `json:"port"`           // the port to start listening on
+	BasePath string      `json:"basePath"`       // the base path for the MCP server
+	Auth     *AuthConfig `json:"auth,omitempty"` // OAuth 2.0 configuration for protected resource
+}
+
+type AuthConfig struct {
+	AuthorizationServers   []string `json:"authorizationServers,omitempty"`   // list of authorization server URLs
+	ScopesSupported        []string `json:"scopesSupported,omitempty"`        // supported OAuth scopes
+	BearerMethodsSupported []string `json:"bearerMethodsSupported,omitempty"` // supported bearer token methods
+	JWKSURI                string   `json:"jwksUri,omitempty"`                // JSON Web Key Set URI
 }
 
 type StdioConfig struct {

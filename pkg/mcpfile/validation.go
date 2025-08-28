@@ -16,6 +16,10 @@ var validHttpMethods = map[string]struct{}{
 	http.MethodDelete: {},
 }
 
+const (
+	BasePathDefault = "/mcp"
+)
+
 func (js *JsonSchema) Validate() error {
 	if js == nil {
 		return nil
@@ -179,7 +183,7 @@ func (r *ServerRuntime) Validate() error {
 		}
 
 		if r.StreamableHTTPConfig.BasePath == "" {
-			r.StreamableHTTPConfig.BasePath = "/mcp"
+			r.StreamableHTTPConfig.BasePath = BasePathDefault
 		}
 	}
 
