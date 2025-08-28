@@ -30,7 +30,7 @@ type MetadataConfig struct {
 
 // NewProtectedResourceMetadataHandler creates an HTTP handler for the .well-known/oauth-protected-resource endpoint
 // The endpoint will be available at {basePath}/.well-known/oauth-protected-resource
-func NewProtectedResourceMetadataHandler(config MetadataConfig) http.HandlerFunc {
+func NewProtectedResourceMetadataHandler(basePath string, config MetadataConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -48,7 +48,7 @@ func NewProtectedResourceMetadataHandler(config MetadataConfig) http.HandlerFunc
 			scheme = proto
 		}
 
-		resourceURL := fmt.Sprintf("%s://%s", scheme, r.Host)
+		resourceURL := fmt.Sprintf("%s://%s%s", scheme, r.Host, basePath)
 
 		// Build the metadata response
 		metadata := ProtectedResourceMetadata{
