@@ -1,9 +1,11 @@
 package mcpserver
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 
@@ -35,7 +37,7 @@ func MakeServer(mcpServer *mcpfile.MCPServer) *mcpserver.MCPServer {
 	return s
 }
 
-func RunServer(mcpServerConfig *mcpfile.MCPServer) error {
+func RunServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
 	s := MakeServer(mcpServerConfig)
 
 	switch strings.ToLower(mcpServerConfig.Runtime.TransportProtocol) {
@@ -59,24 +61,33 @@ func RunServer(mcpServerConfig *mcpfile.MCPServer) error {
 		}
 
 		fmt.Printf("starting listen on :%d\n", mcpServerConfig.Runtime.StreamableHTTPConfig.Port)
-		if err := srv.ListenAndServe(); err != nil {
+
+		// Channel to capture server errors
+		errCh := make(chan error, 1)
+		go func() {
+			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				errCh <- err
+			}
+		}()
+
+		// Wait for context cancellation or server error
+		select {
+		case <-ctx.Done():
+			fmt.Println("shutting down server...")
+			return srv.Shutdown(context.Background())
+		case err := <-errCh:
 			return err
 		}
-
-		return nil
 	case mcpfile.TransportProtocolStdio:
-		if err := server.ServeStdio(s); err != nil {
-			return err
-		}
-
-		return nil
+		stdioServer := server.NewStdioServer(s)
+		return stdioServer.Listen(ctx, os.Stdin, os.Stdout)
 	default:
 		return fmt.Errorf("tried running invalid transport protocol")
 	}
 }
 
 // RunServers runs all servers defined in the MCP file
-func RunServers(mcpFilePath string) error {
+func RunServers(ctx context.Context, mcpFilePath string) error {
 	mcpConfig, err := mcpfile.ParseMCPFile(mcpFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to parse mcp file: %w", err)
@@ -88,7 +99,7 @@ func RunServers(mcpFilePath string) error {
 	for _, s := range mcpConfig.Servers {
 		go func(server *mcpfile.MCPServer) {
 			defer wg.Done()
-			err := RunServer(server)
+			err := RunServer(ctx, server)
 			if err != nil {
 				log.Printf("error running server: %s", err.Error())
 			}

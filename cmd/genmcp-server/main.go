@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -10,7 +11,7 @@ import (
 func main() {
 	mcpFilePath := os.Getenv("MCP_FILE_PATH")
 
-	if err := mcpserver.RunServers(mcpFilePath); err != nil {
+	if err := mcpserver.RunServers(context.Background(), mcpFilePath); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
