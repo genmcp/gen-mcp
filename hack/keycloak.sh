@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+set -e
+set -o pipefail
+
 readonly REPO_ROOT="$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}")")")"
 readonly KEYCLOAK_CERTS="${REPO_ROOT}/hack/keycloak-certs"
 readonly KEYCLOAK_ADMIN="admin"
@@ -161,7 +164,7 @@ function add_realm() {
   fi
   
   # Add realm using Keycloak admin CLI
-  $CONTAINER_RUNTIME exec -it "${KEYCLOAK_CONTAINER_NAME}" \
+  $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh create realms \
     -s realm="$realm_name" \
     -s enabled=true \
@@ -191,7 +194,7 @@ function add_client() {
   fi
   
   # Add client using Keycloak admin CLI with direct access grant enabled
-  $CONTAINER_RUNTIME exec -it "${KEYCLOAK_CONTAINER_NAME}" \
+  $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh create clients \
     -r "$realm_name" \
     -s clientId="$client_id" \
