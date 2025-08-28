@@ -6,8 +6,7 @@ servers:
       port: 7007
       auth:
         authorizationServers:
-          - "https://auth.example.com"
-          - "https://keycloak.example.com/realms/mcp"
+          - http://localhost:8080/realms/master
         scopesSupported:
           - "read"
           - "write"
@@ -15,8 +14,7 @@ servers:
         bearerMethodsSupported:
           - "header"
           - "body"
-        jwksUri: "https://auth.example.com/.well-known/jwks.json"
-        resourceDocumentation: "https://docs.example.com/mcp-api"
+        jwksUri: "http://localhost:8080/realms/master/protocol/openid-connect/certs"
     transportProtocol: streamablehttp
   tools:
   - description: Returns a list of all features sorted by upvotes (highest first)
