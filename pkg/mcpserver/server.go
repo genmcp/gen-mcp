@@ -35,25 +35,30 @@ func MakeServer(mcpServer *mcpfile.MCPServer) *mcpserver.MCPServer {
 	return s
 }
 
-func RunServer(mcpServer *mcpfile.MCPServer) error {
-	s := MakeServer(mcpServer)
+func RunServer(mcpServerConfig *mcpfile.MCPServer) error {
+	s := MakeServer(mcpServerConfig)
 
-	switch strings.ToLower(mcpServer.Runtime.TransportProtocol) {
+	switch strings.ToLower(mcpServerConfig.Runtime.TransportProtocol) {
 	case mcpfile.TransportProtocolStreamableHttp:
-		// Create the base MCP HTTP server
-		httpServer := server.NewStreamableHTTPServer(s, server.WithEndpointPath(mcpServer.Runtime.StreamableHTTPConfig.BasePath))
+		// Create a root mux to handle different endpoints
+		mux := http.NewServeMux()
 
-		// Add middleware
-		var handler http.Handler = httpServer
-		handler = oauth.Middleware(mcpServer)(handler) // middleware for protected resource metadata endpoint
+		// Set up MCP server under /mcp (or whatever is under BasePath)
+		mcpServer := server.NewStreamableHTTPServer(s)
+		mux.Handle(mcpServerConfig.Runtime.StreamableHTTPConfig.BasePath, oauth.Middleware(mcpServerConfig)(mcpServer))
 
-		// Use custom server with middleware
-		srv := &http.Server{
-			Addr:    fmt.Sprintf(":%d", mcpServer.Runtime.StreamableHTTPConfig.Port),
-			Handler: handler,
+		// Set up OAuth protected resource metadata endpoint under / if needed
+		if mcpServerConfig.Runtime.StreamableHTTPConfig.Auth != nil {
+			mux.HandleFunc(oauth.ProtectedResourceMetadataEndpoint, oauth.ProtectedResourceMetadataHandler(mcpServerConfig))
 		}
 
-		fmt.Printf("starting listen on :%d\n", mcpServer.Runtime.StreamableHTTPConfig.Port)
+		// Use custom server with the mux
+		srv := &http.Server{
+			Addr:    fmt.Sprintf(":%d", mcpServerConfig.Runtime.StreamableHTTPConfig.Port),
+			Handler: mux,
+		}
+
+		fmt.Printf("starting listen on :%d\n", mcpServerConfig.Runtime.StreamableHTTPConfig.Port)
 		if err := srv.ListenAndServe(); err != nil {
 			return err
 		}
