@@ -190,14 +190,16 @@ function add_client() {
     abort "Error: Keycloak container is not running. Start it with --start first."
   fi
   
-  # Add client using Keycloak admin CLI
+  # Add client using Keycloak admin CLI with direct access grant enabled
   $CONTAINER_RUNTIME exec -it "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh create clients \
     -r "$realm_name" \
     -s clientId="$client_id" \
     -s enabled=true \
     -s publicClient=true \
+    -s directAccessGrantsEnabled=true \
     -s 'redirectUris=["http://localhost:*"]' \
+    -s 'webOrigins=["*"]' \
     --server https://localhost:8443 \
     --realm master \
     --user "${KEYCLOAK_ADMIN}" \
