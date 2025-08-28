@@ -30,13 +30,14 @@ Usage: $0 [OPTIONS]
 Keycloak management script for development environment.
 
 OPTIONS:
-  --init                    Initialize Keycloak setup (create certificates)
-  --start                   Start Keycloak container with TLS
-  --stop                    Stop and remove Keycloak container
-  --logs                    Show Keycloak container logs (follow mode)
-  --add-realm REALM         Add a new realm to Keycloak
-  --add-client REALM CLIENT Add a new client to the specified realm
-  --help                    Show this help message
+  --init                          Initialize Keycloak setup (create certificates)
+  --start                         Start Keycloak container with TLS
+  --stop                          Stop and remove Keycloak container
+  --logs                          Show Keycloak container logs (follow mode)
+  --add-realm REALM               Add a new realm to Keycloak
+  --add-client REALM CLIENT       Add a new client to the specified realm
+  --disable-trusted-hosts REALM   Disable trusted hosts policy for specified realm
+  --help                          Show this help message
 
 EXAMPLES:
   $0 --init                           # Create certificates
@@ -196,6 +197,46 @@ function add_client() {
   echo "Client '$client_id' created successfully in realm '$realm_name'"
 }
 
+function disable_trusted_hosts() {
+  local realm_name="$1"
+
+  if [[ -z "$realm_name" ]]; then
+    abort "Error: Realm name is required for --disable-trusted-hosts"
+  fi
+
+  echo "Disabling trusted hosts policy for dynamic client registration in realm '$realm_name'..."
+
+  # Check if container is running
+  if ! $CONTAINER_RUNTIME ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
+    abort "Error: Keycloak container is not running. Start it with --start first."
+  fi
+
+  # Configure admin CLI credentials
+  $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+    /opt/keycloak/bin/kcadm.sh config credentials \
+    --server http://localhost:8080 \
+    --realm ${realm_name} \
+    --user "${KEYCLOAK_ADMIN}" \
+    --password "${KEYCLOAK_ADMIN_PASSWORD}"
+
+  # Find and delete the trusted hosts policy component
+  local trusted_hosts_id
+  trusted_hosts_id=$($CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+    /opt/keycloak/bin/kcadm.sh get components \
+    --realm "$realm_name" \
+    --query 'providerType=org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy' \
+    --fields id,providerId | \
+     jq -r '.[] | select(.providerId=="trusted-hosts") | .id')
+
+  if [[ -n "$trusted_hosts_id" ]]; then
+    $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+      /opt/keycloak/bin/kcadm.sh delete components/"$trusted_hosts_id" -r "$realm_name"
+    echo "Trusted hosts policy removed successfully from realm '$realm_name' (ID: $trusted_hosts_id)"
+  else
+    echo "No trusted hosts policy found in realm '$realm_name' - it may already be disabled"
+  fi
+}
+
 function main() {
   INITIALIZE=0
   START=0
@@ -204,6 +245,8 @@ function main() {
   REALM=""
   CLIENT_REALM=""
   CLIENT_ID=""
+  DISABLE_TRUSTED_HOSTS=0
+  TRUSTED_HOSTS_REALM=""
 
   while [[ $# -ne 0 ]]; do
     parameter=$1
@@ -214,6 +257,7 @@ function main() {
       --logs) LOGS=1 ;;
       --add-realm) shift; REALM="$1" ;;
       --add-client) shift; CLIENT_REALM="$1"; shift; CLIENT_ID="$1" ;;
+      --disable-trusted-hosts) shift; TRUSTED_HOSTS_REALM="$1" ;;
       --help) show_help; exit 0 ;;
       *) abort "error: unknown option ${parameter}. Check the usage via --help" ;;
     esac
@@ -238,6 +282,10 @@ function main() {
 
   if [[ -n "$CLIENT_REALM" && -n "$CLIENT_ID" ]]; then
     add_client "$CLIENT_REALM" "$CLIENT_ID"
+  fi
+
+  if [[ -n "$TRUSTED_HOSTS_REALM" ]]; then
+    disable_trusted_hosts "$TRUSTED_HOSTS_REALM"
   fi
 
   if [[ $STOP == 1 ]]; then
