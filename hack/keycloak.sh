@@ -132,7 +132,7 @@ function stop_keycloak() {
 
 function keycloak_logs() {
   echo "Receiving Keycloak logs..."
-  $CONTAINER_RUNTIME logs "${KEYCLOAK_CONTAINER_NAME}" -f
+  $CONTAINER_RUNTIME logs -f "${KEYCLOAK_CONTAINER_NAME}"
 }
 
 function add_realm() {
