@@ -50,6 +50,7 @@ NOTES:
   - Run --init first to create TLS certificates
   - Keycloak will be available at: https://localhost:8443
   - Admin console: https://localhost:8443/admin (admin/admin)
+  - Health endpoint: https://localhost:9000/health
   - Use with curl: curl --cacert ${KEYCLOAK_CERTS}/ca.crt https://localhost:8443
 EOF
 }
@@ -106,6 +107,7 @@ function start_keycloak() {
   $CONTAINER_RUNTIME run -d --name ${KEYCLOAK_CONTAINER_NAME} \
     -p 8443:8443 \
     -p 8080:8080 \
+    -p 9000:9000 \
     -v "${KEYCLOAK_CERTS}:/opt/keycloak/conf/certs" \
     -e KC_BOOTSTRAP_ADMIN_USERNAME=${KEYCLOAK_ADMIN} \
     -e KC_BOOTSTRAP_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD} \
@@ -113,15 +115,24 @@ function start_keycloak() {
     -e KC_HTTPS_CERTIFICATE_FILE=/opt/keycloak/conf/certs/keycloak.crt \
     -e KC_HTTPS_CERTIFICATE_KEY_FILE=/opt/keycloak/conf/certs/keycloak.key \
     -e KC_HTTP_ENABLED=true \
+    -e KC_HEALTH_ENABLED=true \
     quay.io/keycloak/keycloak:26.3 \
     start --hostname=localhost \
     --https-certificate-file=/opt/keycloak/conf/certs/keycloak.crt \
     --https-certificate-key-file=/opt/keycloak/conf/certs/keycloak.key \
-    --http-enabled=true
+    --http-enabled=true \
+    --health-enabled=true
 
   echo "Keycloak starting with TLS at https://localhost:8443"
   echo "Admin console: https://localhost:8443/admin (${KEYCLOAK_ADMIN}/${KEYCLOAK_ADMIN_PASSWORD})"
-  echo "Should be accessible in a few seconds. You can check the logs via the --logs parameter..."
+  echo "Health endpoint: https://localhost:9000/health"
+  
+  echo "Waiting for Keycloak to be ready..."
+  until curl -k -s https://localhost:9000/health/ready > /dev/null 2>&1; do
+    printf "."
+    sleep 2
+  done
+  echo " Keycloak is ready!"
 }
 
 function stop_keycloak() {
