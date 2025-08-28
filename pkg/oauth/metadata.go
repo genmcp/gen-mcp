@@ -15,7 +15,6 @@ type ProtectedResourceMetadata struct {
 	ScopesSupported        []string `json:"scopes_supported,omitempty"`         // OPTIONAL: supported OAuth scopes
 	BearerMethodsSupported []string `json:"bearer_methods_supported,omitempty"` // OPTIONAL: supported bearer token methods
 	JWKSURI                string   `json:"jwks_uri,omitempty"`                 // OPTIONAL: JSON Web Key Set URI
-	ResourceDocumentation  string   `json:"resource_documentation,omitempty"`   // OPTIONAL: documentation URL
 }
 
 // MetadataConfig holds the configuration for OAuth 2.0 Protected Resource Metadata
@@ -25,7 +24,6 @@ type MetadataConfig struct {
 	ScopesSupported        []string `json:"scopesSupported,omitempty"`
 	BearerMethodsSupported []string `json:"bearerMethodsSupported,omitempty"`
 	JWKSURI                string   `json:"jwksUri,omitempty"`
-	ResourceDocumentation  string   `json:"resourceDocumentation,omitempty"`
 }
 
 // NewProtectedResourceMetadataHandler creates an HTTP handler for the .well-known/oauth-protected-resource endpoint
@@ -74,10 +72,6 @@ func NewProtectedResourceMetadataHandler(basePath string, config MetadataConfig)
 
 		if config.JWKSURI != "" {
 			metadata.JWKSURI = config.JWKSURI
-		}
-
-		if config.ResourceDocumentation != "" {
-			metadata.ResourceDocumentation = config.ResourceDocumentation
 		}
 
 		// Set appropriate headers

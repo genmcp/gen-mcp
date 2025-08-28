@@ -76,7 +76,6 @@ type AuthConfig struct {
 	ScopesSupported        []string `json:"scopesSupported,omitempty"`        // supported OAuth scopes
 	BearerMethodsSupported []string `json:"bearerMethodsSupported,omitempty"` // supported bearer token methods
 	JWKSURI                string   `json:"jwksUri,omitempty"`                // JSON Web Key Set URI
-	ResourceDocumentation  string   `json:"resourceDocumentation,omitempty"`  // documentation URL
 }
 
 type StdioConfig struct {

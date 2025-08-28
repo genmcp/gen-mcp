@@ -69,7 +69,6 @@ func ProtectedResourceMetadataHandler(config *mcpfile.MCPServer) http.HandlerFun
 		ScopesSupported:        httpConfig.Auth.ScopesSupported,
 		BearerMethodsSupported: httpConfig.Auth.BearerMethodsSupported,
 		JWKSURI:                httpConfig.Auth.JWKSURI,
-		ResourceDocumentation:  httpConfig.Auth.ResourceDocumentation,
 	}
 
 	return NewProtectedResourceMetadataHandler(httpConfig.BasePath, metadataConfig)
