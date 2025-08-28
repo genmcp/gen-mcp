@@ -101,7 +101,7 @@ function start_keycloak() {
     abort "Error: TLS certificates not found. Run with --init first to create certificates."
   fi
   
-  # Start Keycloak container with TLS
+  # Start Keycloak container with TLS and HTTP
   $CONTAINER_RUNTIME run -d --name ${KEYCLOAK_CONTAINER_NAME} \
     -p 8443:8443 \
     -p 8080:8080 \
@@ -111,11 +111,13 @@ function start_keycloak() {
     -e KC_HOSTNAME=localhost \
     -e KC_HTTPS_CERTIFICATE_FILE=/opt/keycloak/conf/certs/keycloak.crt \
     -e KC_HTTPS_CERTIFICATE_KEY_FILE=/opt/keycloak/conf/certs/keycloak.key \
+    -e KC_HTTP_ENABLED=true \
     quay.io/keycloak/keycloak:26.3 \
     start --hostname=localhost \
     --https-certificate-file=/opt/keycloak/conf/certs/keycloak.crt \
-    --https-certificate-key-file=/opt/keycloak/conf/certs/keycloak.key
-    
+    --https-certificate-key-file=/opt/keycloak/conf/certs/keycloak.key \
+    --http-enabled=true
+
   echo "Keycloak starting with TLS at https://localhost:8443"
   echo "Admin console: https://localhost:8443/admin (${KEYCLOAK_ADMIN}/${KEYCLOAK_ADMIN_PASSWORD})"
   echo "Should be accessible in a few seconds. You can check the logs via the --logs parameter..."
