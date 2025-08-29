@@ -22,6 +22,17 @@ func MakeServer(mcpServer *mcpfile.MCPServer) *mcpserver.MCPServer {
 		mcpServer.Name,
 		mcpServer.Version,
 		server.WithToolCapabilities(true),
+		server.WithToolFilter(func(ctx context.Context, tools []mcp.Tool) []mcp.Tool {
+			// TODO: remove - just for logging ATM
+			claims := oauth.GetClaimsFromContext(ctx)
+			if claims != nil {
+				fmt.Printf("claims: %+v\n", claims)
+			} else {
+				fmt.Println("claims not found")
+			}
+
+			return tools
+		}),
 	)
 
 	for _, t := range mcpServer.Tools {
