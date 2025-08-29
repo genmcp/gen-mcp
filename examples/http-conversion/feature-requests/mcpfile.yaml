@@ -3,7 +3,7 @@ servers:
 - name: Feature Request API
   runtime:
     streamableHttpConfig:
-      port: 7007
+      port: 8080
     transportProtocol: streamablehttp
   tools:
   - description: Returns a list of all features sorted by upvotes (highest first)

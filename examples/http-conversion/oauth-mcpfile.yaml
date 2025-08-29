@@ -3,7 +3,7 @@ servers:
 - name: Feature Request API
   runtime:
     streamableHttpConfig:
-      port: 7007
+      port: 8080
       auth:
         authorizationServers:
           - http://localhost:8080/realms/master

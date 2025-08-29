@@ -57,12 +57,12 @@ Launch the gen-mcp server:
 genmcp run -f mcpfile.yaml
 ```
 
-The MCP server will run on port 7007 (as configured) and expose the HTTP endpoints as MCP tools that AI assistants can call seamlessly.
+The MCP server will run on port 8080 (as configured) and expose the HTTP endpoints as MCP tools that AI assistants can call seamlessly.
 
 ## Key gen-mcp HTTP Conversion Features
 
 - **Automatic Tool Generation**: HTTP endpoints become MCP tools automatically from OpenAPI specs
-- **Path Parameter Substitution**: URL templates like `{id}` are handled automatically  
+- **Path Parameter Substitution**: URL templates like `{id}` are handled automatically
 - **Schema Validation**: Input parameters are validated before API calls
 - **Streamable HTTP Protocol**: Real-time communication via `streamablehttp`
 - **Flexible Configuration**: Full control over which endpoints to expose and how
