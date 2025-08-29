@@ -693,8 +693,18 @@ func IsHttpVerb(verb string) bool {
 // define bracket name expression
 var (
 	bracketNameExp = regexp.MustCompile(`^(\w+)\['?([\w/]+)'?]$`)
-	pathCharExp    = regexp.MustCompile(`^[A-Za-z0-9_\\]*$`)
 )
+
+// isPathChar checks if a string contains only alphanumeric, underscore, or backslash characters
+// This is an optimized replacement for the pathCharExp regex
+func isPathChar(s string) bool {
+	for _, r := range s {
+		if !((r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' || r == '\\') {
+			return false
+		}
+	}
+	return true
+}
 
 func appendSegment(sb *strings.Builder, segs []string, cleaned []string, i int, wrapInQuotes bool) {
 	sb.Reset()
@@ -714,6 +724,25 @@ func appendSegment(sb *strings.Builder, segs []string, cleaned []string, i int, 
 	cleaned[len(cleaned)-1] = sb.String()
 }
 
+// appendSegmentOptimized uses strings.Builder more efficiently to avoid allocations
+func appendSegmentOptimized(segs []string, cleaned []string, i int, wrapInQuotes bool) {
+	var builder strings.Builder
+	if wrapInQuotes {
+		builder.Grow(len(cleaned[len(cleaned)-1]) + len(segs[i]) + 4) // existing + [''] + segment
+		builder.WriteString(cleaned[len(cleaned)-1])
+		builder.WriteString("['")
+		builder.WriteString(segs[i])
+		builder.WriteString("']")
+	} else {
+		builder.Grow(len(cleaned[len(cleaned)-1]) + len(segs[i]) + 2) // existing + [] + segment
+		builder.WriteString(cleaned[len(cleaned)-1])
+		builder.WriteByte('[')
+		builder.WriteString(segs[i])
+		builder.WriteByte(']')
+	}
+	cleaned[len(cleaned)-1] = builder.String()
+}
+
 // ConvertComponentIdIntoFriendlyPathSearch will convert a JSON Path into a friendly path search string.
 // the friendliness comes from it being suitable for use with any JSON Path parser.
 //
@@ -726,30 +755,35 @@ func ConvertComponentIdIntoFriendlyPathSearch(id string) (string, string) {
 	}
 	segs := strings.Split(id, "/")
 	name, _ := url.QueryUnescape(strings.ReplaceAll(segs[len(segs)-1], "~1", "/"))
-	cleaned := make([]string, 0, len(segs))
 
-	// use a builder to prevent many pointless string allocations.
-	var sb strings.Builder
+	// Pre-allocate with estimated capacity
+	estimatedCap := len(segs) + (len(segs) / 2)
+	cleaned := make([]string, 0, estimatedCap)
 
 	// check for strange spaces, chars and if found, wrap them up, clean them and create a new cleaned path.
 	for i := range segs {
 		if segs[i] == "" {
 			continue
 		}
-		if !pathCharExp.MatchString(segs[i]) {
+		if !isPathChar(segs[i]) {
 
 			segs[i], _ = url.QueryUnescape(strings.ReplaceAll(segs[i], "~1", "/"))
-			sb.Reset()
-			sb.WriteString("['")
-			sb.WriteString(segs[i])
-			sb.WriteString("']")
-			segs[i] = sb.String()
+
+			// Use string builder for bracket wrapping
+			var bracketBuilder strings.Builder
+			bracketBuilder.Grow(len(segs[i]) + 4)
+			bracketBuilder.WriteString("['")
+			bracketBuilder.WriteString(segs[i])
+			bracketBuilder.WriteString("']")
+			segs[i] = bracketBuilder.String()
 
 			if len(cleaned) > 0 && i < len(segs)-1 {
-				sb.Reset()
-				sb.WriteString(segs[i-1])
-				sb.WriteString(segs[i])
-				cleaned[len(cleaned)-1] = sb.String()
+				// Use string builder for concatenation with last cleaned element
+				var concatBuilder strings.Builder
+				concatBuilder.Grow(len(cleaned[len(cleaned)-1]) + len(segs[i]))
+				concatBuilder.WriteString(cleaned[len(cleaned)-1])
+				concatBuilder.WriteString(segs[i])
+				cleaned[len(cleaned)-1] = concatBuilder.String()
 				continue
 			} else {
 				if i > 0 && i < len(segs)-1 {
@@ -757,12 +791,14 @@ func ConvertComponentIdIntoFriendlyPathSearch(id string) (string, string) {
 					continue
 				}
 				if i == len(segs)-1 {
-					sb.Reset()
 					l := len(cleaned)
 					if l > 0 {
-						sb.WriteString(cleaned[l-1])
-						sb.WriteString(segs[i])
-						cleaned[l-1] = sb.String()
+						// Use string builder for concatenation
+						var endBuilder strings.Builder
+						endBuilder.Grow(len(cleaned[l-1]) + len(segs[i]))
+						endBuilder.WriteString(cleaned[l-1])
+						endBuilder.WriteString(segs[i])
+						cleaned[l-1] = endBuilder.String()
 					} else {
 						cleaned = append(cleaned, segs[i])
 					}
@@ -781,11 +817,11 @@ func ConvertComponentIdIntoFriendlyPathSearch(id string) (string, string) {
 			if err == nil {
 				if intVal <= 99 {
 					if len(cleaned) > 0 {
-						appendSegment(&sb, segs, cleaned, i, false)
+						appendSegmentOptimized(segs, cleaned, i, false)
 					}
 				} else {
 					if len(cleaned) > 0 {
-						appendSegment(&sb, segs, cleaned, i, true)
+						appendSegmentOptimized(segs, cleaned, i, true)
 					}
 				}
 				continue
@@ -797,15 +833,15 @@ func ConvertComponentIdIntoFriendlyPathSearch(id string) (string, string) {
 					cleaned = append(cleaned, segs[i])
 					continue
 				}
-				sb.Reset()
-				sb.WriteString("['")
-				sb.WriteString(segs[i])
-				sb.WriteString("']")
-				c := sb.String()
-				sb.Reset()
-				sb.WriteString(cleaned[len(cleaned)-1])
-				sb.WriteString(c)
-				cleaned[len(cleaned)-1] = sb.String()
+
+				// Use string builder for plural wrapping
+				var pluralBuilder strings.Builder
+				pluralBuilder.Grow(len(cleaned[len(cleaned)-1]) + len(segs[i]) + 4)
+				pluralBuilder.WriteString(cleaned[len(cleaned)-1])
+				pluralBuilder.WriteString("['")
+				pluralBuilder.WriteString(segs[i])
+				pluralBuilder.WriteString("']")
+				cleaned[len(cleaned)-1] = pluralBuilder.String()
 				continue
 			}
 
@@ -813,23 +849,59 @@ func ConvertComponentIdIntoFriendlyPathSearch(id string) (string, string) {
 		}
 	}
 
-	var replaced string
+	// Use single string builder for final assembly with # -> $ replacement
+	var finalBuilder strings.Builder
 	if len(cleaned) > 1 {
-		replaced = strings.ReplaceAll(strings.Join(cleaned, "."), "#", "$")
+		// Estimate final size
+		totalLen := 0
+		for _, seg := range cleaned {
+			totalLen += len(seg)
+		}
+		finalBuilder.Grow(totalLen + len(cleaned) + 5) // segments + dots + $ + potential extra .
+
+		finalBuilder.WriteByte('$')
+		for i, segment := range cleaned {
+			if i > 0 {
+				finalBuilder.WriteByte('.')
+			}
+			// Replace # with $ as we write
+			for _, ch := range segment {
+				if ch == '#' {
+					finalBuilder.WriteByte('$')
+				} else {
+					finalBuilder.WriteRune(ch)
+				}
+			}
+		}
 	} else {
-		replaced = strings.ReplaceAll(strings.Join(cleaned, ""), "#", "$.")
+		// Handle single segment case
+		if len(cleaned) == 1 {
+			finalBuilder.Grow(len(cleaned[0]) + 5)
+			finalBuilder.WriteString("$.")
+			for _, ch := range cleaned[0] {
+				if ch == '#' {
+					finalBuilder.WriteByte('$')
+				} else {
+					finalBuilder.WriteRune(ch)
+				}
+			}
+		} else {
+			finalBuilder.WriteString("$.")
+		}
 	}
 
-	if len(replaced) > 0 {
-		if replaced[0] != '$' {
-			replaced = fmt.Sprintf("$%s", replaced)
-		}
-		if replaced[1] != '.' {
+	replaced := finalBuilder.String()
 
-			// the second rune needs to be a period, if it's not we need to insert one.
-			sb.Reset()
-			sb.WriteString(fmt.Sprintf("%s.%s", replaced[:1], replaced[1:]))
-			replaced = sb.String()
+	// Ensure proper format
+	if len(replaced) > 0 {
+		if len(replaced) > 1 && replaced[1] != '.' {
+			// Insert period after $
+			var dotBuilder strings.Builder
+			dotBuilder.Grow(len(replaced) + 1)
+			dotBuilder.WriteByte(replaced[0]) // $
+			dotBuilder.WriteByte('.')         // .
+			dotBuilder.WriteString(replaced[1:])
+			replaced = dotBuilder.String()
 		}
 	}
 	return name, replaced

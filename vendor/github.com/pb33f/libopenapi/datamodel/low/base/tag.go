@@ -6,7 +6,6 @@ package base
 import (
 	"context"
 	"crypto/sha256"
-	"strings"
 
 	"github.com/pb33f/libopenapi/datamodel/low"
 	"github.com/pb33f/libopenapi/index"
@@ -21,10 +20,14 @@ import (
 // tag defined in the Operation Object instances.
 //   - v2: https://swagger.io/specification/v2/#tagObject
 //   - v3: https://swagger.io/specification/#tag-object
+//   - v3.2: https://spec.openapis.org/oas/v3.2.0#tag-object
 type Tag struct {
 	Name         low.NodeReference[string]
+	Summary      low.NodeReference[string]
 	Description  low.NodeReference[string]
 	ExternalDocs low.NodeReference[*ExternalDoc]
+	Parent       low.NodeReference[string]
+	Kind         low.NodeReference[string]
 	Extensions   *orderedmap.Map[low.KeyReference[string], low.ValueReference[*yaml.Node]]
 	KeyNode      *yaml.Node
 	RootNode     *yaml.Node
@@ -84,18 +87,60 @@ func (t *Tag) GetExtensions() *orderedmap.Map[low.KeyReference[string], low.Valu
 	return t.Extensions
 }
 
-// Hash will return a consistent SHA256 Hash of the Info object
+// Hash will return a consistent SHA256 Hash of the Tag object
 func (t *Tag) Hash() [32]byte {
-	var f []string
+	// Pre-calculate field count for optimal allocation
+	fieldCount := 0
 	if !t.Name.IsEmpty() {
-		f = append(f, t.Name.Value)
+		fieldCount++
+	}
+	if !t.Summary.IsEmpty() {
+		fieldCount++
 	}
 	if !t.Description.IsEmpty() {
-		f = append(f, t.Description.Value)
+		fieldCount++
 	}
 	if !t.ExternalDocs.IsEmpty() {
-		f = append(f, low.GenerateHashString(t.ExternalDocs.Value))
+		fieldCount++
 	}
-	f = append(f, low.HashExtensions(t.Extensions)...)
-	return sha256.Sum256([]byte(strings.Join(f, "|")))
+	if !t.Parent.IsEmpty() {
+		fieldCount++
+	}
+	if !t.Kind.IsEmpty() {
+		fieldCount++
+	}
+
+	// Use string builder pool
+	sb := low.GetStringBuilder()
+	defer low.PutStringBuilder(sb)
+
+	if !t.Name.IsEmpty() {
+		sb.WriteString(t.Name.Value)
+		sb.WriteByte('|')
+	}
+	if !t.Summary.IsEmpty() {
+		sb.WriteString(t.Summary.Value)
+		sb.WriteByte('|')
+	}
+	if !t.Description.IsEmpty() {
+		sb.WriteString(t.Description.Value)
+		sb.WriteByte('|')
+	}
+	if !t.ExternalDocs.IsEmpty() {
+		sb.WriteString(low.GenerateHashString(t.ExternalDocs.Value))
+		sb.WriteByte('|')
+	}
+	if !t.Parent.IsEmpty() {
+		sb.WriteString(t.Parent.Value)
+		sb.WriteByte('|')
+	}
+	if !t.Kind.IsEmpty() {
+		sb.WriteString(t.Kind.Value)
+		sb.WriteByte('|')
+	}
+	for _, ext := range low.HashExtensions(t.Extensions) {
+		sb.WriteString(ext)
+		sb.WriteByte('|')
+	}
+	return sha256.Sum256([]byte(sb.String()))
 }

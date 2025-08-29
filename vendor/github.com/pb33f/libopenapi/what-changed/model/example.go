@@ -4,12 +4,10 @@
 package model
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"sort"
 
-	"gopkg.in/yaml.v3"
-
+	"github.com/pb33f/libopenapi/datamodel/low"
 	"github.com/pb33f/libopenapi/datamodel/low/base"
 	v3 "github.com/pb33f/libopenapi/datamodel/low/v3"
 	"github.com/pb33f/libopenapi/utils"
@@ -23,6 +21,9 @@ type ExampleChanges struct {
 
 // GetAllChanges returns a slice of all changes made between Example objects
 func (e *ExampleChanges) GetAllChanges() []*Change {
+	if e == nil {
+		return nil
+	}
 	var changes []*Change
 	changes = append(changes, e.Changes...)
 	if e.ExtensionChanges != nil {
@@ -33,6 +34,9 @@ func (e *ExampleChanges) GetAllChanges() []*Change {
 
 // TotalChanges returns the total number of changes made to Example
 func (e *ExampleChanges) TotalChanges() int {
+	if e == nil {
+		return 0
+	}
 	l := e.PropertyChanges.TotalChanges()
 	if e.ExtensionChanges != nil {
 		l += e.ExtensionChanges.PropertyChanges.TotalChanges()
@@ -86,8 +90,7 @@ func CompareExamples(l, r *base.Example) *ExampleChanges {
 				// https://github.com/pb33f/libopenapi/issues/61
 				val := l.Value.ValueNode.Content[k+1].Value
 				if val == "" {
-					yaml, _ := yaml.Marshal(l.Value.ValueNode.Content[k+1].Content)
-					val = fmt.Sprint(sha256.Sum256(yaml))
+					val = low.HashYAMLNodeSlice(l.Value.ValueNode.Content[k+1].Content)
 				}
 				lKeys[z] = fmt.Sprintf("%v-%v-%v",
 					l.Value.ValueNode.Content[k].Value,
@@ -105,8 +108,7 @@ func CompareExamples(l, r *base.Example) *ExampleChanges {
 				// https://github.com/pb33f/libopenapi/issues/61
 				val := r.Value.ValueNode.Content[k+1].Value
 				if val == "" {
-					yaml, _ := yaml.Marshal(r.Value.ValueNode.Content[k+1].Content)
-					val = fmt.Sprint(sha256.Sum256(yaml))
+					val = low.HashYAMLNodeSlice(r.Value.ValueNode.Content[k+1].Content)
 				}
 				rKeys[z] = fmt.Sprintf("%v-%v-%v",
 					r.Value.ValueNode.Content[k].Value,
@@ -128,13 +130,13 @@ func CompareExamples(l, r *base.Example) *ExampleChanges {
 
 				if utils.IsNodeMap(l.Value.ValueNode) || utils.IsNodeArray(l.Value.ValueNode) {
 					// render down object
-					rendered, _ := yaml.Marshal(l.Value.ValueNode)
+					rendered, _ := low.YAMLNodeToBytes(l.Value.ValueNode)
 					l.Value.ValueNode.Value = string(rendered)
 				}
 
 				if utils.IsNodeMap(r.Value.ValueNode) || utils.IsNodeArray(r.Value.ValueNode) {
 					// render down object
-					rendered, _ := yaml.Marshal(r.Value.ValueNode)
+					rendered, _ := low.YAMLNodeToBytes(r.Value.ValueNode)
 					r.Value.ValueNode.Value = string(rendered)
 				}
 
@@ -146,13 +148,13 @@ func CompareExamples(l, r *base.Example) *ExampleChanges {
 
 				if utils.IsNodeMap(l.Value.ValueNode) || utils.IsNodeArray(l.Value.ValueNode) {
 					// render down object
-					rendered, _ := yaml.Marshal(l.Value.ValueNode)
+					rendered, _ := low.YAMLNodeToBytes(l.Value.ValueNode)
 					l.Value.ValueNode.Value = string(rendered)
 				}
 
 				if utils.IsNodeMap(r.Value.ValueNode) || utils.IsNodeArray(r.Value.ValueNode) {
 					// render down object
-					rendered, _ := yaml.Marshal(r.Value.ValueNode)
+					rendered, _ := low.YAMLNodeToBytes(r.Value.ValueNode)
 					r.Value.ValueNode.Value = string(rendered)
 				}
 
@@ -165,13 +167,13 @@ func CompareExamples(l, r *base.Example) *ExampleChanges {
 
 				if utils.IsNodeMap(l.Value.ValueNode) || utils.IsNodeArray(l.Value.ValueNode) {
 					// render down object
-					rendered, _ := yaml.Marshal(l.Value.ValueNode)
+					rendered, _ := low.YAMLNodeToBytes(l.Value.ValueNode)
 					l.Value.ValueNode.Value = string(rendered)
 				}
 
 				if utils.IsNodeMap(r.Value.ValueNode) || utils.IsNodeArray(r.Value.ValueNode) {
 					// render down object
-					rendered, _ := yaml.Marshal(r.Value.ValueNode)
+					rendered, _ := low.YAMLNodeToBytes(r.Value.ValueNode)
 					r.Value.ValueNode.Value = string(rendered)
 				}
 

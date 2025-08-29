@@ -11,7 +11,7 @@
 [![discord](https://img.shields.io/discord/923258363540815912)](https://discord.gg/x7VACVuEGP)
 [![Docs](https://img.shields.io/badge/godoc-reference-5fafd7)](https://pkg.go.dev/github.com/pb33f/libopenapi)
 
-libopenapi has full support for Swagger (OpenAPI 2), OpenAPI 3, and OpenAPI 3.1. It can handle the largest and most
+libopenapi has full support for Swagger (OpenAPI 2), OpenAPI 3, 3.1 and 3.2. It can handle the largest and most
 complex specifications you can think of.
 
 ---
@@ -150,10 +150,10 @@ func main() {
 	}
 
 	// The following fails after the first iteration
-	for schemaPairs := docModel.Model.Components.Schemas.First(); schemaPairs != nil; schemaPairs = schemaPairs.Next() {
-		schemaName := schemaPairs.Key()
-		schema := schemaPairs.Value()
-		fmt.Printf("Schema '%s' has %d properties\n", schemaName, schema.Schema().Properties.Len())
+	for schemaName, schema := range docModel.Model.Components.Schemas.FromOldest() {
+		if schema.Schema().Properties != nil {
+			fmt.Printf("Schema '%s' has %d properties\n", schemaName, schema.Schema().Properties.Len())
+		}
 	}
 }
 ```

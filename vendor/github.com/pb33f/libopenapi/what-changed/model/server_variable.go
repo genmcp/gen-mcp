@@ -15,6 +15,9 @@ type ServerVariableChanges struct {
 
 // GetAllChanges returns a slice of all changes made between SecurityRequirement objects
 func (s *ServerVariableChanges) GetAllChanges() []*Change {
+	if s == nil {
+		return nil
+	}
 	return s.Changes
 }
 

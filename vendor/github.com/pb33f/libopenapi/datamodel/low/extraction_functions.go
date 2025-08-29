@@ -4,14 +4,20 @@
 package low
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"hash"
 	"net/url"
 	"path/filepath"
 	"reflect"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
+	"unsafe"
 
 	jsonpathconfig "github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
 
@@ -22,6 +28,37 @@ import (
 	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
 	"gopkg.in/yaml.v3"
 )
+
+// stringBuilderPool is a sync.Pool that reuses strings.Builder instances to reduce memory allocations
+// when generating hashes across the codebase.
+var stringBuilderPool = sync.Pool{
+	New: func() interface{} {
+		return new(strings.Builder)
+	},
+}
+
+// hashCache is a global cache for computed hash values to avoid redundant calculations.
+// Uses sync.Map for thread-safe concurrent access.
+var hashCache sync.Map
+
+// ClearHashCache clears the global hash cache. This should be called before
+// starting a new document comparison to ensure clean state.
+func ClearHashCache() {
+	hashCache = sync.Map{}
+}
+
+// GetStringBuilder retrieves a strings.Builder from the pool, resets it, and returns it.
+// The caller must call PutStringBuilder when done to return it to the pool.
+func GetStringBuilder() *strings.Builder {
+	sb := stringBuilderPool.Get().(*strings.Builder)
+	sb.Reset()
+	return sb
+}
+
+// PutStringBuilder returns a strings.Builder to the pool for reuse.
+func PutStringBuilder(sb *strings.Builder) {
+	stringBuilderPool.Put(sb)
+}
 
 // FindItemInOrderedMap accepts a string key and a collection of KeyReference[string] and ValueReference[T].
 // Every KeyReference will have its value checked against the string key and if there is a match, it will be
@@ -884,38 +921,362 @@ func AreEqual(l, r Hashable) bool {
 	return l.Hash() == r.Hash()
 }
 
-// GenerateHashString will generate a SHA36 hash of any object passed in. If the object is Hashable
-// then the underlying Hash() method will be called.
+// GenerateHashString will generate a SHA256 hash of any object passed in. If the object is Hashable
+// then the underlying Hash() method will be called. Optimized to avoid excessive allocations and
+// uses caching to eliminate redundant calculations.
 func GenerateHashString(v any) string {
 	if v == nil {
 		return ""
 	}
-	if h, ok := v.(Hashable); ok {
-		if h != nil {
-			return fmt.Sprintf(HASH, h.Hash())
+
+	// Try cache first using the pointer as key for non-primitives
+	// However, skip caching for types with mutable hash state like SchemaProxy
+	val := reflect.ValueOf(v)
+	shouldCache := true
+	if val.Kind() == reflect.Ptr && !val.IsNil() {
+		// Check if this is a type that has mutable hash state or complex comparison logic
+		typeName := val.Type().String()
+		if typeName == "*base.SchemaProxy" || typeName == "*base.Schema" {
+			shouldCache = false
+		}
+
+		if shouldCache {
+			cacheKey := val.Pointer()
+			if cached, ok := hashCache.Load(cacheKey); ok {
+				return cached.(string)
+			}
 		}
 	}
-	if n, ok := v.(*yaml.Node); ok {
-		b, _ := yaml.Marshal(n)
-		return fmt.Sprintf(HASH, sha256.Sum256(b))
+
+	var hashStr string
+
+	if h, ok := v.(Hashable); ok {
+		if h != nil {
+			// Use hex.EncodeToString which is more efficient than fmt.Sprintf
+			hash := h.Hash()
+			hashStr = hex.EncodeToString(hash[:])
+		}
+	} else if n, ok := v.(*yaml.Node); ok {
+		// Fast path for common YAML node types to avoid marshaling
+		hashStr = hashYamlNodeFast(n)
+	} else {
+		// Primitive types
+		// if we get here, we're a primitive, check if we're a pointer and de-point
+		if val.Kind() == reflect.Ptr {
+			v = val.Elem().Interface()
+		}
+
+		// Convert to string efficiently using strconv instead of fmt.Sprintf
+		var str string
+		switch val := v.(type) {
+		case string:
+			str = val
+		case int:
+			str = strconv.Itoa(val)
+		case int8:
+			str = strconv.FormatInt(int64(val), 10)
+		case int16:
+			str = strconv.FormatInt(int64(val), 10)
+		case int32:
+			str = strconv.FormatInt(int64(val), 10)
+		case int64:
+			str = strconv.FormatInt(val, 10)
+		case uint:
+			str = strconv.FormatUint(uint64(val), 10)
+		case uint8:
+			str = strconv.FormatUint(uint64(val), 10)
+		case uint16:
+			str = strconv.FormatUint(uint64(val), 10)
+		case uint32:
+			str = strconv.FormatUint(uint64(val), 10)
+		case uint64:
+			str = strconv.FormatUint(val, 10)
+		case float32:
+			str = strconv.FormatFloat(float64(val), 'g', -1, 32)
+		case float64:
+			str = strconv.FormatFloat(val, 'g', -1, 64)
+		case bool:
+			if val {
+				str = "true"
+			} else {
+				str = "false"
+			}
+		default:
+			str = fmt.Sprint(v)
+		}
+
+		// Use hex.EncodeToString which is more efficient than fmt.Sprintf
+		hash := sha256.Sum256([]byte(str))
+		hashStr = hex.EncodeToString(hash[:])
 	}
-	// if we get here, we're a primitive, check if we're a pointer and de-point
-	if reflect.TypeOf(v).Kind() == reflect.Ptr {
-		v = reflect.ValueOf(v).Elem().Interface()
+
+	// Store in cache if we have a valid pointer and caching is enabled for this type
+	if shouldCache && val.Kind() == reflect.Ptr && !val.IsNil() && hashStr != "" {
+		cacheKey := val.Pointer()
+		hashCache.Store(cacheKey, hashStr)
 	}
-	return fmt.Sprintf(HASH, sha256.Sum256([]byte(fmt.Sprint(v))))
+
+	return hashStr
 }
 
-// AppendMapHashes will append all the hashes of a map to a slice of strings
-func AppendMapHashes[v any](a []string, m *orderedmap.Map[KeyReference[string], ValueReference[v]]) []string {
-	for k, v := range orderedmap.SortAlpha(m).FromOldest() {
-		a = append(a, fmt.Sprintf("%s-%s", k.Value, GenerateHashString(v.Value)))
+// hashYamlNodeFast provides fast hashing for YAML nodes without ANY marshaling
+func hashYamlNodeFast(n *yaml.Node) string {
+	if n == nil {
+		return ""
 	}
+
+	// Try cache first for complex nodes
+	if n.Kind != yaml.ScalarNode {
+		cacheKey := uintptr(unsafe.Pointer(n))
+		if cached, ok := hashCache.Load(cacheKey); ok {
+			return cached.(string)
+		}
+	}
+
+	// Use a hasher instead of marshaling
+	h := sha256.New()
+	visited := make(map[*yaml.Node]bool)
+	hashNodeTree(h, n, visited)
+
+	// Use hex.EncodeToString which is more efficient than fmt.Sprintf
+	result := hex.EncodeToString(h.Sum(nil))
+
+	// Cache complex nodes
+	if n.Kind != yaml.ScalarNode {
+		cacheKey := uintptr(unsafe.Pointer(n))
+		hashCache.Store(cacheKey, result)
+	}
+
+	return result
+}
+
+// hashNodeTree walks the YAML tree and hashes it without marshaling
+func hashNodeTree(h hash.Hash, n *yaml.Node, visited map[*yaml.Node]bool) {
+	if n == nil {
+		return
+	}
+
+	// Prevent circular reference infinite loops
+	if visited[n] {
+		h.Write([]byte("<<CIRCULAR>>"))
+		return
+	}
+	visited[n] = true
+
+	// Hash node metadata
+	h.Write([]byte{byte(n.Kind)})
+	h.Write([]byte(n.Tag))
+	h.Write([]byte(n.Value))
+	if n.Anchor != "" {
+		h.Write([]byte(n.Anchor))
+	}
+
+	// Hash based on node type
+	switch n.Kind {
+	case yaml.ScalarNode:
+		// Already hashed value above
+
+	case yaml.SequenceNode:
+		h.Write([]byte("["))
+		for _, child := range n.Content {
+			hashNodeTree(h, child, visited)
+			h.Write([]byte(","))
+		}
+		h.Write([]byte("]"))
+
+	case yaml.MappingNode:
+		h.Write([]byte("{"))
+		// For maps, we need consistent ordering
+		// Collect key-value pairs and sort by key hash
+		type kvPair struct {
+			keyHash   string
+			keyNode   *yaml.Node
+			valueNode *yaml.Node
+		}
+		pairs := make([]kvPair, 0, len(n.Content)/2)
+
+		for i := 0; i < len(n.Content); i += 2 {
+			if i+1 < len(n.Content) {
+				// Hash the key for sorting
+				keyH := sha256.New()
+				hashNodeTree(keyH, n.Content[i], visited)
+				pairs = append(pairs, kvPair{
+					keyHash:   fmt.Sprintf("%x", keyH.Sum(nil)),
+					keyNode:   n.Content[i],
+					valueNode: n.Content[i+1],
+				})
+			}
+		}
+
+		// Sort for consistent hashing
+		sort.Slice(pairs, func(i, j int) bool {
+			return pairs[i].keyHash < pairs[j].keyHash
+		})
+
+		// Hash in sorted order
+		for _, pair := range pairs {
+			hashNodeTree(h, pair.keyNode, visited)
+			h.Write([]byte(":"))
+			hashNodeTree(h, pair.valueNode, visited)
+			h.Write([]byte(","))
+		}
+		h.Write([]byte("}"))
+
+	case yaml.DocumentNode:
+		h.Write([]byte("DOC["))
+		for _, child := range n.Content {
+			hashNodeTree(h, child, visited)
+		}
+		h.Write([]byte("]"))
+
+	case yaml.AliasNode:
+		h.Write([]byte("ALIAS["))
+		if n.Alias != nil {
+			hashNodeTree(h, n.Alias, visited)
+		}
+		h.Write([]byte("]"))
+	}
+}
+
+// CompareYAMLNodes compares two YAML nodes for equality without marshaling to YAML.
+// This reuses the hashNodeTree logic to generate consistent hashes for comparison,
+// avoiding the expensive yaml.Marshal operations that cause massive allocations.
+func CompareYAMLNodes(left, right *yaml.Node) bool {
+	if left == nil && right == nil {
+		return true
+	}
+	if left == nil || right == nil {
+		return false
+	}
+
+	// Use the existing hashNodeTree function to generate consistent hashes
+	leftHash := sha256.New()
+	rightHash := sha256.New()
+
+	leftVisited := make(map[*yaml.Node]bool)
+	rightVisited := make(map[*yaml.Node]bool)
+
+	hashNodeTree(leftHash, left, leftVisited)
+	hashNodeTree(rightHash, right, rightVisited)
+
+	leftSum := leftHash.Sum(nil)
+	rightSum := rightHash.Sum(nil)
+
+	// Compare the hash bytes directly
+	return bytes.Equal(leftSum, rightSum)
+}
+
+// YAMLNodeToBytes converts a YAML node to bytes in a more efficient way than yaml.Marshal
+// This function should be used when you actually need the marshaled bytes (like for JSON conversion)
+// rather than just comparing nodes (use CompareYAMLNodes for that)
+func YAMLNodeToBytes(n *yaml.Node) ([]byte, error) {
+	if n == nil {
+		return nil, nil
+	}
+	// For now, we still use yaml.Marshal for cases that actually need the bytes
+	// This can be optimized further in the future with a custom serializer
+	return yaml.Marshal(n)
+}
+
+// HashYAMLNodeSlice creates a hash for a slice of YAML nodes efficiently
+// This replaces the pattern of yaml.Marshal + sha256 that's used in example comparisons
+func HashYAMLNodeSlice(nodes []*yaml.Node) string {
+	if len(nodes) == 0 {
+		return ""
+	}
+
+	h := sha256.New()
+	visited := make(map[*yaml.Node]bool)
+
+	for _, node := range nodes {
+		hashNodeTree(h, node, visited)
+	}
+
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+// AppendMapHashes will append all the hashes of a map to a slice of strings.
+// Optimized to avoid creating sorted copies on every call.
+func AppendMapHashes[v any](a []string, m *orderedmap.Map[KeyReference[string], ValueReference[v]]) []string {
+	if m == nil {
+		return a
+	}
+
+	// Pre-allocate slice for better performance when we know the size
+	if cap(a)-len(a) < m.Len() {
+		newA := make([]string, len(a), len(a)+m.Len())
+		copy(newA, a)
+		a = newA
+	}
+
+	// Collect entries and sort them by key for consistent hashing
+	// This is more efficient than orderedmap.SortAlpha() which creates a full copy
+	type entry struct {
+		key   string
+		value v
+	}
+	entries := make([]entry, 0, m.Len())
+
+	for k, v := range m.FromOldest() {
+		entries = append(entries, entry{
+			key:   k.Value,
+			value: v.Value,
+		})
+	}
+
+	// Sort entries by key for consistent hash ordering
+	// Use a simple insertion sort for small maps, quicksort for larger ones
+	if len(entries) <= 10 {
+		// Insertion sort for small maps
+		for i := 1; i < len(entries); i++ {
+			key := entries[i]
+			j := i - 1
+			for j >= 0 && entries[j].key > key.key {
+				entries[j+1] = entries[j]
+				j--
+			}
+			entries[j+1] = key
+		}
+	} else {
+		// Use Go's built-in sort for larger maps
+		sort.Slice(entries, func(i, j int) bool {
+			return entries[i].key < entries[j].key
+		})
+	}
+
+	// For small maps, avoid string builder overhead and use direct string concatenation
+	if len(entries) <= 5 {
+		for _, entry := range entries {
+			hashStr := entry.key + "-" + GenerateHashString(entry.value)
+			a = append(a, hashStr)
+		}
+	} else {
+		// Use string builder for larger maps with pre-allocated capacity
+		sb := GetStringBuilder()
+		defer PutStringBuilder(sb)
+
+		for _, entry := range entries {
+			sb.Reset()
+			// Pre-size for this specific entry to avoid growth
+			expectedLen := len(entry.key) + 64 + 1 // key + hash + separator
+			sb.Grow(expectedLen)
+			sb.WriteString(entry.key)
+			sb.WriteByte('-')
+			sb.WriteString(GenerateHashString(entry.value))
+			a = append(a, sb.String())
+		}
+	}
+
 	return a
 }
 
 func ValueToString(v any) string {
 	if n, ok := v.(*yaml.Node); ok {
+		// For simple scalar nodes, return the value directly
+		if n.Kind == yaml.ScalarNode {
+			return n.Value
+		}
+		// For complex nodes, still need to marshal for string representation
 		b, _ := yaml.Marshal(n)
 		return string(b)
 	}

@@ -18,6 +18,9 @@ type TagChanges struct {
 
 // GetAllChanges returns a slice of all changes made between Tag objects
 func (t *TagChanges) GetAllChanges() []*Change {
+	if t == nil {
+		return nil
+	}
 	var changes []*Change
 	changes = append(changes, t.Changes...)
 	if t.ExternalDocs != nil {
@@ -31,6 +34,9 @@ func (t *TagChanges) GetAllChanges() []*Change {
 
 // TotalChanges returns a count of everything that changed within tags.
 func (t *TagChanges) TotalChanges() int {
+	if t == nil {
+		return 0
+	}
 	c := t.PropertyChanges.TotalChanges()
 	if t.ExternalDocs != nil {
 		c += t.ExternalDocs.TotalChanges()
@@ -89,11 +95,44 @@ func CompareTags(l, r []low.ValueReference[*base.Tag]) []*TagChanges {
 				New:       seenRight[i].Value,
 			})
 
+			// Summary
+			props = append(props, &PropertyCheck{
+				LeftNode:  seenLeft[i].Value.Summary.ValueNode,
+				RightNode: seenRight[i].Value.Summary.ValueNode,
+				Label:     v3.SummaryLabel,
+				Changes:   &changes,
+				Breaking:  false,
+				Original:  seenLeft[i].Value,
+				New:       seenRight[i].Value,
+			})
+
 			// Description
 			props = append(props, &PropertyCheck{
 				LeftNode:  seenLeft[i].Value.Description.ValueNode,
 				RightNode: seenRight[i].Value.Description.ValueNode,
 				Label:     v3.DescriptionLabel,
+				Changes:   &changes,
+				Breaking:  false,
+				Original:  seenLeft[i].Value,
+				New:       seenRight[i].Value,
+			})
+
+			// Parent
+			props = append(props, &PropertyCheck{
+				LeftNode:  seenLeft[i].Value.Parent.ValueNode,
+				RightNode: seenRight[i].Value.Parent.ValueNode,
+				Label:     v3.ParentLabel,
+				Changes:   &changes,
+				Breaking:  true,
+				Original:  seenLeft[i].Value,
+				New:       seenRight[i].Value,
+			})
+
+			// Kind
+			props = append(props, &PropertyCheck{
+				LeftNode:  seenLeft[i].Value.Kind.ValueNode,
+				RightNode: seenRight[i].Value.Kind.ValueNode,
+				Label:     v3.KindLabel,
 				Changes:   &changes,
 				Breaking:  false,
 				Original:  seenLeft[i].Value,

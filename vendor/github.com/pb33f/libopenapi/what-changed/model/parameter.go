@@ -31,6 +31,9 @@ type ParameterChanges struct {
 
 // GetAllChanges returns a slice of all changes made between Parameter objects
 func (p *ParameterChanges) GetAllChanges() []*Change {
+	if p == nil {
+		return nil
+	}
 	var changes []*Change
 	changes = append(changes, p.Changes...)
 	if p.SchemaChanges != nil {
@@ -53,6 +56,9 @@ func (p *ParameterChanges) GetAllChanges() []*Change {
 
 // TotalChanges returns a count of everything that changed
 func (p *ParameterChanges) TotalChanges() int {
+	if p == nil {
+		return 0
+	}
 	c := p.PropertyChanges.TotalChanges()
 	if p.SchemaChanges != nil {
 		c += p.SchemaChanges.TotalChanges()

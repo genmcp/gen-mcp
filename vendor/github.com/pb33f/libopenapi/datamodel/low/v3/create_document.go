@@ -42,9 +42,11 @@ func createDocument(info *datamodel.SpecInfo, config *datamodel.DocumentConfigur
 	// create an index config and shadow the document configuration.
 	idxConfig := index.CreateClosedAPIIndexConfig()
 	idxConfig.SpecInfo = info
+	idxConfig.UseSchemaQuickHash = config.UseSchemaQuickHash
 	idxConfig.ExcludeExtensionRefs = config.ExcludeExtensionRefs
 	idxConfig.IgnoreArrayCircularReferences = config.IgnoreArrayCircularReferences
 	idxConfig.IgnorePolymorphicCircularReferences = config.IgnorePolymorphicCircularReferences
+	idxConfig.AllowUnknownExtensionContentDetection = config.AllowUnknownExtensionContentDetection
 	idxConfig.AvoidCircularReferenceCheck = true
 	idxConfig.BaseURL = urlWithoutTrailingSlash(config.BaseURL)
 	idxConfig.BasePath = config.BasePath
