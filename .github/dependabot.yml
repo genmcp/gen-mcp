@@ -36,7 +36,7 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
-      day: "first-tuesday"
+      day: "tuesday"
       time: "10:00"
       timezone: "UTC"
     open-pull-requests-limit: 3
