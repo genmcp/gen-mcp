@@ -5,13 +5,14 @@ package index
 
 import (
 	"encoding/json"
-	"github.com/pb33f/libopenapi/utils"
 	"io/fs"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"sync"
+
+	"github.com/pb33f/libopenapi/utils"
 
 	"github.com/pb33f/libopenapi/datamodel"
 	"gopkg.in/yaml.v3"
@@ -179,6 +180,24 @@ type SpecIndexConfig struct {
 	// defaults to false (which means extensions will be included)
 	ExcludeExtensionRefs bool
 
+	// UseSchemaQuickHash will use a quick hash to determine if a schema is the same as another schema if its a reference.
+	// This is important when a root / entry document does not have a components/schemas node, and schemas are defined in
+	// external documents. Enabling this will allow the what-changed module to perform deeper schema reference checks.
+	// -- IMPORTANT --
+	// Enabling this (default is false) will stop changes from being detected if a schema is circular.
+	// As identified in https://github.com/pb33f/libopenapi/pull/441
+	// So, in the edge case where you have circular references in your root / entry components/schemas and you also
+	// want changes in them to be picked up, then you should not enable this.
+	UseSchemaQuickHash bool
+
+	// AllowUnknownExtensionContentDetection will enable content detection for remote URLs that don't have
+	// a known file extension. When enabled, libopenapi will fetch the first 1-2KB of unknown URLs to determine
+	// if they contain valid JSON or YAML content. This is disabled by default for security and performance.
+	//
+	// If disabled, URLs without recognized extensions (.yaml, .yml, .json) will be rejected.
+	// If enabled, unknown URLs will be fetched and analyzed for JSON/YAML content with retry logic.
+	AllowUnknownExtensionContentDetection bool
+
 	// private fields
 	uri []string
 	id  string
@@ -327,6 +346,7 @@ type SpecIndex struct {
 	circularReferences                  []*CircularReferenceResult // only available when the resolver has been used.
 	polyCircularReferences              []*CircularReferenceResult // only available when the resolver has been used.
 	arrayCircularReferences             []*CircularReferenceResult // only available when the resolver has been used.
+	tagCircularReferences               []*CircularReferenceResult // tag parent-child circular references for OpenAPI 3.2+
 	allowCircularReferences             bool                       // decide if you want to error out, or allow circular references, default is false.
 	config                              *SpecIndexConfig           // configuration for the index
 	componentIndexChan                  chan struct{}

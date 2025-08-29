@@ -4,12 +4,12 @@ go 1.24.4
 
 require (
 	github.com/ghodss/yaml v1.0.0
-	github.com/mark3labs/mcp-go v0.32.0
-	github.com/onsi/ginkgo/v2 v2.25.1
+	github.com/mark3labs/mcp-go v0.38.0
+	github.com/onsi/ginkgo/v2 v2.25.2
 	github.com/onsi/gomega v1.38.2
-	github.com/pb33f/libopenapi v0.23.0
+	github.com/pb33f/libopenapi v0.25.9
 	github.com/spf13/cobra v1.9.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 )
 
 require (
@@ -23,7 +23,9 @@ require (
 	github.com/google/pprof v0.0.0-20250403155104-27863c87afa6 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/invopop/jsonschema v0.13.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
+	github.com/pb33f/ordered-map/v2 v2.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/speakeasy-api/jsonpath v0.6.2 // indirect
 	github.com/spf13/cast v1.7.1 // indirect

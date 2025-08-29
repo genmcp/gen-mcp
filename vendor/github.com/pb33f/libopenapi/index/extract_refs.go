@@ -7,13 +7,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/pb33f/libopenapi/utils"
-	"gopkg.in/yaml.v3"
 	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
+
+	"github.com/pb33f/libopenapi/utils"
+	"gopkg.in/yaml.v3"
 )
 
 // ExtractRefs will return a deduplicated slice of references for every unique ref found in the document.
@@ -52,8 +54,9 @@ func (index *SpecIndex) ExtractRefs(ctx context.Context, node, parent *yaml.Node
 				if len(seenPath) > 0 || n.Value != "" {
 					loc := append(seenPath, n.Value)
 					// create definition and full definition paths
-					definitionPath = fmt.Sprintf("#/%s", strings.Join(loc, "/"))
-					fullDefinitionPath = fmt.Sprintf("%s#/%s", index.specAbsolutePath, strings.Join(loc, "/"))
+					locPath := strings.Join(loc, "/")
+					definitionPath = "#/" + locPath
+					fullDefinitionPath = index.specAbsolutePath + "#/" + locPath
 					_, jsonPath = utils.ConvertComponentIdIntoFriendlyPathSearch(definitionPath)
 				}
 
@@ -130,8 +133,9 @@ func (index *SpecIndex) ExtractRefs(ctx context.Context, node, parent *yaml.Node
 					var jsonPath, definitionPath, fullDefinitionPath string
 					if len(seenPath) > 0 || n.Value != "" && label != "" {
 						loc := append(seenPath, n.Value, label)
-						definitionPath = fmt.Sprintf("#/%s", strings.Join(loc, "/"))
-						fullDefinitionPath = fmt.Sprintf("%s#/%s", index.specAbsolutePath, strings.Join(loc, "/"))
+						locPath := strings.Join(loc, "/")
+						definitionPath = "#/" + locPath
+						fullDefinitionPath = index.specAbsolutePath + "#/" + locPath
 						_, jsonPath = utils.ConvertComponentIdIntoFriendlyPathSearch(definitionPath)
 					}
 					ref := &Reference{
@@ -172,13 +176,14 @@ func (index *SpecIndex) ExtractRefs(ctx context.Context, node, parent *yaml.Node
 
 					var jsonPath, definitionPath, fullDefinitionPath string
 					if len(seenPath) > 0 {
-						loc := append(seenPath, n.Value, fmt.Sprintf("%d", h))
-						definitionPath = fmt.Sprintf("#/%s", strings.Join(loc, "/"))
-						fullDefinitionPath = fmt.Sprintf("%s#/%s", index.specAbsolutePath, strings.Join(loc, "/"))
+						loc := append(seenPath, n.Value, strconv.Itoa(h))
+						locPath := strings.Join(loc, "/")
+						definitionPath = "#/" + locPath
+						fullDefinitionPath = index.specAbsolutePath + "#/" + locPath
 						_, jsonPath = utils.ConvertComponentIdIntoFriendlyPathSearch(definitionPath)
 					} else {
-						definitionPath = fmt.Sprintf("#/%s", n.Value)
-						fullDefinitionPath = fmt.Sprintf("%s#/%s", index.specAbsolutePath, n.Value)
+						definitionPath = "#/" + n.Value
+						fullDefinitionPath = index.specAbsolutePath + "#/" + n.Value
 						_, jsonPath = utils.ConvertComponentIdIntoFriendlyPathSearch(definitionPath)
 					}
 
@@ -458,7 +463,7 @@ func (index *SpecIndex) ExtractRefs(ctx context.Context, node, parent *yaml.Node
 				}
 
 				loc := append(seenPath, v)
-				definitionPath := fmt.Sprintf("#/%s", strings.Join(loc, "/"))
+				definitionPath := "#/" + strings.Join(loc, "/")
 				_, jsonPath := utils.ConvertComponentIdIntoFriendlyPathSearch(definitionPath)
 
 				// capture descriptions and summaries
@@ -466,6 +471,15 @@ func (index *SpecIndex) ExtractRefs(ctx context.Context, node, parent *yaml.Node
 
 					// if the parent is a sequence, ignore.
 					if utils.IsNodeArray(node) {
+						continue
+					}
+					// Skip if "description" is a property name inside schema properties
+					// We check if the previous element in seenPath is "properties" and this is at an even index
+					// (property names are at even indices, values at odd)
+					if len(seenPath) > 0 && (seenPath[len(seenPath)-1] == "properties" || seenPath[len(seenPath)-1] == "patternProperties") {
+						// This means "description" is a property name, not a description field, skip extraction
+						seenPath = append(seenPath, strings.ReplaceAll(n.Value, "/", "~1"))
+						prev = n.Value
 						continue
 					}
 					if !slices.Contains(seenPath, "example") && !slices.Contains(seenPath, "examples") {
@@ -486,6 +500,16 @@ func (index *SpecIndex) ExtractRefs(ctx context.Context, node, parent *yaml.Node
 				}
 
 				if n.Value == "summary" {
+
+					// Skip if "summary" is a property name inside schema properties
+					// We check if the previous element in seenPath is "properties" and this is at an even index
+					// (property names are at even indices, values at odd)
+					if len(seenPath) > 0 && (seenPath[len(seenPath)-1] == "properties" || seenPath[len(seenPath)-1] == "patternProperties") {
+						// This means "summary" is a property name, not a summary field, skip extraction
+						seenPath = append(seenPath, strings.ReplaceAll(n.Value, "/", "~1"))
+						prev = n.Value
+						continue
+					}
 
 					if slices.Contains(seenPath, "example") || slices.Contains(seenPath, "examples") {
 						continue

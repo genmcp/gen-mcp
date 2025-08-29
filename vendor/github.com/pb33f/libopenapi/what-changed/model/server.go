@@ -18,6 +18,9 @@ type ServerChanges struct {
 
 // GetAllChanges returns a slice of all changes made between SecurityRequirement objects
 func (s *ServerChanges) GetAllChanges() []*Change {
+	if s == nil {
+		return nil
+	}
 	var changes []*Change
 	changes = append(changes, s.Changes...)
 	for k := range s.ServerVariableChanges {
@@ -31,6 +34,9 @@ func (s *ServerChanges) GetAllChanges() []*Change {
 
 // TotalChanges returns total changes found between two OpenAPI Server Objects
 func (s *ServerChanges) TotalChanges() int {
+	if s == nil {
+		return 0
+	}
 	c := s.PropertyChanges.TotalChanges()
 	for k := range s.ServerVariableChanges {
 		c += s.ServerVariableChanges[k].TotalChanges()

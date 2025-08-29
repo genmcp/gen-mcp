@@ -6,7 +6,6 @@ package index
 import (
 	"errors"
 	"fmt"
-	"github.com/pb33f/libopenapi/utils"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -21,7 +20,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/pb33f/libopenapi/utils"
+
 	"context"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -548,7 +550,10 @@ func (r *Rolodex) GetAllMappedReferences() map[string]*Reference {
 	return mappedRefs
 }
 
-// Open opens a file in the rolodex, and returns a RolodexFile - providing a context.
+// OpenWithContext opens a file in the rolodex, and returns a RolodexFile - providing a context.
+// The method supports both custom file systems (like LocalFS) and standard fs.FS implementations.
+// For standard fs.FS implementations, paths are automatically converted to relative paths as required
+// by the fs.FS interface specification (which mandates relative, slash-separated paths).
 func (r *Rolodex) OpenWithContext(ctx context.Context, location string) (RolodexFile, error) {
 	if r == nil {
 		return nil, fmt.Errorf("rolodex has not been initialized, cannot open file '%s'", location)
@@ -585,21 +590,30 @@ func (r *Rolodex) OpenWithContext(ctx context.Context, location string) (Rolodex
 				fileLookup, _ = filepath.Abs(filepath.Join(k, location))
 			}
 
-			var f fs.File
-			var err error
-			if fscw, ok := v.(RolodexFSWithContext); ok {
-				f, err = fscw.OpenWithContext(ctx, fileLookup)
+			// For generic fs.FS implementations, we need to use relative paths
+			// The fs.FS interface requires paths to be relative and slash-separated.
+			// This ensures compatibility with standard Go file systems like embed.FS,
+			// fstest.MapFS, afero.NewIOFS, and others that strictly follow the fs.FS contract.
+			var pathForOpen string
+
+			// Check if this is our custom LocalFS which supports absolute paths
+			if _, isLocalFS := v.(*LocalFS); isLocalFS {
+				// LocalFS can handle absolute paths directly for backward compatibility
+				pathForOpen = fileLookup
 			} else {
-				f, err = v.Open(fileLookup)
+				// For standard fs.FS implementations, convert to relative path
+				// Calculate relative path from base directory k to target fileLookup
+				relPath, _ := filepath.Rel(k, fileLookup)
+				pathForOpen = filepath.ToSlash(relPath)
 			}
 
-			if err != nil {
-				// try a lookup that is not absolute, but relative
+			f, err := openFile(ctx, pathForOpen, v)
 
-				if fscw, ok := v.(RolodexFSWithContext); ok {
-					f, err = fscw.OpenWithContext(ctx, location)
-				} else {
-					f, err = v.Open(location)
+			if err != nil {
+				// If the first attempt failed and we haven't already tried with the original location,
+				// try a lookup with the original location path
+				if pathForOpen != location {
+					f, err = openFile(ctx, location, v)
 				}
 
 				if err != nil {
@@ -617,12 +631,13 @@ func (r *Rolodex) OpenWithContext(ctx context.Context, location string) (Rolodex
 				var atm atomic.Value
 				atm.Store(lf.GetIndex())
 				var parsed *yaml.Node
+				var parseErrors []error
 				if p, e := lf.GetContentAsYAMLNode(); e == nil {
 					parsed = p
 				} else {
-					errorStack = append(errorStack, e)
+					parseErrors = append(parseErrors, e)
 				}
-				errorStack = append(errorStack, lf.GetErrors()...)
+				parseErrors = append(parseErrors, lf.GetErrors()...)
 
 				localFile = &LocalFile{
 					filename:      lf.Name(),
@@ -632,8 +647,12 @@ func (r *Rolodex) OpenWithContext(ctx context.Context, location string) (Rolodex
 					fullPath:      lf.GetFullPath(),
 					lastModified:  lf.ModTime(),
 					index:         atm,
-					readingErrors: errorStack,
+					readingErrors: parseErrors,
 					parsed:        parsed,
+				}
+				// If there were errors processing the file content, we should return them
+				if len(parseErrors) > 0 {
+					errorStack = append(errorStack, parseErrors...)
 				}
 				break
 			}
@@ -726,22 +745,39 @@ func (r *Rolodex) OpenWithContext(ctx context.Context, location string) (Rolodex
 	}
 
 	if localFile != nil {
+		// Check if the localFile has any reading errors that should be returned
+		var fileErrors []error
+		fileErrors = localFile.readingErrors
 		return &rolodexFile{
 			rolodex:   r,
 			location:  localFile.fullPath,
 			localFile: localFile,
-		}, errors.Join(errorStack...)
+		}, errors.Join(fileErrors...)
 	}
 
 	if remoteFile != nil {
+		// Check if the remoteFile has any seeking errors that should be returned
+		var fileErrors []error
+		fileErrors = remoteFile.seekingErrors
 		return &rolodexFile{
 			rolodex:    r,
 			location:   remoteFile.fullPath,
 			remoteFile: remoteFile,
-		}, errors.Join(errorStack...)
+		}, errors.Join(fileErrors...)
 	}
 
 	return nil, errors.Join(errorStack...)
+}
+
+func openFile(ctx context.Context, location string, v fs.FS) (fs.File, error) {
+	var err error
+	var f fs.File
+	if fscw, ok := v.(RolodexFSWithContext); ok {
+		f, err = fscw.OpenWithContext(ctx, location)
+	} else {
+		f, err = v.Open(location)
+	}
+	return f, err
 }
 
 // Open opens a file in the rolodex, and returns a RolodexFile.
