@@ -72,10 +72,9 @@ type StreamableHTTPConfig struct {
 }
 
 type AuthConfig struct {
-	AuthorizationServers   []string `json:"authorizationServers,omitempty"`   // list of authorization server URLs
-	ScopesSupported        []string `json:"scopesSupported,omitempty"`        // supported OAuth scopes
-	BearerMethodsSupported []string `json:"bearerMethodsSupported,omitempty"` // supported bearer token methods
-	JWKSURI                string   `json:"jwksUri,omitempty"`                // JSON Web Key Set URI
+	AuthorizationServers []string `json:"authorizationServers,omitempty"` // list of authorization server URLs
+	ScopesSupported      []string `json:"scopesSupported,omitempty"`      // supported OAuth scopes
+	JWKSURI              string   `json:"jwksUri,omitempty"`              // JSON Web Key Set URI
 }
 
 type StdioConfig struct {

@@ -109,9 +109,6 @@ servers:
             - "read"
             - "write"
             - "admin"
-          bearerMethodsSupported:
-            - "header"
-            - "body"
           jwksUri: "http://localhost:8080/realms/master/protocol/openid-connect/certs"
       transportProtocol: streamablehttp
     tools:

@@ -89,11 +89,10 @@ func ProtectedResourceMetadataHandler(config *mcpfile.MCPServer) http.HandlerFun
 
 	// Convert mcpfile.AuthConfig to oauth.MetadataConfig
 	metadataConfig := MetadataConfig{
-		ResourceName:           config.Name,
-		AuthorizationServers:   httpConfig.Auth.AuthorizationServers,
-		ScopesSupported:        httpConfig.Auth.ScopesSupported,
-		BearerMethodsSupported: httpConfig.Auth.BearerMethodsSupported,
-		JWKSURI:                httpConfig.Auth.JWKSURI,
+		ResourceName:         config.Name,
+		AuthorizationServers: httpConfig.Auth.AuthorizationServers,
+		ScopesSupported:      httpConfig.Auth.ScopesSupported,
+		JWKSURI:              httpConfig.Auth.JWKSURI,
 	}
 
 	return NewProtectedResourceMetadataHandler(httpConfig.BasePath, metadataConfig)

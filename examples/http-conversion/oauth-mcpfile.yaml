@@ -11,8 +11,6 @@ servers:
           - "read"
           - "write"
           - "admin"
-        bearerMethodsSupported:
-          - "header"
     transportProtocol: streamablehttp
   tools:
   - description: Returns a list of all features sorted by upvotes (highest first)
