@@ -9,7 +9,7 @@ spec:
     app: genmcp-demo
   ports:
   - port: 80
-    targetPort: 7007
+    targetPort: 8080
     protocol: TCP
     name: http
   type: ClusterIP

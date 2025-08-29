@@ -116,10 +116,10 @@ ko apply -f toolhive/mcp-server.yaml
 Use kubectl port-forward to access the MCP server:
 
 ```bash
-kubectl port-forward services/mcp-genmcp-proxy 7007:7007
+kubectl port-forward services/mcp-genmcp-proxy 8080:8080
 ```
 
-The MCP service will now be accessible at `http://localhost:7007/mcp`. To connect to the server, you will need to use the `streamablehttp` protocol and the url `http://localhost:7007/mcp`.
+The MCP service will now be accessible at `http://localhost:8080/mcp`. To connect to the server, you will need to use the `streamablehttp` protocol and the url `http://localhost:8080/mcp`.
 
 ### 9. Test the MCP Server
 
@@ -130,7 +130,7 @@ You can test the MCP server by connecting with an MCP client or by using tools l
 curl http://localhost:9090/features
 
 # Test the MCP server health (if available)
-curl http://localhost:7007/health
+curl http://localhost:8080/health
 ```
 
 ## Key gen-mcp HTTP Conversion Features

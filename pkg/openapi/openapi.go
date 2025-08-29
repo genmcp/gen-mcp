@@ -44,7 +44,7 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 		return nil, fmt.Errorf("no host provided in the swagger file, unable to construct valid URLs.")
 	}
 	// 1. Set top level MCP file info
-	// 2. Create a server in the MCP file, default to streamablehttp transport w. port 7007
+	// 2. Create a server in the MCP file, default to streamablehttp transport w. port 8080
 	// 3 for each (path, operation) in the document, add one tool to the server w. http invoke
 	res := &mcpfile.MCPFile{
 		FileVersion: mcpfile.MCPFileVersion,
@@ -54,7 +54,7 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 		Runtime: &mcpfile.ServerRuntime{
 			TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
 			StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
-				Port: 7007,
+				Port: 8080,
 			},
 		},
 		Tools:   []*mcpfile.Tool{},
@@ -176,7 +176,7 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 }
 func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MCPFile, error) {
 	// 1. Set top level MCP file info
-	// 2. Create a server in the MCP file, default to streamablehttp transport w. port 7007
+	// 2. Create a server in the MCP file, default to streamablehttp transport w. port 8080
 	// 3 for each (path, operation) in the document, add one tool to the server w. http invoke
 	res := &mcpfile.MCPFile{
 		FileVersion: mcpfile.MCPFileVersion,
@@ -186,7 +186,7 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 		Runtime: &mcpfile.ServerRuntime{
 			TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
 			StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
-				Port: 7007,
+				Port: 8080,
 			},
 		},
 		Tools:   []*mcpfile.Tool{},
