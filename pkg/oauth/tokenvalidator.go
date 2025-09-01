@@ -83,7 +83,7 @@ func (tv *TokenValidator) validateClaims(claims *TokenClaims) error {
 		return fmt.Errorf("invalid token claims: %s is not a valid issuer", claims.Issuer)
 	}
 
-	// add more
+	// TODO: add more (e.g. audience?!?)
 
 	return nil
 }
