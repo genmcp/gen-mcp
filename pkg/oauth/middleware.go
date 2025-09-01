@@ -3,6 +3,7 @@ package oauth
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
@@ -87,12 +88,22 @@ func ProtectedResourceMetadataHandler(config *mcpfile.MCPServer) http.HandlerFun
 		}
 	}
 
+	// Add the scopes, which are defined in the tools
+	var scopes []string
+	for _, tool := range config.Tools {
+		for _, requiredScope := range tool.RequiredScopes {
+			if !slices.Contains(scopes, requiredScope) {
+				scopes = append(scopes, requiredScope)
+			}
+		}
+	}
+
 	// Convert mcpfile.AuthConfig to oauth.MetadataConfig
 	metadataConfig := MetadataConfig{
 		ResourceName:         config.Name,
 		AuthorizationServers: httpConfig.Auth.AuthorizationServers,
-		ScopesSupported:      httpConfig.Auth.ScopesSupported,
 		JWKSURI:              httpConfig.Auth.JWKSURI,
+		ScopesSupported:      scopes,
 	}
 
 	return NewProtectedResourceMetadataHandler(httpConfig.BasePath, metadataConfig)

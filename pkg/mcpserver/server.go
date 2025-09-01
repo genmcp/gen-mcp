@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 
@@ -23,15 +24,22 @@ func MakeServer(mcpServer *mcpfile.MCPServer) *mcpserver.MCPServer {
 		mcpServer.Version,
 		server.WithToolCapabilities(true),
 		server.WithToolFilter(func(ctx context.Context, tools []mcp.Tool) []mcp.Tool {
-			// TODO: remove - just for logging ATM
-			claims := oauth.GetClaimsFromContext(ctx)
-			if claims != nil {
-				fmt.Printf("claims: %+v\n", claims)
-			} else {
-				fmt.Println("claims not found")
+			var allowedTools []mcp.Tool
+
+			for _, tool := range tools {
+				for _, toolConfig := range mcpServer.Tools {
+					if tool.Name == toolConfig.Name {
+						if err := checkToolAuthorization(ctx, toolConfig.RequiredScopes); err != nil {
+							fmt.Printf("user missed required scope to view %s tool: %s\n", tool.Name, err.Error())
+						} else {
+							fmt.Printf("user has all required scopes (%s) to view %s tool\n", strings.Join(toolConfig.RequiredScopes, ", "), tool.Name)
+							allowedTools = append(allowedTools, tool)
+						}
+					}
+				}
 			}
 
-			return tools
+			return allowedTools
 		}),
 	)
 
@@ -41,7 +49,7 @@ func MakeServer(mcpServer *mcpfile.MCPServer) *mcpserver.MCPServer {
 				t.Name,
 				t.GetMCPToolOpts()...,
 			),
-			t.HandleRequest,
+			createAuthorizedToolHandler(t),
 		)
 	}
 
@@ -119,4 +127,41 @@ func RunServers(ctx context.Context, mcpFilePath string) error {
 
 	wg.Wait()
 	return nil
+}
+
+// checkToolAuthorization verifies if user has required scopes for a tool
+func checkToolAuthorization(ctx context.Context, requiredScopes []string) error {
+	if len(requiredScopes) == 0 {
+		return nil // No scopes required
+	}
+
+	userClaims := oauth.GetClaimsFromContext(ctx)
+	if userClaims == nil {
+		return fmt.Errorf("no authentication context found")
+	}
+
+	// Split the scope string into individual scopes
+	userScopes := strings.Split(userClaims.Scope, " ")
+
+	// Check if user has all required scopes
+	for _, requiredScope := range requiredScopes {
+		if !slices.Contains(userScopes, requiredScope) {
+			return fmt.Errorf("missing required scope '%s'", requiredScope)
+		}
+	}
+
+	return nil
+}
+
+// createAuthorizedToolHandler wraps a tool handler with authorization checks
+func createAuthorizedToolHandler(tool *mcpfile.Tool) func(context.Context, mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Check if user has required scopes for this tool
+		if err := checkToolAuthorization(ctx, tool.RequiredScopes); err != nil {
+			return nil, fmt.Errorf("forbidden: %s for tool '%s'", err.Error(), tool.Name)
+		}
+
+		// User has sufficient permissions, proceed with tool execution
+		return tool.HandleRequest(ctx, req)
+	}
 }

@@ -39,6 +39,8 @@ OPTIONS:
   --logs                          Show Keycloak container logs (follow mode)
   --add-realm REALM               Add a new realm to Keycloak
   --add-client REALM CLIENT       Add a new client to the specified realm
+  --add-scope REALM SCOPE          Add a custom scope to the specified realm
+  --assign-scope REALM CLIENT SCOPE  Assign a scope to a specific client
   --disable-trusted-hosts REALM   Disable trusted hosts policy for specified realm
   --help                          Show this help message
 
@@ -47,6 +49,8 @@ EXAMPLES:
   $0 --start                          # Start Keycloak
   $0 --add-realm myrealm              # Add realm 'myrealm'
   $0 --add-client myrealm myclient    # Add client 'myclient' to 'myrealm'
+  $0 --add-scope myrealm read         # Add scope 'read' to 'myrealm'
+  $0 --assign-scope myrealm myclient read  # Assign scope 'read' to client 'myclient'
   $0 --stop                           # Stop Keycloak
 
 NOTES:
@@ -213,6 +217,104 @@ function add_client() {
   echo "Client '$client_id' created successfully in realm '$realm_name'"
 }
 
+function add_scope() {
+  local realm_name="$1"
+  local scope_name="$2"
+  
+  if [[ -z "$realm_name" || -z "$scope_name" ]]; then
+    abort "Error: Both realm name and scope name are required for --add-scope"
+  fi
+  
+  echo "Adding scope '$scope_name' to realm '$realm_name'"
+  
+  # Check if container is running
+  if ! $CONTAINER_RUNTIME ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
+    abort "Error: Keycloak container is not running. Start it with --start first."
+  fi
+  
+  # Add scope using Keycloak admin CLI
+  $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+    /opt/keycloak/bin/kcadm.sh create client-scopes \
+    -r "$realm_name" \
+    -s name="$scope_name" \
+    -s description="Custom scope: $scope_name" \
+    -s protocol=openid-connect \
+    --server https://localhost:8443 \
+    --realm master \
+    --user "${KEYCLOAK_ADMIN}" \
+    --password "${KEYCLOAK_ADMIN_PASSWORD}" \
+    --truststore /opt/keycloak/conf/certs/truststore.jks \
+    --trustpass "${TRUSTSTORE_PASS}"
+    
+  echo "Scope '$scope_name' created successfully in realm '$realm_name'"
+}
+
+function assign_scope() {
+  local realm_name="$1"
+  local client_id="$2"
+  local scope_name="$3"
+  
+  if [[ -z "$realm_name" || -z "$client_id" || -z "$scope_name" ]]; then
+    abort "Error: Realm name, client ID, and scope name are required for --assign-scope"
+  fi
+  
+  echo "Assigning scope '$scope_name' to client '$client_id' in realm '$realm_name'"
+  
+  # Check if container is running
+  if ! $CONTAINER_RUNTIME ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
+    abort "Error: Keycloak container is not running. Start it with --start first."
+  fi
+  
+  # Get the client's internal ID
+  local internal_client_id
+  internal_client_id=$($CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+    /opt/keycloak/bin/kcadm.sh get clients \
+    -r "$realm_name" \
+    --fields id,clientId \
+    --server https://localhost:8443 \
+    --realm master \
+    --user "${KEYCLOAK_ADMIN}" \
+    --password "${KEYCLOAK_ADMIN_PASSWORD}" \
+    --truststore /opt/keycloak/conf/certs/truststore.jks \
+    --trustpass "${TRUSTSTORE_PASS}" | \
+     jq -r ".[] | select(.clientId==\"$client_id\") | .id")
+     
+  if [[ -z "$internal_client_id" ]]; then
+    abort "Error: Client '$client_id' not found in realm '$realm_name'"
+  fi
+  
+  # Get the scope's internal ID
+  local scope_id
+  scope_id=$($CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+    /opt/keycloak/bin/kcadm.sh get client-scopes \
+    -r "$realm_name" \
+    --fields id,name \
+    --server https://localhost:8443 \
+    --realm master \
+    --user "${KEYCLOAK_ADMIN}" \
+    --password "${KEYCLOAK_ADMIN_PASSWORD}" \
+    --truststore /opt/keycloak/conf/certs/truststore.jks \
+    --trustpass "${TRUSTSTORE_PASS}" | \
+     jq -r ".[] | select(.name==\"$scope_name\") | .id")
+     
+  if [[ -z "$scope_id" ]]; then
+    abort "Error: Scope '$scope_name' not found in realm '$realm_name'"
+  fi
+  
+  # Assign the scope to the client as optional
+  $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+    /opt/keycloak/bin/kcadm.sh update clients/"$internal_client_id"/optional-client-scopes/"$scope_id" \
+    -r "$realm_name" \
+    --server https://localhost:8443 \
+    --realm master \
+    --user "${KEYCLOAK_ADMIN}" \
+    --password "${KEYCLOAK_ADMIN_PASSWORD}" \
+    --truststore /opt/keycloak/conf/certs/truststore.jks \
+    --trustpass "${TRUSTSTORE_PASS}"
+    
+  echo "Scope '$scope_name' assigned successfully to client '$client_id'"
+}
+
 function disable_trusted_hosts() {
   local realm_name="$1"
 
@@ -261,6 +363,11 @@ function main() {
   REALM=""
   CLIENT_REALM=""
   CLIENT_ID=""
+  SCOPE_REALM=""
+  SCOPE_NAME=""
+  ASSIGN_SCOPE_REALM=""
+  ASSIGN_SCOPE_CLIENT=""
+  ASSIGN_SCOPE_NAME=""
   DISABLE_TRUSTED_HOSTS=0
   TRUSTED_HOSTS_REALM=""
 
@@ -273,6 +380,8 @@ function main() {
       --logs) LOGS=1 ;;
       --add-realm) shift; REALM="$1" ;;
       --add-client) shift; CLIENT_REALM="$1"; shift; CLIENT_ID="$1" ;;
+      --add-scope) shift; SCOPE_REALM="$1"; shift; SCOPE_NAME="$1" ;;
+      --assign-scope) shift; ASSIGN_SCOPE_REALM="$1"; shift; ASSIGN_SCOPE_CLIENT="$1"; shift; ASSIGN_SCOPE_NAME="$1" ;;
       --disable-trusted-hosts) shift; TRUSTED_HOSTS_REALM="$1" ;;
       --help) show_help; exit 0 ;;
       *) abort "error: unknown option ${parameter}. Check the usage via --help" ;;
@@ -298,6 +407,14 @@ function main() {
 
   if [[ -n "$CLIENT_REALM" && -n "$CLIENT_ID" ]]; then
     add_client "$CLIENT_REALM" "$CLIENT_ID"
+  fi
+
+  if [[ -n "$SCOPE_REALM" && -n "$SCOPE_NAME" ]]; then
+    add_scope "$SCOPE_REALM" "$SCOPE_NAME"
+  fi
+
+  if [[ -n "$ASSIGN_SCOPE_REALM" && -n "$ASSIGN_SCOPE_CLIENT" && -n "$ASSIGN_SCOPE_NAME" ]]; then
+    assign_scope "$ASSIGN_SCOPE_REALM" "$ASSIGN_SCOPE_CLIENT" "$ASSIGN_SCOPE_NAME"
   fi
 
   if [[ -n "$TRUSTED_HOSTS_REALM" ]]; then

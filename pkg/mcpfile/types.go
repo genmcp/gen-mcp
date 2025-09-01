@@ -57,12 +57,13 @@ type CliInvocation struct {
 var _ Invocation = &HttpInvocation{}
 
 type Tool struct {
-	Name         string      `json:"name"`                   // name of the tool
-	Title        string      `json:"title,omitempty"`        // optional human readable name of the tool, for client display
-	Description  string      `json:"description"`            // description of the tool
-	InputSchema  *JsonSchema `json:"inputSchema"`            // input schema to call the tool
-	OutputSchema *JsonSchema `json:"outputSchema,omitempty"` // optional output schema of the tool
-	Invocation   Invocation  `json:"invocation"`             // how the tool should be invoked
+	Name           string      `json:"name"`                     // name of the tool
+	Title          string      `json:"title,omitempty"`          // optional human readable name of the tool, for client display
+	Description    string      `json:"description"`              // description of the tool
+	InputSchema    *JsonSchema `json:"inputSchema"`              // input schema to call the tool
+	OutputSchema   *JsonSchema `json:"outputSchema,omitempty"`   // optional output schema of the tool
+	Invocation     Invocation  `json:"invocation"`               // how the tool should be invoked
+	RequiredScopes []string    `json:"requiredScopes,omitempty"` // required OAuth scopes to be able to use the tool
 }
 
 type StreamableHTTPConfig struct {
@@ -73,7 +74,6 @@ type StreamableHTTPConfig struct {
 
 type AuthConfig struct {
 	AuthorizationServers []string `json:"authorizationServers,omitempty"` // list of authorization server URLs
-	ScopesSupported      []string `json:"scopesSupported,omitempty"`      // supported OAuth scopes
 	JWKSURI              string   `json:"jwksUri,omitempty"`              // JSON Web Key Set URI
 }
 
