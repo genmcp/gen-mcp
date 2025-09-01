@@ -23,24 +23,7 @@ func MakeServer(mcpServer *mcpfile.MCPServer) *mcpserver.MCPServer {
 		mcpServer.Name,
 		mcpServer.Version,
 		server.WithToolCapabilities(true),
-		server.WithToolFilter(func(ctx context.Context, tools []mcp.Tool) []mcp.Tool {
-			var allowedTools []mcp.Tool
-
-			for _, tool := range tools {
-				for _, toolConfig := range mcpServer.Tools {
-					if tool.Name == toolConfig.Name {
-						if err := checkToolAuthorization(ctx, toolConfig.RequiredScopes); err != nil {
-							fmt.Printf("user missed required scope to view %s tool: %s\n", tool.Name, err.Error())
-						} else {
-							fmt.Printf("user has all required scopes (%s) to view %s tool\n", strings.Join(toolConfig.RequiredScopes, ", "), tool.Name)
-							allowedTools = append(allowedTools, tool)
-						}
-					}
-				}
-			}
-
-			return allowedTools
-		}),
+		server.WithToolFilter(filterAllowedTools(mcpServer)),
 	)
 
 	for _, t := range mcpServer.Tools {
@@ -163,5 +146,26 @@ func createAuthorizedToolHandler(tool *mcpfile.Tool) func(context.Context, mcp.C
 
 		// User has sufficient permissions, proceed with tool execution
 		return tool.HandleRequest(ctx, req)
+	}
+}
+
+func filterAllowedTools(mcpServerConfig *mcpfile.MCPServer) server.ToolFilterFunc {
+	return func(ctx context.Context, tools []mcp.Tool) []mcp.Tool {
+		var allowedTools []mcp.Tool
+
+		for _, tool := range tools {
+			for _, toolConfig := range mcpServerConfig.Tools {
+				if tool.Name == toolConfig.Name {
+					if err := checkToolAuthorization(ctx, toolConfig.RequiredScopes); err != nil {
+						fmt.Printf("user missed required scope to view %s tool: %s\n", tool.Name, err.Error())
+					} else {
+						fmt.Printf("user has all required scopes (%s) to view %s tool\n", strings.Join(toolConfig.RequiredScopes, ", "), tool.Name)
+						allowedTools = append(allowedTools, tool)
+					}
+				}
+			}
+		}
+
+		return allowedTools
 	}
 }
