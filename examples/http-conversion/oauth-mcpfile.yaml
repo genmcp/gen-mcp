@@ -7,14 +7,6 @@ servers:
       auth:
         authorizationServers:
           - http://localhost:8080/realms/master
-        scopesSupported:
-          - "read"
-          - "write"
-          - "admin"
-        bearerMethodsSupported:
-          - "header"
-          - "body"
-        jwksUri: "http://localhost:8080/realms/master/protocol/openid-connect/certs"
     transportProtocol: streamablehttp
   tools:
   - description: Returns a list of all features sorted by upvotes (highest first)
@@ -26,6 +18,8 @@ servers:
         url: http://localhost:9090/features
     name: get_features
     title: Get all features
+    requiredScopes:
+      - feature:list
   - description: Create a new feature request
     inputSchema:
       properties:
@@ -45,6 +39,8 @@ servers:
         url: http://localhost:9090/features
     name: post_features
     title: Add new feature
+    requiredScopes:
+      - feature:create
   - description: Returns the feature with the most upvotes. Always call get_features-id after, to give the user the full details of this feature.
     inputSchema:
       type: object
@@ -54,6 +50,8 @@ servers:
         url: http://localhost:9090/features/top
     name: get_features-top
     title: Get top feature
+    requiredScopes:
+      - feature:list
   - description: Returns detailed information about a specific feature
     inputSchema:
       properties:
@@ -68,6 +66,8 @@ servers:
         url: http://localhost:9090/features/{id}
     name: get_features-id
     title: Get feature details
+    requiredScopes:
+      - feature:get
   - description: Increment the upvote count for a specific feature
     inputSchema:
       properties:
@@ -81,6 +81,8 @@ servers:
         url: http://localhost:9090/features/vote
     name: post_features-vote
     title: Vote for feature
+    requiredScopes:
+      - feature:update
   - description: Mark a specific feature request as completed
     inputSchema:
       properties:
@@ -94,4 +96,6 @@ servers:
         url: http://localhost:9090/features/complete
     name: post_features-complete
     title: Mark feature as completed
+    requiredScopes:
+      - feature:update
   version: 0.0.1

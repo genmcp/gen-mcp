@@ -19,18 +19,21 @@ type ProtectedResourceMetadata struct {
 
 // MetadataConfig holds the configuration for OAuth 2.0 Protected Resource Metadata
 type MetadataConfig struct {
-	ResourceName           string   `json:"resourceName,omitempty"`
-	AuthorizationServers   []string `json:"authorizationServers,omitempty"`
-	ScopesSupported        []string `json:"scopesSupported,omitempty"`
-	BearerMethodsSupported []string `json:"bearerMethodsSupported,omitempty"`
-	JWKSURI                string   `json:"jwksUri,omitempty"`
+	ResourceName         string   `json:"resourceName,omitempty"`
+	AuthorizationServers []string `json:"authorizationServers,omitempty"`
+	ScopesSupported      []string `json:"scopesSupported,omitempty"`
+	JWKSURI              string   `json:"jwksUri,omitempty"`
 }
 
 // NewProtectedResourceMetadataHandler creates an HTTP handler for the .well-known/oauth-protected-resource endpoint
 // The endpoint will be available at {basePath}/.well-known/oauth-protected-resource
 func NewProtectedResourceMetadataHandler(basePath string, config MetadataConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
+		if r.Method == http.MethodOptions {
+			writeCORSHeaders(w)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		} else if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
@@ -50,6 +53,9 @@ func NewProtectedResourceMetadataHandler(basePath string, config MetadataConfig)
 
 		// Build the metadata response
 		metadata := ProtectedResourceMetadata{
+			BearerMethodsSupported: []string{
+				"header", // we only support the bearer token in the header for now
+			},
 			Resource: resourceURL,
 		}
 
@@ -66,20 +72,12 @@ func NewProtectedResourceMetadataHandler(basePath string, config MetadataConfig)
 			metadata.ScopesSupported = config.ScopesSupported
 		}
 
-		if len(config.BearerMethodsSupported) > 0 {
-			metadata.BearerMethodsSupported = config.BearerMethodsSupported
-		}
-
 		if config.JWKSURI != "" {
 			metadata.JWKSURI = config.JWKSURI
 		}
 
 		// Set appropriate headers
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Cache-Control", "public, max-age=3600") // Cache for 1 hour
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		writeCORSHeaders(w)
 		w.WriteHeader(http.StatusOK)
 
 		// Encode and send the response
@@ -88,4 +86,12 @@ func NewProtectedResourceMetadataHandler(basePath string, config MetadataConfig)
 			return
 		}
 	}
+}
+
+func writeCORSHeaders(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "public, max-age=3600") // Cache for 1 hour
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, mcp-protocol-version")
 }
