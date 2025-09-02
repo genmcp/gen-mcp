@@ -29,7 +29,11 @@ type MetadataConfig struct {
 // The endpoint will be available at {basePath}/.well-known/oauth-protected-resource
 func NewProtectedResourceMetadataHandler(basePath string, config MetadataConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
+		if r.Method == http.MethodOptions {
+			writeCORSHeaders(w)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		} else if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
@@ -73,11 +77,7 @@ func NewProtectedResourceMetadataHandler(basePath string, config MetadataConfig)
 		}
 
 		// Set appropriate headers
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Cache-Control", "public, max-age=3600") // Cache for 1 hour
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		writeCORSHeaders(w)
 		w.WriteHeader(http.StatusOK)
 
 		// Encode and send the response
@@ -86,4 +86,12 @@ func NewProtectedResourceMetadataHandler(basePath string, config MetadataConfig)
 			return
 		}
 	}
+}
+
+func writeCORSHeaders(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "public, max-age=3600") // Cache for 1 hour
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, mcp-protocol-version")
 }
