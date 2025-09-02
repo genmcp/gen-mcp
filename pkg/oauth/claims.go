@@ -7,16 +7,16 @@ import (
 
 // TokenClaims represents extracted token claims
 type TokenClaims struct {
-	Subject   string     `json:"sub,omitempty"`
-	Issuer    string     `json:"iss,omitempty"`
-	Audience  []string   `json:"aud,omitempty"`
-	Expiry    *time.Time `json:"exp,omitempty"`
-	IssuedAt  *time.Time `json:"iat,omitempty"`
-	NotBefore *time.Time `json:"nbf,omitempty"`
-	Scope     string     `json:"scope,omitempty"`
-	ClientID  string     `json:"client_id,omitempty"`
-	Username  string     `json:"username,omitempty"`
-	Email     string     `json:"email,omitempty"`
+	Subject   string
+	Issuer    string
+	Audience  []string
+	Expiry    *time.Time
+	IssuedAt  *time.Time
+	NotBefore *time.Time
+	Scope     string
+	ClientID  string
+	Username  string
+	Email     string
 }
 
 type claimKey struct{}
