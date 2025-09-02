@@ -26,3 +26,26 @@ func TestOpenAIConnection(t *testing.T) {
 	assert.NotNil(t, content)
 	assert.Contains(t, content, "3")
 }
+
+func TestRunCommand(t *testing.T) {
+	// Test basic command
+	content, err := RunCommand("echo Hello World")
+	assert.NoError(t, err, "RunCommand should not fail")
+	assert.NotNil(t, content)
+	assert.Equal(t, "Hello World", content)
+}
+
+func TestRunCommandWithQuotes(t *testing.T) {
+	// Test command with quoted arguments (shlex handles this properly)
+	content, err := RunCommand(`echo "Hello World with spaces"`)
+	assert.NoError(t, err, "RunCommand should not fail with quoted args")
+	assert.NotNil(t, content)
+	assert.Equal(t, "Hello World with spaces", content)
+}
+
+func TestRunCommandEmpty(t *testing.T) {
+	// Test empty command
+	content, err := RunCommand("")
+	assert.NoError(t, err, "Empty command should not fail")
+	assert.Equal(t, "", content)
+}

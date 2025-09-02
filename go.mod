@@ -13,6 +13,8 @@ require (
 	github.com/stretchr/testify v1.11.0
 )
 
+require github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
+
 require (
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect

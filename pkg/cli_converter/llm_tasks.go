@@ -47,3 +47,8 @@ func RunInference(
 	content := chatCompletion.Choices[0].Message.Content
 	return content, nil
 }
+
+func DetectSubCommand(cliCommand string) (bool, error) {
+	// TODO: Implement subcommand detection logic
+	return false, nil
+}
