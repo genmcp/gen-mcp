@@ -23,7 +23,7 @@ func MakeServer(mcpServer *mcpfile.MCPServer) *mcpserver.MCPServer {
 		mcpServer.Name,
 		mcpServer.Version,
 		server.WithToolCapabilities(true),
-		server.WithToolFilter(filterAllowedTools(mcpServer)),
+		server.WithToolFilter(filterAuthorizedTools(mcpServer)),
 	)
 
 	for _, t := range mcpServer.Tools {
@@ -149,7 +149,7 @@ func createAuthorizedToolHandler(tool *mcpfile.Tool) func(context.Context, mcp.C
 	}
 }
 
-func filterAllowedTools(mcpServerConfig *mcpfile.MCPServer) server.ToolFilterFunc {
+func filterAuthorizedTools(mcpServerConfig *mcpfile.MCPServer) server.ToolFilterFunc {
 	return func(ctx context.Context, tools []mcp.Tool) []mcp.Tool {
 		var allowedTools []mcp.Tool
 
