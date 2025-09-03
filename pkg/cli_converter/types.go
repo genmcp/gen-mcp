@@ -20,4 +20,9 @@ type IsSubCommand struct {
 	Bool_Value bool `json:"bool_value"`
 }
 
+type SubCommands struct {
+	Commands []string `json:"commands"`
+}
+
 var IsSubCommandResponseSchema = GenerateSchema[IsSubCommand]()
+var SubCommandsResponseSchema = GenerateSchema[SubCommands]()

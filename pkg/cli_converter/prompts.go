@@ -74,3 +74,15 @@ Example 2:
 #
 Output: bool_value=false
 `
+
+var ExtractSubCommandsPrompt = `Given the man page for a CLI command utility, extract all the commands.
+
+Rules:
+- Only extract what is present.
+- Return a list of commands.
+- Each command should be a string.
+- Each command should be a single word.
+- Do NOT include description or any other text.
+- Do NOT include arguments or options.
+- Do NOT include aliases.
+`

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 
@@ -16,7 +15,7 @@ import (
 func NewOpenAIClient() openai.Client {
 	key := os.Getenv("MODEL_KEY")
 	base_url := os.Getenv("MODEL_BASE_URL")
-	fmt.Println("base_url:", base_url)
+	// fmt.Println("base_url:", base_url)
 
 	return openai.NewClient(
 		option.WithAPIKey(key),
@@ -30,7 +29,7 @@ func RunInference(
 ) (string, error) {
 	client := NewOpenAIClient()
 	model := os.Getenv("MODEL_NAME")
-	fmt.Println("model:", model)
+	// fmt.Println("model:", model)
 
 	ctx := context.Background()
 
@@ -111,4 +110,59 @@ func DetectSubCommand(cliCommand string) (bool, error) {
 	}
 
 	return is_sub_command.Bool_Value, nil
+}
+
+func ExtractSubCommands(cliCommand string) ([]string, error) {
+	cliCommand = strings.TrimSpace(cliCommand)
+	if len(cliCommand) == 0 {
+		return []string{}, errors.New("command is empty")
+	}
+
+	//Subcommand detection logic
+	user_prompt, err := RunCommand(cliCommand + " --help")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	client := NewOpenAIClient()
+	ctx := context.Background()
+
+	schema_param := openai.ResponseFormatJSONSchemaJSONSchemaParam{
+		Name:   "sub_commands",
+		Schema: SubCommandsResponseSchema,
+		Strict: openai.Bool(true),
+	}
+
+	user_message := "### Query:\n" + user_prompt
+
+	// fmt.Println("User Message:", user_message)
+
+	params := openai.ChatCompletionNewParams{
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage(ExtractSubCommandsPrompt),
+			openai.UserMessage(user_message),
+		},
+		ResponseFormat: openai.ChatCompletionNewParamsResponseFormatUnion{
+			OfJSONSchema: &openai.ResponseFormatJSONSchemaParam{JSONSchema: schema_param},
+		},
+		Model:       os.Getenv("MODEL_NAME"),
+		Temperature: param.Opt[float64]{Value: 0.0},
+		TopP:        param.Opt[float64]{Value: 1.0},
+		MaxTokens:   param.Opt[int64]{Value: 4096},
+	}
+
+	chat, err := client.Chat.Completions.New(ctx, params)
+	// fmt.Println("LLM Response:", chat.Choices[0].Message.Content)
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var subCommands SubCommands
+	err = json.Unmarshal([]byte(chat.Choices[0].Message.Content), &subCommands)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return subCommands.Commands, nil
 }

@@ -64,3 +64,20 @@ func TestDetectSubCommand(t *testing.T) {
 	assert.NoError(t, err, "DetectSubCommand should not fail")
 	assert.True(t, is_subcommand, "git should have subcommands")
 }
+
+func TestExtractSubCommands(t *testing.T) {
+	setupTestEnv(t)
+
+	_, err := ExtractSubCommands("")
+	assert.Error(t, err, "Empty command should fail")
+
+	subcommands, err := ExtractSubCommands("git")
+	assert.NoError(t, err, "ExtractSubCommands should not fail")
+	assert.NotNil(t, subcommands)
+	assert.Greater(t, len(subcommands), 0)
+	assert.Contains(t, subcommands, "add")
+	assert.Contains(t, subcommands, "commit")
+	assert.Contains(t, subcommands, "push")
+	assert.Contains(t, subcommands, "pull")
+	assert.Contains(t, subcommands, "status")
+}
