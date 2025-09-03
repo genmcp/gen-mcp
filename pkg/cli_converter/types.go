@@ -17,7 +17,7 @@ func GenerateSchema[T any]() interface{} {
 }
 
 type IsSubCommand struct {
-	Exists bool `json:"exists"`
+	Bool_Value bool `json:"bool_value"`
 }
 
 var IsSubCommandResponseSchema = GenerateSchema[IsSubCommand]()

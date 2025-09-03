@@ -49,3 +49,18 @@ func TestRunCommandEmpty(t *testing.T) {
 	assert.NoError(t, err, "Empty command should not fail")
 	assert.Equal(t, "", content)
 }
+
+func TestDetectSubCommand(t *testing.T) {
+	setupTestEnv(t)
+
+	_, err := DetectSubCommand("")
+	assert.Error(t, err, "Empty command should fail")
+
+	is_subcommand, err := DetectSubCommand("ls")
+	assert.NoError(t, err, "DetectSubCommand should not fail")
+	assert.False(t, is_subcommand, "ls does not have subcommands")
+
+	is_subcommand, err = DetectSubCommand("git")
+	assert.NoError(t, err, "DetectSubCommand should not fail")
+	assert.True(t, is_subcommand, "git should have subcommands")
+}

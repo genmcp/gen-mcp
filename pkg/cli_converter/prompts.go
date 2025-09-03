@@ -73,4 +73,4 @@ Example 2:
 # There are no sub-commands in this man page.
 #
 Output: bool_value=false
-	`
+`

@@ -3,8 +3,10 @@ package cli_converter
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
@@ -51,6 +53,11 @@ func RunInference(
 }
 
 func DetectSubCommand(cliCommand string) (bool, error) {
+	cliCommand = strings.TrimSpace(cliCommand)
+	if len(cliCommand) == 0 {
+		return false, errors.New("command is empty")
+	}
+
 	//Subcommand detection logic
 	user_prompt, err := RunCommand(cliCommand + " --help")
 	if err != nil {
@@ -61,15 +68,19 @@ func DetectSubCommand(cliCommand string) (bool, error) {
 	ctx := context.Background()
 
 	schema_param := openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:   "is_sub_command",
+		Name:   "sub_command",
 		Schema: IsSubCommandResponseSchema,
 		Strict: openai.Bool(true),
 	}
 
+	user_message := "### Command:\n" + cliCommand + "\n\n### Man Page:\n" + user_prompt
+
+	// fmt.Println("User Message:", user_message)
+
 	params := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(IsSubCommandPrompt),
-			openai.UserMessage(user_prompt),
+			openai.UserMessage(user_message),
 		},
 		ResponseFormat: openai.ChatCompletionNewParamsResponseFormatUnion{
 			OfJSONSchema: &openai.ResponseFormatJSONSchemaParam{JSONSchema: schema_param},
@@ -80,13 +91,14 @@ func DetectSubCommand(cliCommand string) (bool, error) {
 		MaxTokens:   param.Opt[int64]{Value: 4096},
 	}
 
-	paramsJSON, err := params.MarshalJSON()
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Println("params:", string(paramsJSON))
+	// paramsJSON, err := params.MarshalJSON()
+	// if err != nil {
+	// 	panic(err.Error())
+	// }
+	//fmt.Println("Params JSON:", string(paramsJSON))
 
 	chat, err := client.Chat.Completions.New(ctx, params)
+	// fmt.Println("LLM Response:", chat.Choices[0].Message.Content)
 
 	if err != nil {
 		panic(err.Error())
@@ -98,5 +110,5 @@ func DetectSubCommand(cliCommand string) (bool, error) {
 		panic(err.Error())
 	}
 
-	return is_sub_command.Exists, nil
+	return is_sub_command.Bool_Value, nil
 }
