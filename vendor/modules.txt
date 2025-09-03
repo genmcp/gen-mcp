@@ -105,7 +105,7 @@ github.com/lestrrat-go/option/v2
 ## explicit; go 1.12
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jwriter
-# github.com/mark3labs/mcp-go v0.38.0
+# github.com/mark3labs/mcp-go v0.39.1
 ## explicit; go 1.23
 github.com/mark3labs/mcp-go/client
 github.com/mark3labs/mcp-go/client/transport
@@ -189,13 +189,13 @@ github.com/speakeasy-api/jsonpath/pkg/jsonpath/token
 # github.com/spf13/cast v1.7.1
 ## explicit; go 1.19
 github.com/spf13/cast
-# github.com/spf13/cobra v1.9.1
+# github.com/spf13/cobra v1.10.1
 ## explicit; go 1.15
 github.com/spf13/cobra
-# github.com/spf13/pflag v1.0.6
+# github.com/spf13/pflag v1.0.9
 ## explicit; go 1.12
 github.com/spf13/pflag
-# github.com/stretchr/testify v1.11.0
+# github.com/stretchr/testify v1.11.1
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/assert/yaml
