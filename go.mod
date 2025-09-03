@@ -5,12 +5,12 @@ go 1.24.4
 require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/lestrrat-go/jwx/v3 v3.0.10
-	github.com/mark3labs/mcp-go v0.38.0
+	github.com/mark3labs/mcp-go v0.39.1
 	github.com/onsi/ginkgo/v2 v2.25.2
 	github.com/onsi/gomega v1.38.2
 	github.com/pb33f/libopenapi v0.25.9
-	github.com/spf13/cobra v1.9.1
-	github.com/stretchr/testify v1.11.0
+	github.com/spf13/cobra v1.10.1
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
@@ -38,7 +38,7 @@ require (
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/speakeasy-api/jsonpath v0.6.2 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.9-0.20240815153524-6ea36470d1bd // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
