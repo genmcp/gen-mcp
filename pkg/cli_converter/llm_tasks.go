@@ -166,3 +166,60 @@ func ExtractSubCommands(cliCommand string) ([]string, error) {
 
 	return subCommands.Commands, nil
 }
+
+func ExtractCommand(cliCommand string) (CommandItem, error) {
+	cliCommand = strings.TrimSpace(cliCommand)
+	if len(cliCommand) == 0 {
+		return CommandItem{}, errors.New("command is empty")
+	}
+
+	user_prompt, err := RunCommand(cliCommand + " --help")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	client := NewOpenAIClient()
+	ctx := context.Background()
+
+	schema_param := openai.ResponseFormatJSONSchemaJSONSchemaParam{
+		Name:   "extract_command",
+		Schema: CommandResponseSchema,
+		Strict: openai.Bool(true),
+	}
+
+	user_message := "### Command:\n" + cliCommand + "\n\n### Man Page:\n" + user_prompt
+
+	// fmt.Println("User Message:", user_message)
+
+	params := openai.ChatCompletionNewParams{
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage(ExtractCommandPrompt),
+			openai.UserMessage(user_message),
+		},
+		ResponseFormat: openai.ChatCompletionNewParamsResponseFormatUnion{
+			OfJSONSchema: &openai.ResponseFormatJSONSchemaParam{JSONSchema: schema_param},
+		},
+		Model:       os.Getenv("MODEL_NAME"),
+		Temperature: param.Opt[float64]{Value: 0.0},
+		TopP:        param.Opt[float64]{Value: 1.0},
+		MaxTokens:   param.Opt[int64]{Value: 4096},
+	}
+
+	chat, err := client.Chat.Completions.New(ctx, params)
+	// fmt.Println("LLM Response:", chat.Choices[0].Message.Content)
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var command Command
+	err = json.Unmarshal([]byte(chat.Choices[0].Message.Content), &command)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return CommandItem{
+		Command: cliCommand,
+		Data:    command,
+	}, nil
+}

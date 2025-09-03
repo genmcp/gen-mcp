@@ -25,9 +25,16 @@ var convertCliCmd = &cobra.Command{
 func executeConvertCliCmd(cobraCmd *cobra.Command, args []string) {
 	cliCommand := args[0]
 
-	mcpFile, err := cli_converter.ConvertCliCommandToMcpFile(cliCommand)
+	commandItems := []cli_converter.CommandItem{}
+
+	_, err := cli_converter.ExtractCLICommandInfo(cliCommand, &commandItems)
 	if err != nil {
-		fmt.Printf("encountered errors while converting cli command to mcp file: %s\n", err.Error())
+		fmt.Printf("encountered errors while extracting cli command info: %s\n", err.Error())
+	}
+
+	mcpFile, err := cli_converter.ConvertCommandsToMCPFile(&commandItems)
+	if err != nil {
+		fmt.Printf("encountered errors while converting commands to mcp file: %s\n", err.Error())
 	}
 
 	mcpFileBytes, err := yaml.Marshal(mcpFile)

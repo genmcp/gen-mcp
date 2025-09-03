@@ -86,3 +86,16 @@ Rules:
 - Do NOT include arguments or options.
 - Do NOT include aliases.
 `
+
+var ExtractCommandPrompt = `Given the man page for a command utility, parse it into JSON using the following rules:
+- Arguments Rules:
+    - include positional arguments.
+    - name is exactly as shown (e.g. file, pattern).
+    - optional is true if the synopsis encloses it in brackets ([]), else false.
+    - Do not consider "options" as argument.
+    - If the command doesn't take any argument, you can return an empty list.
+- Options Rules: 
+    - flag: complete flag name (e.g. --help, --version).
+    - type: if the option takes argument and type is mentioned, else "".
+- Only extract what is present.
+`
