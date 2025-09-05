@@ -119,7 +119,7 @@ Use kubectl port-forward to access the MCP server:
 kubectl port-forward services/mcp-genmcp-proxy 8080:8080
 ```
 
-The MCP service will now be accessible at `http://localhost:8080/mcp`. To connect to the server, you will need to use the `streamablehttp` protocol and the url `http://localhost:8080/mcp`.
+The MCP service will now be accessible at `http://localhost:8080/mcp`. To connect to the server, you will need to use the `streamablehttp` protocol and the url `http://localhost:8080/mcp`. You can also explore the MCP server using the [MCP Inspector](https://modelcontextprotocol.io/legacy/tools/inspector), an interactive developer tool for testing and debugging MCP servers.
 
 ### 9. Test the MCP Server
 
