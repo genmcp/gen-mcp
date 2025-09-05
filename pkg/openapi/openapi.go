@@ -41,7 +41,7 @@ func DocumentToMcpFile(document []byte, host string) (*mcpfile.MCPFile, error) {
 
 func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCPFile, error) {
 	if model.Host == "" && host == "" {
-		return nil, fmt.Errorf("no host provided in the swagger file, unable to construct valid URLs.")
+		return nil, fmt.Errorf("no host provided in the swagger file, unable to construct valid URLs")
 	}
 	// 1. Set top level MCP file info
 	// 2. Create a server in the MCP file, default to streamablehttp transport w. port 8080

@@ -11,7 +11,6 @@ import (
 	"sync"
 
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
@@ -22,8 +21,8 @@ func MakeServer(mcpServer *mcpfile.MCPServer) *mcpserver.MCPServer {
 	s := mcpserver.NewMCPServer(
 		mcpServer.Name,
 		mcpServer.Version,
-		server.WithToolCapabilities(true),
-		server.WithToolFilter(filterAuthorizedTools(mcpServer)),
+		mcpserver.WithToolCapabilities(true),
+		mcpserver.WithToolFilter(filterAuthorizedTools(mcpServer)),
 	)
 
 	for _, t := range mcpServer.Tools {
@@ -48,7 +47,7 @@ func RunServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
 		mux := http.NewServeMux()
 
 		// Set up MCP server under /mcp (or whatever is under BasePath)
-		mcpServer := server.NewStreamableHTTPServer(s)
+		mcpServer := mcpserver.NewStreamableHTTPServer(s)
 		mux.Handle(mcpServerConfig.Runtime.StreamableHTTPConfig.BasePath, oauth.Middleware(mcpServerConfig)(mcpServer))
 
 		// Set up OAuth protected resource metadata endpoint under / if needed
@@ -81,7 +80,7 @@ func RunServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
 			return err
 		}
 	case mcpfile.TransportProtocolStdio:
-		stdioServer := server.NewStdioServer(s)
+		stdioServer := mcpserver.NewStdioServer(s)
 		return stdioServer.Listen(ctx, os.Stdin, os.Stdout)
 	default:
 		return fmt.Errorf("tried running invalid transport protocol")
@@ -149,7 +148,7 @@ func createAuthorizedToolHandler(tool *mcpfile.Tool) func(context.Context, mcp.C
 	}
 }
 
-func filterAuthorizedTools(mcpServerConfig *mcpfile.MCPServer) server.ToolFilterFunc {
+func filterAuthorizedTools(mcpServerConfig *mcpfile.MCPServer) mcpserver.ToolFilterFunc {
 	return func(ctx context.Context, tools []mcp.Tool) []mcp.Tool {
 		var allowedTools []mcp.Tool
 

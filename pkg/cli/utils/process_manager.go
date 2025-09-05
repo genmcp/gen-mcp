@@ -24,8 +24,14 @@ func init() {
 		if err != nil {
 			panic(err)
 		}
-		f.WriteString("{}")
-		f.Close()
+		_, err = f.WriteString("{}")
+		if err != nil {
+			panic(err)
+		}
+		err = f.Close()
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	manager = &ProcessManager{
@@ -89,9 +95,7 @@ func (pm *ProcessManager) SaveProcessId(name string, pid int) error {
 		return fmt.Errorf("failed to serialize the processes map, unable to save pid for genmcp instance: %w", err)
 	}
 
-	err = os.WriteFile(pm.filePath, bytes, 0644)
-
-	return nil
+	return os.WriteFile(pm.filePath, bytes, 0644)
 }
 
 func (pm *ProcessManager) DeleteProcessId(name string) error {
@@ -116,7 +120,5 @@ func (pm *ProcessManager) DeleteProcessId(name string) error {
 		return fmt.Errorf("failed to serialize the processes map, unable to delete pid for genmcp instance: %w", err)
 	}
 
-	err = os.WriteFile(pm.filePath, bytes, 0644)
-
-	return nil
+	return os.WriteFile(pm.filePath, bytes, 0644)
 }

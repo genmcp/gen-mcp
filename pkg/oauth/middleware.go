@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"slices"
 	"strings"
@@ -75,7 +76,10 @@ func write401(w http.ResponseWriter, r *http.Request, body string) {
 	w.Header().Set("WWW-Authenticate", fmt.Sprintf("Bearer resource_metadata=%q", fullWellKnownPath))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusUnauthorized)
-	w.Write([]byte(body))
+	_, err := w.Write([]byte(body))
+	if err != nil {
+		log.Printf("failed to write response: %v", err)
+	}
 }
 
 func ProtectedResourceMetadataHandler(config *mcpfile.MCPServer) http.HandlerFunc {

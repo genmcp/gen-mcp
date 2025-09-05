@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"slices"
 	"strings"
@@ -200,7 +201,11 @@ func (tv *TokenValidator) isValidJWKSEndpoint(ctx context.Context, jwksURL strin
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("error closing response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return false
@@ -222,7 +227,11 @@ func (tv *TokenValidator) discoverFromOIDC(ctx context.Context, discoveryURL str
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("error closing response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("OIDC discovery endpoint returned status %d", resp.StatusCode)
