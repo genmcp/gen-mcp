@@ -1,0 +1,152 @@
+name: Create Pre-Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'release/v*.*'
+jobs:
+  determine-version:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/release/v')
+    permissions:
+      contents: write
+    outputs:
+      prerelease_version: ${{ env.PRERELEASE_VERSION }}
+      skip_prerelease: ${{ env.SKIP_PRERELEASE }}
+      changelog_body: ${{ env.CHANGELOG_BODY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version and determine z version
+        id: get_version
+        run: |
+          BRANCH_NAME="${{ github.ref_name }}"
+          BASE_VERSION=$(echo "${BRANCH_NAME}" | sed 's/release\/v/v/')
+          
+          # Find the latest release tag for this x.y version
+          LATEST_RELEASE=$(git tag -l "${BASE_VERSION}.*" --sort=-version:refname | head -n1)
+          
+          if [ -z "$LATEST_RELEASE" ]; then
+            # No existing releases for this x.y version, start with z=0
+            Z_VERSION="0"
+            echo "No existing releases found for ${BASE_VERSION}, starting with z=0"
+          else
+            # Check if there are new commits since the latest release
+            COMMITS_SINCE_RELEASE=$(git rev-list ${LATEST_RELEASE}..HEAD --count)
+            
+            if [ "$COMMITS_SINCE_RELEASE" -eq "0" ]; then
+              echo "No new commits since ${LATEST_RELEASE}, skipping prerelease creation"
+              echo "SKIP_PRERELEASE=true" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            
+            # Extract z version from latest release and increment
+            LATEST_Z=$(echo "$LATEST_RELEASE" | sed "s/${BASE_VERSION}\.//")
+            Z_VERSION=$((LATEST_Z + 1))
+            echo "Found ${COMMITS_SINCE_RELEASE} new commits since ${LATEST_RELEASE}, incrementing to z=${Z_VERSION}"
+          fi
+          
+          PRERELEASE_VERSION="${BASE_VERSION}.${Z_VERSION}-prerelease"
+          echo "PRERELEASE_VERSION=$PRERELEASE_VERSION" >> "$GITHUB_ENV"
+          echo "Creating prerelease: $PRERELEASE_VERSION"
+
+      - name: Extract changelog
+        id: changelog
+        if: env.SKIP_PRERELEASE != 'true'
+        run: |
+          # Extract the z release version from the prerelease version
+          RELEASE_VERSION=$(echo "${{ env.PRERELEASE_VERSION }}" | sed 's/-prerelease//')
+          
+          # Try to extract the changelog section for this release version
+          CHANGELOG_CONTENT=$(sed -n "/## \[${RELEASE_VERSION}\]/,/## \[/p" CHANGELOG.md | sed '$d' | tail -n +2 | awk '/^### /{section=$0; items=""; next} /^( *)?- /{items=items $0 "\n"; next} /^$/ && items{print section "\n" items; items=""}' | sed '/^$/d')
+          
+          # If no specific version section found, provide a default prerelease message
+          if [ -z "$CHANGELOG_CONTENT" ]; then
+            CHANGELOG_CONTENT="Pre-release build for ${RELEASE_VERSION}. See CHANGELOG.md for details."
+          fi
+          
+          # Save to environment variable, handling multiline content
+          {
+            echo 'CHANGELOG_BODY<<EOF'
+            echo "$CHANGELOG_CONTENT"
+            echo 'EOF'
+          } >> "$GITHUB_ENV"
+
+      - name: Create or update draft release
+        if: env.SKIP_PRERELEASE != 'true'
+        run: |
+          VERSION="${{ env.PRERELEASE_VERSION }}"
+          
+          # Check if release already exists
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION already exists, updating with latest changelog..."
+            gh release edit "$VERSION" \
+              --title "$VERSION" \
+              --notes "${{ env.CHANGELOG_BODY }}" \
+              --draft \
+              --prerelease
+          else
+            echo "Creating new draft pre-release $VERSION..."
+            gh release create "$VERSION" \
+              --title "$VERSION" \
+              --notes "${{ env.CHANGELOG_BODY }}" \
+              --draft \
+              --prerelease
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-upload:
+    needs: determine-version
+    if: needs.determine-version.outputs.skip_prerelease != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.4'
+
+      - name: Build genmcp
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION_TAG: ${{ needs.determine-version.outputs.prerelease_version }}
+        run: |
+          CLI_NAME="genmcp"
+          if [ "${GOOS}" == "windows" ]; then
+            OUTPUT_NAME="${CLI_NAME}-${GOOS}-${GOARCH}.exe"
+          else
+            OUTPUT_NAME="${CLI_NAME}-${GOOS}-${GOARCH}"
+          fi
+
+          go build -o "${OUTPUT_NAME}" -ldflags="-X 'main.version=${VERSION_TAG}'" ./cmd/genmcp
+
+          if [ "${GOOS}" == "windows" ]; then
+            zip "${CLI_NAME}-${GOOS}-${GOARCH}.zip" "${OUTPUT_NAME}"
+          else
+            zip "${CLI_NAME}-${GOOS}-${GOARCH}.zip" "${OUTPUT_NAME}"
+          fi
+
+      - name: Upload assets to release
+        run: |
+          VERSION="${{ needs.determine-version.outputs.prerelease_version }}"
+          
+          # Upload assets
+          for file in *.zip; do
+            if [ -f "$file" ]; then
+              gh release upload "$VERSION" "$file" --clobber
+            fi
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

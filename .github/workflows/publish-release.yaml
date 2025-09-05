@@ -1,0 +1,170 @@
+name: Publish Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_branch:
+        description: 'Release branch (e.g., release/v1.0)'
+        required: true
+        type: string
+
+jobs:
+  determine-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ env.VERSION }}
+      changelog_body: ${{ env.CHANGELOG_BODY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_branch }}
+
+      - name: Validate release branch format
+        run: |
+          if [[ ! "${{ inputs.release_branch }}" =~ ^release/v[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Release branch must match format 'release/vX.Y'"
+            exit 1
+          fi
+
+      - name: Extract version and determine z version
+        id: get_version
+        run: |
+          BRANCH_NAME="${{ inputs.release_branch }}"
+          BASE_VERSION=$(echo "${BRANCH_NAME}" | sed 's/release\/v/v/')
+          
+          # Find the latest release tag for this x.y version
+          LATEST_RELEASE=$(git tag -l "${BASE_VERSION}.*" --sort=-version:refname | head -n1)
+          
+          if [ -z "$LATEST_RELEASE" ]; then
+            # No existing releases for this x.y version, start with z=0
+            Z_VERSION="0"
+            echo "No existing releases found for ${BASE_VERSION}, starting with z=0"
+          else
+            # Extract z version from latest release and increment
+            LATEST_Z=$(echo "$LATEST_RELEASE" | sed "s/${BASE_VERSION}\.//")
+            Z_VERSION=$((LATEST_Z + 1))
+            echo "Latest release: ${LATEST_RELEASE} (z=${LATEST_Z}), incrementing to z=${Z_VERSION}"
+          fi
+          
+          VERSION="${BASE_VERSION}.${Z_VERSION}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Release version: $VERSION"
+
+      - name: Validate CHANGELOG has version section
+        run: |
+          VERSION="${{ env.VERSION }}"
+          if ! grep -q "## \[${VERSION}\]" CHANGELOG.md; then
+            echo "Error: CHANGELOG.md must contain a section for version ${VERSION}"
+            echo "Expected format: ## [${VERSION}]"
+            echo "Current CHANGELOG sections:"
+            grep "^## \[" CHANGELOG.md || echo "No version sections found"
+            exit 1
+          fi
+          echo "CHANGELOG validation passed for version ${VERSION}"
+
+      - name: Extract changelog for release
+        id: changelog
+        run: |
+          VERSION="${{ env.VERSION }}"
+          # Extract the specific version section from CHANGELOG.md
+          CHANGELOG_CONTENT=$(sed -n "/## \[${VERSION}\]/,/## \[/p" CHANGELOG.md | sed '$d' | tail -n +2 | awk '/^### /{section=$0; items=""; next} /^( *)?- /{items=items $0 "\n"; next} /^$/ && items{print section "\n" items; items=""}' | sed '/^$/d')
+          
+          # If changelog content is empty, provide a default message
+          if [ -z "$CHANGELOG_CONTENT" ]; then
+            CHANGELOG_CONTENT="See CHANGELOG.md for details."
+          fi
+          
+          # Save to environment variable, handling multiline content
+          {
+            echo 'CHANGELOG_BODY<<EOF'
+            echo "$CHANGELOG_CONTENT"
+            echo 'EOF'
+          } >> "$GITHUB_ENV"
+
+      - name: Run tests
+        run: |
+          echo "Running all tests..."
+          go test ./...
+          echo "All tests passed!"
+
+      - name: Publish release
+        run: |
+          VERSION="${{ env.VERSION }}"
+          PRERELEASE_TAG="${VERSION}-prerelease"
+          
+          # Check if a pre-release exists and update it, otherwise create new release
+          if gh release view "$PRERELEASE_TAG" >/dev/null 2>&1; then
+            echo "Found existing pre-release: $PRERELEASE_TAG, updating to final release..."
+            gh release edit "$PRERELEASE_TAG" \
+              --tag "$VERSION" \
+              --title "$VERSION" \
+              --notes "${{ env.CHANGELOG_BODY }}" \
+              --draft=false \
+              --prerelease=false \
+              --latest
+          else
+            echo "No existing pre-release found, creating new release..."
+            gh release create "$VERSION" \
+              --title "$VERSION" \
+              --notes "${{ env.CHANGELOG_BODY }}" \
+              --latest
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-upload:
+    needs: determine-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_branch }}
+
+      - name: Set up go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.4'
+
+      - name: Build genmcp
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION_TAG: ${{ needs.determine-version.outputs.version }}
+        run: |
+          CLI_NAME="genmcp"
+          if [ "${GOOS}" == "windows" ]; then
+            OUTPUT_NAME="${CLI_NAME}-${GOOS}-${GOARCH}.exe"
+          else
+            OUTPUT_NAME="${CLI_NAME}-${GOOS}-${GOARCH}"
+          fi
+
+          go build -o "${OUTPUT_NAME}" -ldflags="-X 'main.version=${VERSION_TAG}'" ./cmd/genmcp
+
+          if [ "${GOOS}" == "windows" ]; then
+            zip "${CLI_NAME}-${GOOS}-${GOARCH}.zip" "${OUTPUT_NAME}"
+          else
+            zip "${CLI_NAME}-${GOOS}-${GOARCH}.zip" "${OUTPUT_NAME}"
+          fi
+
+      - name: Upload assets to release
+        run: |
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          
+          # Upload assets
+          for file in *.zip; do
+            if [ -f "$file" ]; then
+              gh release upload "$VERSION" "$file" --clobber
+            fi
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,158 @@
+name: Nightly Release
+
+on:
+  schedule:
+    # Run at 02:00 UTC every day
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-and-create-nightly:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      nightly_version: ${{ env.NIGHTLY_VERSION }}
+      skip_nightly: ${{ env.SKIP_NIGHTLY }}
+      changelog_body: ${{ env.CHANGELOG_BODY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for unreleased commits
+        id: check_commits
+        run: |
+          # Find the latest release tag (any x.y.z release)
+          LATEST_RELEASE=$(git tag -l 'v*.*.*' --sort=-version:refname | grep -v 'prerelease' | grep -v 'nightly' | head -n1)
+          
+          if [ -z "$LATEST_RELEASE" ]; then
+            echo "No existing releases found, creating first nightly"
+            COMMITS_SINCE_RELEASE=$(git rev-list HEAD --count)
+            LATEST_RELEASE_COMMIT=""
+          else
+            echo "Latest release: $LATEST_RELEASE"
+            COMMITS_SINCE_RELEASE=$(git rev-list ${LATEST_RELEASE}..HEAD --count)
+            LATEST_RELEASE_COMMIT="$LATEST_RELEASE"
+          fi
+          
+          echo "Commits since latest release: $COMMITS_SINCE_RELEASE"
+          
+          if [ "$COMMITS_SINCE_RELEASE" -eq "0" ]; then
+            echo "No new commits since latest release, skipping nightly"
+            echo "SKIP_NIGHTLY=true" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          
+          # Check if there's already a nightly for today's commits
+          TODAY=$(date -u +%Y%m%d)
+          CURRENT_COMMIT=$(git rev-parse HEAD)
+          SHORT_COMMIT=$(git rev-parse --short HEAD)
+          
+          # Check for existing nightly with same commit
+          EXISTING_NIGHTLY=$(git tag -l "*nightly*" | while read tag; do
+            if [ -n "$tag" ]; then
+              tag_commit=$(git rev-list -n 1 "$tag" 2>/dev/null || echo "")
+              if [ "$tag_commit" = "$CURRENT_COMMIT" ]; then
+                echo "$tag"
+                break
+              fi
+            fi
+          done)
+          
+          if [ -n "$EXISTING_NIGHTLY" ]; then
+            echo "Nightly release already exists for current commit: $EXISTING_NIGHTLY"
+            echo "SKIP_NIGHTLY=true" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          
+          # Create nightly version
+          NIGHTLY_VERSION="nightly-${TODAY}-${SHORT_COMMIT}"
+          echo "NIGHTLY_VERSION=$NIGHTLY_VERSION" >> "$GITHUB_ENV"
+          echo "Creating nightly release: $NIGHTLY_VERSION"
+
+      - name: Extract changelog for nightly
+        id: changelog
+        if: env.SKIP_NIGHTLY != 'true'
+        run: |
+          # Extract the Unreleased section from CHANGELOG.md
+          CHANGELOG_CONTENT=$(sed -n '/## \[Unreleased\]/,/## \[/p' CHANGELOG.md | sed '$d' | tail -n +2 | awk '/^### /{section=$0; items=""; next} /^( *)?- /{items=items $0 "\n"; next} /^$/ && items{print section "\n" items; items=""}' | sed '/^$/d')
+          
+          # If changelog content is empty, provide a default message
+          if [ -z "$CHANGELOG_CONTENT" ]; then
+            CHANGELOG_CONTENT="See CHANGELOG.md for details."
+          fi
+          
+          # Save to environment variable, handling multiline content
+          {
+            echo 'CHANGELOG_BODY<<EOF'
+            echo "$CHANGELOG_CONTENT"
+            echo 'EOF'
+          } >> "$GITHUB_ENV"
+
+      - name: Create nightly release
+        if: env.SKIP_NIGHTLY != 'true'
+        run: |
+          VERSION="${{ env.NIGHTLY_VERSION }}"
+          
+          echo "Creating nightly release: $VERSION"
+          gh release create "$VERSION" \
+            --title "Nightly Release $VERSION" \
+            --notes "${{ env.CHANGELOG_BODY }}" \
+            --prerelease
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-upload:
+    needs: check-and-create-nightly
+    if: needs.check-and-create-nightly.outputs.skip_nightly != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.4'
+
+      - name: Build genmcp
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION_TAG: ${{ needs.check-and-create-nightly.outputs.nightly_version }}
+        run: |
+          CLI_NAME="genmcp"
+          if [ "${GOOS}" == "windows" ]; then
+            OUTPUT_NAME="${CLI_NAME}-${GOOS}-${GOARCH}.exe"
+          else
+            OUTPUT_NAME="${CLI_NAME}-${GOOS}-${GOARCH}"
+          fi
+
+          go build -o "${OUTPUT_NAME}" -ldflags="-X 'main.version=${VERSION_TAG}'" ./cmd/genmcp
+
+          if [ "${GOOS}" == "windows" ]; then
+            zip "${CLI_NAME}-${GOOS}-${GOARCH}.zip" "${OUTPUT_NAME}"
+          else
+            zip "${CLI_NAME}-${GOOS}-${GOARCH}.zip" "${OUTPUT_NAME}"
+          fi
+
+      - name: Upload assets to nightly release
+        run: |
+          VERSION="${{ needs.check-and-create-nightly.outputs.nightly_version }}"
+          
+          # Upload assets
+          for file in *.zip; do
+            if [ -f "$file" ]; then
+              gh release upload "$VERSION" "$file" --clobber
+            fi
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
