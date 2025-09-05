@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	neturl "net/url"
 	"os/exec"
@@ -160,7 +161,11 @@ func (h *HttpInvocation) HandleRequest(ctx context.Context, req mcp.CallToolRequ
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("request to tool endpoint failed: %s", err.Error())), nil
 	}
-	defer response.Body.Close()
+	defer func() {
+		if err := response.Body.Close(); err != nil {
+			log.Printf("error closing response body: %v", err)
+		}
+	}()
 
 	body, _ := io.ReadAll(response.Body)
 	return mcp.NewToolResultText(string(body)), nil

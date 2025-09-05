@@ -99,7 +99,10 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 				By("making a request to the metadata endpoint")
 				resp, err := http.Get("http://localhost:8018/.well-known/oauth-protected-resource")
 				Expect(err).NotTo(HaveOccurred())
-				defer resp.Body.Close()
+				defer func() {
+					err := resp.Body.Close()
+					Expect(err).NotTo(HaveOccurred())
+				}()
 
 				By("returning HTTP 200 OK")
 				Expect(resp.StatusCode).To(Equal(http.StatusOK))
@@ -109,7 +112,10 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 				By("making a request to the metadata endpoint")
 				resp, err := http.Get("http://localhost:8018/.well-known/oauth-protected-resource")
 				Expect(err).NotTo(HaveOccurred())
-				defer resp.Body.Close()
+				defer func() {
+					err := resp.Body.Close()
+					Expect(err).NotTo(HaveOccurred())
+				}()
 
 				By("returning HTTP 200 OK")
 				Expect(resp.StatusCode).To(Equal(http.StatusOK))
@@ -142,7 +148,10 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 				By("creating OAuth MCP client")
 				tokenStore := mcpclient.NewMemoryTokenStore()
 				client := createOAuthMCPClientWithTokenStore(mcpServerURL, clientID, tokenStore)
-				defer client.Close()
+				defer func() {
+					err := client.Close()
+					Expect(err).NotTo(HaveOccurred())
+				}()
 
 				By("attempting to initialize without token")
 				initRequest := createInitRequest()
@@ -156,7 +165,10 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 				By("making request without authorization header")
 				resp, err := http.Get(mcpServerURL)
 				Expect(err).NotTo(HaveOccurred())
-				defer resp.Body.Close()
+				defer func() {
+					err := resp.Body.Close()
+					Expect(err).NotTo(HaveOccurred())
+				}()
 
 				By("returning HTTP 401 Unauthorized")
 				Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
@@ -191,7 +203,8 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 
 			AfterEach(func() {
 				if client != nil {
-					client.Close()
+					err := client.Close()
+					Expect(err).NotTo(HaveOccurred())
 				}
 			})
 
@@ -259,7 +272,8 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 
 			AfterEach(func() {
 				if client != nil {
-					client.Close()
+					err := client.Close()
+					Expect(err).NotTo(HaveOccurred())
 				}
 			})
 
@@ -300,7 +314,8 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 
 			AfterEach(func() {
 				if client != nil {
-					client.Close()
+					err := client.Close()
+					Expect(err).NotTo(HaveOccurred())
 				}
 			})
 
@@ -339,7 +354,10 @@ func performDirectAccessGrant(clientID, username, password string) *mcpclient.To
 
 	resp, err := http.PostForm(tokenURL, formData)
 	Expect(err).NotTo(HaveOccurred())
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		Expect(err).NotTo(HaveOccurred())
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -388,7 +406,10 @@ func performDirectAccessGrantWithScopes(clientID, username, password, scopes str
 
 	resp, err := http.PostForm(tokenURL, formData)
 	Expect(err).NotTo(HaveOccurred())
-	defer resp.Body.Close()
+	defer func() {
+		err := resp.Body.Close()
+		Expect(err).NotTo(HaveOccurred())
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -481,14 +502,16 @@ func createKeycloakCommand(args string) *exec.Cmd {
 func createMockBackendServer() *httptest.Server {
 	By("creating mock backend server")
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, `{"status": "ok"}`)
+		_, err := fmt.Fprintln(w, `{"status": "ok"}`)
+		Expect(err).NotTo(HaveOccurred())
 	}))
 }
 
 func createOAuthCallbackServer() *httptest.Server {
 	By("creating OAuth callback server")
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "OAuth callback received")
+		_, err := fmt.Fprintf(w, "OAuth callback received")
+		Expect(err).NotTo(HaveOccurred())
 	}))
 }
 
@@ -549,7 +572,10 @@ servers:
 
 	tmpfile, err := os.CreateTemp("", "mcp-oauth-*.yaml")
 	Expect(err).NotTo(HaveOccurred())
-	defer os.Remove(tmpfile.Name())
+	defer func() {
+		err := os.Remove(tmpfile.Name())
+		Expect(err).NotTo(HaveOccurred())
+	}()
 
 	_, err = tmpfile.WriteString(mcpYAML)
 	Expect(err).NotTo(HaveOccurred())

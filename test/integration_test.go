@@ -23,7 +23,9 @@ func TestIntegration(t *testing.T) {
 	// 1. Create a mock HTTP server
 	httpServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/users/123", r.URL.Path)
-		fmt.Fprintln(w, "{\"status\": \"ok\"}")
+		if _, err := fmt.Fprintln(w, `{"status": "ok"}`); err != nil {
+			t.Fatalf("failed to write response in server: %v", err)
+		}
 	}))
 	defer httpServer.Close()
 
@@ -57,7 +59,11 @@ servers:
 	// 3. Write the MCP file to a temporary file
 	tmpfile, err := os.CreateTemp("", "mcp-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpfile.Name())
+	defer func() {
+		if err := os.Remove(tmpfile.Name()); err != nil {
+			t.Errorf("failed to remove temporary file %s: %v", tmpfile.Name(), err)
+		}
+	}()
 
 	_, err = tmpfile.WriteString(mcpYAML)
 	require.NoError(t, err)
@@ -169,7 +175,11 @@ servers:
 	// 2. Write the MCP file to a temporary file
 	tmpfile, err := os.CreateTemp("", "mcp-*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpfile.Name())
+	defer func() {
+		if err := os.Remove(tmpfile.Name()); err != nil {
+			t.Errorf("failed to remove temporary file %s: %v", tmpfile.Name(), err)
+		}
+	}()
 
 	_, err = tmpfile.WriteString(mcpYAML)
 	require.NoError(t, err)

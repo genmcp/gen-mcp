@@ -98,7 +98,10 @@ func getTopFeature(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if topFeature == nil {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": "No features found"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "No features found"}); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			return
+		}
 		return
 	}
 
@@ -108,7 +111,10 @@ func getTopFeature(w http.ResponseWriter, r *http.Request) {
 		Upvotes:   topFeature.Upvotes,
 		Completed: topFeature.Completed,
 	}
-	json.NewEncoder(w).Encode(summary)
+	if err := json.NewEncoder(w).Encode(summary); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func addFeature(w http.ResponseWriter, r *http.Request) {
@@ -116,14 +122,20 @@ func addFeature(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid JSON"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Invalid JSON"}); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			return
+		}
 		return
 	}
 
 	if req.Title == "" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Title is required"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Title is required"}); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			return
+		}
 		return
 	}
 
@@ -142,7 +154,10 @@ func addFeature(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(feature)
+	if err := json.NewEncoder(w).Encode(feature); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func voteForFeature(w http.ResponseWriter, r *http.Request) {
@@ -150,7 +165,10 @@ func voteForFeature(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid JSON"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Invalid JSON"}); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			return
+		}
 		return
 	}
 
@@ -160,7 +178,10 @@ func voteForFeature(w http.ResponseWriter, r *http.Request) {
 		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Feature not found"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Feature not found"}); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			return
+		}
 		return
 	}
 
@@ -168,7 +189,10 @@ func voteForFeature(w http.ResponseWriter, r *http.Request) {
 	mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(feature)
+	if err := json.NewEncoder(w).Encode(feature); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func getFeatureDetails(w http.ResponseWriter, r *http.Request) {
@@ -177,7 +201,10 @@ func getFeatureDetails(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid feature ID"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Invalid feature ID"}); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			return
+		}
 		return
 	}
 
@@ -188,11 +215,17 @@ func getFeatureDetails(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if !exists {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Feature not found"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Feature not found"}); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			return
+		}
 		return
 	}
 
-	json.NewEncoder(w).Encode(feature)
+	if err := json.NewEncoder(w).Encode(feature); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func getAllFeatures(w http.ResponseWriter, r *http.Request) {
@@ -219,7 +252,10 @@ func getAllFeatures(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(summaries)
+	if err := json.NewEncoder(w).Encode(summaries); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func getOpenAPISpec(w http.ResponseWriter, r *http.Request) {
@@ -237,13 +273,23 @@ func getOpenAPISpec(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "OpenAPI spec not found"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "OpenAPI spec not found"}); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			return
+		}
 		return
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			http.Error(w, "Failed to close file", http.StatusInternalServerError)
+		}
+	}()
 
 	w.Header().Set("Content-Type", "application/json")
-	io.Copy(w, file)
+	if _, err := io.Copy(w, file); err != nil {
+		http.Error(w, "Failed to copy file content", http.StatusInternalServerError)
+		return
+	}
 }
 
 func deleteFeature(w http.ResponseWriter, r *http.Request) {
@@ -252,7 +298,10 @@ func deleteFeature(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid feature ID"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Invalid feature ID"}); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			return
+		}
 		return
 	}
 
@@ -262,7 +311,10 @@ func deleteFeature(w http.ResponseWriter, r *http.Request) {
 		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Feature not found"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Feature not found"}); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			return
+		}
 		return
 	}
 
@@ -278,7 +330,10 @@ func completeFeature(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid JSON"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Invalid JSON"}); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			return
+		}
 		return
 	}
 
@@ -288,7 +343,10 @@ func completeFeature(w http.ResponseWriter, r *http.Request) {
 		mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Feature not found"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"error": "Feature not found"}); err != nil {
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			return
+		}
 		return
 	}
 
@@ -296,5 +354,8 @@ func completeFeature(w http.ResponseWriter, r *http.Request) {
 	mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(feature)
+	if err := json.NewEncoder(w).Encode(feature); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
