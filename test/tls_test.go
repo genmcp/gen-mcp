@@ -20,7 +20,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
@@ -30,10 +29,6 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-func TestTLS(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "TLS Suite")
-}
 
 var _ = Describe("TLS Integration", Ordered, func() {
 	var (

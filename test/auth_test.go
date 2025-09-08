@@ -14,7 +14,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
@@ -31,10 +30,6 @@ const (
 	testPassword    = "admin"
 )
 
-func TestOAuth(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "OAuth Suite")
-}
 
 var _ = Describe("OAuth Integration", Ordered, func() {
 
