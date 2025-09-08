@@ -29,7 +29,6 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-
 var _ = Describe("TLS Integration", Ordered, func() {
 	var (
 		certFile string
@@ -318,8 +317,10 @@ func generateTestCertificates() (certFile, keyFile string, err error) {
 
 	privateKeyDER, err := x509.MarshalPKCS8PrivateKey(privateKey)
 	if err != nil {
-		os.Remove(certTempFile.Name())
-		os.Remove(keyTempFile.Name())
+		removeErr := os.Remove(certTempFile.Name())
+		err = errors.Join(err, removeErr)
+		removeErr = os.Remove(keyTempFile.Name())
+		err = errors.Join(err, removeErr)
 		return "", "", err
 	}
 
@@ -328,8 +329,10 @@ func generateTestCertificates() (certFile, keyFile string, err error) {
 		Bytes: privateKeyDER,
 	})
 	if err != nil {
-		os.Remove(certTempFile.Name())
-		os.Remove(keyTempFile.Name())
+		removeErr := os.Remove(certTempFile.Name())
+		err = errors.Join(err, removeErr)
+		removeErr = os.Remove(keyTempFile.Name())
+		err = errors.Join(err, removeErr)
 		return "", "", err
 	}
 
@@ -385,8 +388,8 @@ servers:
 	Expect(err).NotTo(HaveOccurred())
 
 	// Clean up the temporary config file immediately since ParseMCPFile has read it
-	os.Remove(tmpfile.Name())
+	err = os.Remove(tmpfile.Name())
+	Expect(err).NotTo(HaveOccurred())
 
 	return config
 }
-
