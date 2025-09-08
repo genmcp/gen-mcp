@@ -31,7 +31,7 @@ func TestParseMcpFile(t *testing.T) {
 						Runtime: &ServerRuntime{
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
-								Port: 3000,
+								Port:     3000,
 								BasePath: "/mcp",
 							},
 						},
@@ -50,7 +50,7 @@ func TestParseMcpFile(t *testing.T) {
 						Runtime: &ServerRuntime{
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
-								Port: 3000,
+								Port:     3000,
 								BasePath: "/mcp",
 							},
 						},
@@ -90,7 +90,7 @@ func TestParseMcpFile(t *testing.T) {
 						Runtime: &ServerRuntime{
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
-								Port: 3000,
+								Port:     3000,
 								BasePath: "/mcp",
 							},
 						},
@@ -131,7 +131,7 @@ func TestParseMcpFile(t *testing.T) {
 						Runtime: &ServerRuntime{
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
-								Port: 3000,
+								Port:     3000,
 								BasePath: "/mcp",
 							},
 						},
@@ -243,7 +243,7 @@ func TestParseMcpFile(t *testing.T) {
 						Runtime: &ServerRuntime{
 							TransportProtocol: "streamablehttp",
 							StreamableHTTPConfig: &StreamableHTTPConfig{
-								Port: 8008,
+								Port:     8008,
 								BasePath: "/mcp",
 							},
 						},
@@ -334,6 +334,50 @@ func TestParseMcpFile(t *testing.T) {
 									URL:            "http://localhost:9090/repos/%s/%s",
 									Method:         http.MethodGet,
 									pathParameters: []string{"org", "repoName"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"one server, with tls": {
+			testFileName: "one-server-tls.yaml",
+			expected: &MCPFile{
+				FileVersion: MCPFileVersion,
+				Servers: []*MCPServer{
+					{
+						Name:    "test-server",
+						Version: "1.0.0",
+						Runtime: &ServerRuntime{
+							TransportProtocol: TransportProtocolStreamableHttp,
+							StreamableHTTPConfig: &StreamableHTTPConfig{
+								Port:     7007,
+								BasePath: "/mcp",
+								TLS: &TLSConfig{
+									CertFile: "/path/to/server.crt",
+									KeyFile:  "/path/to/server.key",
+								},
+							},
+						},
+						Tools: []*Tool{
+							{
+								Name:        "get_user_by_company",
+								Title:       "Users Provider",
+								Description: "Get list of users from a given company",
+								InputSchema: &JsonSchema{
+									Type: JsonSchemaTypeObject,
+									Properties: map[string]*JsonSchema{
+										"companyName": {
+											Type:        JsonSchemaTypeString,
+											Description: "Name of the company",
+										},
+									},
+									Required: []string{"companyName"},
+								},
+								Invocation: &HttpInvocation{
+									URL:    "http://localhost:5000",
+									Method: http.MethodPost,
 								},
 							},
 						},
