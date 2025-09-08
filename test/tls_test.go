@@ -1,6 +1,8 @@
 package test
 
 import (
+	"errors"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -24,8 +26,8 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	mcpclient "github.com/mark3labs/mcp-go/client"
-	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/client/transport"
+	"github.com/mark3labs/mcp-go/mcp"
 )
 
 func TestTLS(t *testing.T) {
@@ -47,10 +49,16 @@ var _ = Describe("TLS Integration", Ordered, func() {
 
 	AfterAll(func() {
 		if certFile != "" {
-			os.Remove(certFile)
+			err := os.Remove(certFile)
+			if err != nil {
+				fmt.Printf("failed to clean up cert file after test: %s\n", certFile)
+			}
 		}
 		if keyFile != "" {
-			os.Remove(keyFile)
+			err := os.Remove(keyFile)
+			if err != nil {
+				fmt.Printf("failed to clean up key file after test: %s\n", certFile)
+			}
 		}
 	})
 
@@ -108,7 +116,9 @@ var _ = Describe("TLS Integration", Ordered, func() {
 				By("making HTTPS request to TLS-enabled server")
 				resp, err := client.Get(mcpServerHTTPSURL)
 				Expect(err).NotTo(HaveOccurred())
-				defer resp.Body.Close()
+				defer func() {
+					_ = resp.Body.Close()
+				}()
 
 				By("receiving successful response (even if unauthorized for missing auth)")
 				// The server should respond (not reject the TLS connection)
@@ -125,14 +135,16 @@ var _ = Describe("TLS Integration", Ordered, func() {
 				client := &http.Client{
 					Timeout: 2 * time.Second,
 				}
-				
+
 				resp, err := client.Get(mcpServerHTTPURL)
 
 				By("failing to connect via HTTP")
 				// When making an HTTP request to an HTTPS server, we should get an error
 				// OR a response with a redirect to HTTPS (some servers handle this)
 				if err == nil {
-					defer resp.Body.Close()
+					defer func() {
+						_ = resp.Body.Close()
+					}()
 					// If no error, check if we got a redirect or error status
 					if resp.StatusCode < 400 {
 						Fail(fmt.Sprintf("Expected error or 4xx/5xx status but got %d when making HTTP request to HTTPS server", resp.StatusCode))
@@ -161,13 +173,15 @@ var _ = Describe("TLS Integration", Ordered, func() {
 					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 				}
 				httpClient := &http.Client{Transport: httpTransport}
-				
+
 				client, err := mcpclient.NewStreamableHttpClient(
-					mcpServerHTTPSURL, 
+					mcpServerHTTPSURL,
 					transport.WithHTTPBasicClient(httpClient),
 				)
 				Expect(err).NotTo(HaveOccurred())
-				defer client.Close()
+				defer func() {
+					_ = client.Close()
+				}()
 
 				By("successfully initializing MCP connection over TLS")
 				initRequest := mcp.InitializeRequest{
@@ -190,13 +204,15 @@ var _ = Describe("TLS Integration", Ordered, func() {
 					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 				}
 				httpClient := &http.Client{Transport: httpTransport}
-				
+
 				client, err := mcpclient.NewStreamableHttpClient(
-					mcpServerHTTPSURL, 
+					mcpServerHTTPSURL,
 					transport.WithHTTPBasicClient(httpClient),
 				)
 				Expect(err).NotTo(HaveOccurred())
-				defer client.Close()
+				defer func() {
+					_ = client.Close()
+				}()
 
 				By("initializing MCP connection")
 				initRequest := mcp.InitializeRequest{
@@ -255,12 +271,12 @@ func generateTestCertificates() (certFile, keyFile string, err error) {
 			StreetAddress: []string{""},
 			PostalCode:    []string{""},
 		},
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(365 * 24 * time.Hour),
-		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		IPAddresses:  []net.IP{net.ParseIP("127.0.0.1")},
-		DNSNames:     []string{"localhost"},
+		NotBefore:   time.Now(),
+		NotAfter:    time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		IPAddresses: []net.IP{net.ParseIP("127.0.0.1")},
+		DNSNames:    []string{"localhost"},
 	}
 
 	// Create certificate
@@ -274,24 +290,36 @@ func generateTestCertificates() (certFile, keyFile string, err error) {
 	if err != nil {
 		return "", "", err
 	}
-	defer certTempFile.Close()
+	defer func() {
+		err := certTempFile.Close()
+		if err != nil {
+			fmt.Printf("warning: failed to close cert temp file after writing, may cause issues: %s\n", err.Error())
+		}
+	}()
 
 	err = pem.Encode(certTempFile, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: certDER,
 	})
 	if err != nil {
-		os.Remove(certTempFile.Name())
+		removeErr := os.Remove(certTempFile.Name())
+		err := errors.Join(err, removeErr)
 		return "", "", err
 	}
 
 	// Write private key to temporary file
 	keyTempFile, err := os.CreateTemp("", "test-key-*.pem")
 	if err != nil {
-		os.Remove(certTempFile.Name())
+		removeErr := os.Remove(certTempFile.Name())
+		err := errors.Join(err, removeErr)
 		return "", "", err
 	}
-	defer keyTempFile.Close()
+	defer func() {
+		err := keyTempFile.Close()
+		if err != nil {
+			fmt.Printf("warning: failed to close key temp file after writing, may cause issues: %s\n", err.Error())
+		}
+	}()
 
 	privateKeyDER, err := x509.MarshalPKCS8PrivateKey(privateKey)
 	if err != nil {
@@ -348,16 +376,22 @@ servers:
 
 	tmpfile, err := os.CreateTemp("", "mcp-tls-*.yaml")
 	Expect(err).NotTo(HaveOccurred())
-	defer tmpfile.Close()
+	defer func() {
+		err := tmpfile.Close()
+		if err != nil {
+			fmt.Printf("closing temp mcp file failed, may cause issues with test: %s\n", err.Error())
+		}
+	}()
 
 	_, err = tmpfile.WriteString(mcpYAML)
 	Expect(err).NotTo(HaveOccurred())
 
 	config, err := mcpfile.ParseMCPFile(tmpfile.Name())
 	Expect(err).NotTo(HaveOccurred())
-	
+
 	// Clean up the temporary config file immediately since ParseMCPFile has read it
 	os.Remove(tmpfile.Name())
-	
+
 	return config
 }
+
