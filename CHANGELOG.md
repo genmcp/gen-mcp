@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial MCP Server implementation
   - Reads from the MCP file and runs a server with the provided tools
   - OAuth 2.0/OIDC support for the MCP Client -> MCP Server connection
+  - TLS Support for the MCP Client -> MCP Server connection
 - Initial genmcp CLI implementation
   - genmcp run will run servers from the MCP files
   - genmcp stop will stop servers
