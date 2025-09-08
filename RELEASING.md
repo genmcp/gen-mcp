@@ -69,7 +69,7 @@ The workflow will:
 - Determine the final release version (vX.Y.Z)
 - Validate that CHANGELOG.md contains the required version section
 - Run all tests
-- Convert the pre-release to a final release (or create a new one if no pre-release exists)
+- Convert the pre-release to a final release (or create a new one if no pre-release exists). This involves creating a git tag.
 - Build and upload fresh binaries
 - Mark the release as the latest
 

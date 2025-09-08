@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial examples
   - CLI/HTTP examples with ollama
   - HTTP conversion examples and integrations with multiple tools
+  - Integration with k8s, via ToolHive
 
 ### Changed
 
