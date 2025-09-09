@@ -76,7 +76,7 @@ The `ServerRuntime` object specifies the transport protocol and its configuratio
 | Field | Type | Description | Required |
 |---|---|---|---|
 | `authorizationServers` | array of string | List of authorization server URLs for OAuth 2.0 token validation. | No |
-| `jwksUri` | string | JSON Web Key Set URI for token signature verification. | No |
+| `jwksUri` | string | JSON Web Key Set URI for token signature verification. If no value is given but `authorizationServers` is set, gen-mcp will try to find a JWKS endpoint using different fallback paths.| No |
 
 ### 4.4. StdioConfig Object
 
