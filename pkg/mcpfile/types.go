@@ -70,6 +70,12 @@ type StreamableHTTPConfig struct {
 	Port     int         `json:"port"`           // the port to start listening on
 	BasePath string      `json:"basePath"`       // the base path for the MCP server
 	Auth     *AuthConfig `json:"auth,omitempty"` // OAuth 2.0 configuration for protected resource
+	TLS      *TLSConfig  `json:"tls,omitempty"`  // TLS configuration for the http server
+}
+
+type TLSConfig struct {
+	CertFile string `json:"certFile,omitempty"` // The absolute path to the server's public certificate
+	KeyFile  string `json:"keyFile,omitempty"`  // The absolute path to the server's private key
 }
 
 type AuthConfig struct {

@@ -66,8 +66,17 @@ func RunServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
 		// Channel to capture server errors
 		errCh := make(chan error, 1)
 		go func() {
-			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				errCh <- err
+			if mcpServerConfig.Runtime.StreamableHTTPConfig.TLS != nil {
+				if err := srv.ListenAndServeTLS(
+					mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.CertFile,
+					mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.KeyFile,
+				); err != nil && err != http.ErrServerClosed {
+					errCh <- err
+				}
+			} else {
+				if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+					errCh <- err
+				}
 			}
 		}()
 
