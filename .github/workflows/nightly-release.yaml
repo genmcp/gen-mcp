@@ -25,7 +25,7 @@ jobs:
         id: check_commits
         run: |
           # Find the latest release tag (any x.y.z release)
-          LATEST_RELEASE=$(git tag -l 'v*.*.*' --sort=-version:refname | grep -v 'prerelease' | grep -v 'nightly' | head -n1)
+          LATEST_RELEASE=$(git tag -l 'v*.*.*' --sort=-version:refname | grep -v 'prerelease' | grep -v '^nightly' | head -n1)
           
           if [ -z "$LATEST_RELEASE" ]; then
             echo "No existing releases found, creating first nightly"
@@ -45,30 +45,22 @@ jobs:
             exit 0
           fi
           
-          # Check if there's already a nightly for today's commits
-          TODAY=$(date -u +%Y%m%d)
           CURRENT_COMMIT=$(git rev-parse HEAD)
-          SHORT_COMMIT=$(git rev-parse --short HEAD)
           
           # Check for existing nightly with same commit
-          EXISTING_NIGHTLY=$(git tag -l "*nightly*" | while read tag; do
-            if [ -n "$tag" ]; then
-              tag_commit=$(git rev-list -n 1 "$tag" 2>/dev/null || echo "")
-              if [ "$tag_commit" = "$CURRENT_COMMIT" ]; then
-                echo "$tag"
-                break
-              fi
-            fi
-          done)
+          EXISTING_NIGHTLY_COMMIT=""
+          if git rev-parse --verify nightly >/dev/null 2>&1; then
+            EXISTING_NIGHTLY_COMMIT=$(git rev-list -n 1 nightly 2>/dev/null || echo "")
+          fi
           
-          if [ -n "$EXISTING_NIGHTLY" ]; then
-            echo "Nightly release already exists for current commit: $EXISTING_NIGHTLY"
+          if [ "$EXISTING_NIGHTLY_COMMIT" = "$CURRENT_COMMIT" ]; then
+            echo "Nightly release already exists for current commit"
             echo "SKIP_NIGHTLY=true" >> "$GITHUB_ENV"
             exit 0
           fi
           
-          # Create nightly version
-          NIGHTLY_VERSION="nightly-${TODAY}-${SHORT_COMMIT}"
+          # Use fixed nightly tag name
+          NIGHTLY_VERSION="nightly"
           echo "NIGHTLY_VERSION=$NIGHTLY_VERSION" >> "$GITHUB_ENV"
           echo "Creating nightly release: $NIGHTLY_VERSION"
 
@@ -91,14 +83,34 @@ jobs:
             echo 'EOF'
           } >> "$GITHUB_ENV"
 
+      - name: Delete existing nightly release and tag
+        if: env.SKIP_NIGHTLY != 'true'
+        run: |
+          # Delete existing nightly release if it exists
+          if gh release view nightly >/dev/null 2>&1; then
+            echo "Deleting existing nightly release"
+            gh release delete nightly --yes
+          fi
+          
+          # Delete existing nightly tag if it exists
+          if git rev-parse --verify nightly >/dev/null 2>&1; then
+            echo "Deleting existing nightly tag"
+            git tag -d nightly
+            git push origin :refs/tags/nightly || true
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create nightly release
         if: env.SKIP_NIGHTLY != 'true'
         run: |
           VERSION="${{ env.NIGHTLY_VERSION }}"
+          CURRENT_DATE=$(date -u +%Y-%m-%d)
+          SHORT_COMMIT=$(git rev-parse --short HEAD)
           
           echo "Creating nightly release: $VERSION"
           gh release create "$VERSION" \
-            --title "Nightly Release $VERSION" \
+            --title "Nightly Release ($CURRENT_DATE - $SHORT_COMMIT)" \
             --notes "${{ env.CHANGELOG_BODY }}" \
             --prerelease
         env:
