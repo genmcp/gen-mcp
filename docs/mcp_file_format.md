@@ -60,8 +60,25 @@ The `ServerRuntime` object specifies the transport protocol and its configuratio
 | Field | Type | Description | Required |
 |---|---|---|---|
 | `port` | integer | The port for the server to listen on. | Yes |
+| `basePath` | string | The base path for the MCP server. Defaults to `/mcp`. | No |
+| `auth` | `AuthConfig` | OAuth 2.0 configuration for protected resource. | No |
+| `tls` | `TLSConfig` | TLS configuration for the HTTP server. | No |
 
-### 4.2. StdioConfig Object
+### 4.2. TLSConfig Object
+
+| Field | Type | Description | Required |
+|---|---|---|---|
+| `certFile` | string | The absolute path to the server's public certificate file on the runtime host where the MCP server will execute. | Yes |
+| `keyFile` | string | The absolute path to the server's private key file on the runtime host where the MCP server will execute. | Yes |
+
+### 4.3. AuthConfig Object
+
+| Field | Type | Description | Required |
+|---|---|---|---|
+| `authorizationServers` | array of string | List of authorization server URLs for OAuth 2.0 token validation. | No |
+| `jwksUri` | string | JSON Web Key Set URI for token signature verification. | No |
+
+### 4.4. StdioConfig Object
 
 This object is currently empty and serves as a placeholder for future configuration options.
 
@@ -77,6 +94,7 @@ A `Tool` object describes a specific, invokable function.
 | `inputSchema` | `JsonSchema` | A JSON Schema object defining the parameters the tool accepts. | Yes |
 | `outputSchema` | `JsonSchema` | A JSON Schema object defining the structure of the tool's output. | No |
 | `invocation` | `Invocation` | An object describing how to execute the tool. Must contain a single key: either `http` or `cli`. | Yes |
+| `requiredScopes` | array of string | OAuth 2.0 scopes required to execute this tool. Only relevant when the server uses OAuth authentication. | No |
 
 ## 6. JsonSchema Object
 
@@ -165,7 +183,73 @@ invocation:
         omitIfFalse: true
 ```
 
-## 8. Complete Example
+## 8. Security Configuration Examples
+
+### 8.1. TLS Configuration
+
+To enable HTTPS for your MCP server, configure TLS in the `streamableHttpConfig`:
+
+```yaml
+servers:
+- name: secure-server
+  version: "1.0.0"
+  runtime:
+    transportProtocol: streamablehttp
+    streamableHttpConfig:
+      port: 8443
+      tls:
+        certFile: /etc/ssl/certs/server.crt
+        keyFile: /etc/ssl/private/server.key
+```
+
+### 8.2. OAuth 2.0 Configuration
+
+To protect your MCP server with OAuth 2.0 authentication:
+
+```yaml
+servers:
+- name: protected-server
+  version: "1.0.0"
+  runtime:
+    transportProtocol: streamablehttp
+    streamableHttpConfig:
+      port: 8080
+      auth:
+        authorizationServers:
+          - https://auth.example.com
+          - https://keycloak.company.com/auth/realms/mcp
+        jwksUri: https://auth.example.com/.well-known/jwks.json
+  tools:
+  - name: admin_tool
+    description: "Administrative tool requiring elevated permissions"
+    requiredScopes:
+      - admin:write
+      - users:manage
+    # ... rest of tool definition
+```
+
+### 8.3. Combined TLS and OAuth Configuration
+
+For maximum security, combine both TLS and OAuth:
+
+```yaml
+servers:
+- name: secure-protected-server
+  version: "1.0.0"
+  runtime:
+    transportProtocol: streamablehttp
+    streamableHttpConfig:
+      port: 8443
+      tls:
+        certFile: /etc/ssl/certs/server.crt
+        keyFile: /etc/ssl/private/server.key
+      auth:
+        authorizationServers:
+          - https://auth.example.com
+        jwksUri: https://auth.example.com/.well-known/jwks.json
+```
+
+## 9. Complete Example
 
 ```yaml
 mcpFileVersion: "0.0.1"
