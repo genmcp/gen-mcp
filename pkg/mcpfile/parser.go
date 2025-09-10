@@ -9,7 +9,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 func ParseMCPFile(path string) (*MCPFile, error) {
