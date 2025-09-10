@@ -102,6 +102,7 @@ jobs:
               --tag "$VERSION" \
               --title "$VERSION" \
               --notes "${{ env.CHANGELOG_BODY }}" \
+              --target "${{ inputs.release_branch }}" \
               --draft=false \
               --prerelease=false \
               --latest
@@ -110,6 +111,7 @@ jobs:
             gh release create "$VERSION" \
               --title "$VERSION" \
               --notes "${{ env.CHANGELOG_BODY }}" \
+              --target "${{ inputs.release_branch }}" \
               --latest
           fi
         env:
