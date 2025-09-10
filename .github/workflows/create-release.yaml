@@ -92,6 +92,7 @@ jobs:
             gh release create "$VERSION" \
               --title "$VERSION" \
               --notes "${{ env.CHANGELOG_BODY }}" \
+              --target "${{ github.sha }}" \
               --draft \
               --prerelease
           fi
