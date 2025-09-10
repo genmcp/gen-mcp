@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ghodss/yaml"
 	"github.com/stretchr/testify/assert"
+	"sigs.k8s.io/yaml"
 )
 
 func TestConvertFromOpenApiSpec(t *testing.T) {

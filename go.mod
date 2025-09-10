@@ -3,7 +3,6 @@ module github.com/genmcp/gen-mcp
 go 1.24.4
 
 require (
-	github.com/ghodss/yaml v1.0.0
 	github.com/lestrrat-go/jwx/v3 v3.0.10
 	github.com/mark3labs/mcp-go v0.39.1
 	github.com/onsi/ginkgo/v2 v2.25.3
@@ -11,6 +10,7 @@ require (
 	github.com/pb33f/libopenapi v0.25.9
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (
@@ -43,12 +43,12 @@ require (
 	github.com/wk8/go-ordered-map/v2 v2.1.9-0.20240815153524-6ea36470d1bd // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
+	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/tools v0.36.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
