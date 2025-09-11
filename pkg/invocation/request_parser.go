@@ -77,21 +77,24 @@ func (dj *DynamicJson) parseObject(data []byte, currentSchema *jsonschema.Schema
 			parsedValue, err := dj.parseValue(rawMessage, fieldSchema, newPath)
 			if err != nil {
 				parseErr = errors.Join(parseErr, err)
+				continue
 			}
 			resultMap[fieldName] = parsedValue
 		} else {
-			if currentSchema.AdditionalProperties != nil {
+			if currentSchema.AdditionalProperties == nil {
 				parseErr = errors.Join(parseErr, fmt.Errorf("extraneous field found in json at path %s: %s", currentPath, fieldName))
+				continue
 			}
 
 			var genericValue any
 			if err := json.Unmarshal(rawMessage, &genericValue); err != nil {
 				parseErr = errors.Join(parseErr, fmt.Errorf("error parsing additional property %s: %w", fieldName, err))
+				continue
 			}
 
 			resultMap[fieldName] = genericValue
 			for _, builder := range dj.builders {
-				builder.SetField(currentPath, genericValue)
+				builder.SetField(newPath, genericValue)
 			}
 		}
 	}
