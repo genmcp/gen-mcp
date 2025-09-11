@@ -33,7 +33,7 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 		pathValues:   make([]any, len(hi.PathIndeces)),
 	}
 
-	hasBody := !(hi.Method == nethttp.MethodGet || hi.Method == nethttp.MethodDelete || hi.Method == nethttp.MethodHead)
+	hasBody := hi.Method != nethttp.MethodGet && hi.Method != nethttp.MethodDelete && hi.Method != nethttp.MethodHead
 
 	if !hasBody {
 		ub.queryParams = neturl.Values{}
@@ -91,7 +91,7 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 				Text: string(body),
 			},
 		},
-		IsError: !(response.StatusCode >= 200 && response.StatusCode < 300),
+		IsError: response.StatusCode < 200 || response.StatusCode >= 300,
 	}, nil
 
 }
