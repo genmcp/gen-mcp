@@ -17,6 +17,7 @@ func TestDynamicJsonParser(t *testing.T) {
 		in                     map[string]any
 		expectErr              bool
 		builderPaths           map[string][]string
+		builderCalls           []string
 		expectedBuilderResults map[string]map[string]any
 	}{
 		{
@@ -58,6 +59,7 @@ func TestDynamicJsonParser(t *testing.T) {
 				"builder1": {"city"},
 				"builder2": {"city", "country"},
 			},
+			builderCalls: []string{"city", "country"},
 			expectedBuilderResults: map[string]map[string]any{
 				"builder1": {
 					"city": "Toronto",
@@ -109,6 +111,7 @@ func TestDynamicJsonParser(t *testing.T) {
 					"boolean": false,
 				},
 			},
+			builderCalls: []string{"number", "integer", "boolean", "string", "array[0]", "array[1]", "array[2]", "array[3]", "array[4]", "object.boolean"},
 			builderPaths: map[string][]string{
 				"nested":    {"boolean", "object.boolean"},
 				"arrayItem": {"array[0]"},
@@ -140,7 +143,8 @@ func TestDynamicJsonParser(t *testing.T) {
 			in: map[string]any{
 				"city": "Toronto",
 			},
-			expectErr: true,
+			expectErr:    true,
+			builderCalls: []string{"city"},
 			builderPaths: map[string][]string{
 				"builder1": {"city"},
 			},
@@ -172,6 +176,7 @@ func TestDynamicJsonParser(t *testing.T) {
 					"float":     3.2,
 				},
 			},
+			builderCalls: []string{"city", "country", "nested"},
 			builderPaths: map[string][]string{
 				"definedProperties":    {"city", "country"},
 				"additionalProperties": {"nested"},
@@ -199,7 +204,7 @@ func TestDynamicJsonParser(t *testing.T) {
 				builders[builderName] = &testBuilder{interestPaths: builderPaths}
 			}
 			dj := &DynamicJson{
-				builders: slices.Collect(maps.Values(builders)),
+				Builders: slices.Collect(maps.Values(builders)),
 			}
 
 			inJson, err := json.Marshal(tc.in)
@@ -217,6 +222,7 @@ func TestDynamicJsonParser(t *testing.T) {
 			for buidlerName, expectedBuilderResult := range tc.expectedBuilderResults {
 				actualResult, _ := builders[buidlerName].GetResult()
 				assert.Equal(t, expectedBuilderResult, actualResult)
+				assert.ElementsMatch(t, tc.builderCalls, builders[buidlerName].(*testBuilder).calls)
 			}
 		})
 	}
@@ -225,9 +231,14 @@ func TestDynamicJsonParser(t *testing.T) {
 type testBuilder struct {
 	interestPaths []string
 	results       map[string]any
+	calls         []string
 }
 
 func (tb *testBuilder) SetField(path string, value any) {
+	if tb.calls == nil {
+		tb.calls = []string{}
+	}
+	tb.calls = append(tb.calls, path)
 	if tb.results == nil {
 		tb.results = make(map[string]any)
 	}

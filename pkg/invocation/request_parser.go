@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 const (
@@ -31,28 +30,16 @@ type Builder interface {
 	GetResult() (any, error)
 }
 
-type RequestParser struct {
-	Schema         *jsonschema.Schema
-	BuilderFactory func() []Builder
-}
-
-// ParseMcpToolCallRequest parses the json.RawMessage in the mcp.CallToolRequest, and sets all the fields it finds on the related builders
-// This is useful for building objects as we parse
-func (r *RequestParser) ParseMcpToolCallRequest(req *mcp.CallToolRequest) (map[string]any, error) {
-	builders := r.BuilderFactory()
-	if len(builders) == 0 {
-		return nil, fmt.Errorf("RequestParser.BuilderFactor() must return at least one Builder")
-	}
-
-	dj := &DynamicJson{
-		builders: builders,
-	}
-
-	return dj.parseObject(req.Params.Arguments, r.Schema, "")
-}
-
 type DynamicJson struct {
-	builders []Builder
+	Builders []Builder
+}
+
+func (dj *DynamicJson) ParseJson(data []byte, schema *jsonschema.Schema) (map[string]any, error) {
+	if schema.Type != JsonSchemaTypeObject {
+		return nil, fmt.Errorf("error parsing json from schema: top level schema type must be object")
+	}
+
+	return dj.parseObject(data, schema, "")
 }
 
 func (dj *DynamicJson) parseObject(data []byte, currentSchema *jsonschema.Schema, currentPath string) (map[string]any, error) {
@@ -93,7 +80,7 @@ func (dj *DynamicJson) parseObject(data []byte, currentSchema *jsonschema.Schema
 			}
 
 			resultMap[fieldName] = genericValue
-			for _, builder := range dj.builders {
+			for _, builder := range dj.Builders {
 				builder.SetField(newPath, genericValue)
 			}
 		}
@@ -138,6 +125,7 @@ func (dj *DynamicJson) parseArray(rawArray []byte, schema *jsonschema.Schema, cu
 
 func (dj *DynamicJson) parseValue(rawMessage json.RawMessage, schema *jsonschema.Schema, currentPath string) (any, error) {
 	var result any
+	isLeafNode := false
 
 	switch schema.Type {
 	case JsonSchemaTypeObject:
@@ -158,30 +146,36 @@ func (dj *DynamicJson) parseValue(rawMessage json.RawMessage, schema *jsonschema
 			return nil, fmt.Errorf("expected a string, but got %s: %w", string(rawMessage), err)
 		}
 		result = s
+		isLeafNode = true
 	case JsonSchemaTypeInteger:
 		var i int
 		if err := json.Unmarshal(rawMessage, &i); err != nil {
 			return nil, fmt.Errorf("expected an integer, but got %s: %w", string(rawMessage), err)
 		}
 		result = i
+		isLeafNode = true
 	case JsonSchemaTypeNumber:
 		var f float64
 		if err := json.Unmarshal(rawMessage, &f); err != nil {
 			return nil, fmt.Errorf("expected a number, but got %s: %w", string(rawMessage), err)
 		}
 		result = f
+		isLeafNode = true
 	case JsonSchemaTypeBoolean:
 		var b bool
 		if err := json.Unmarshal(rawMessage, &b); err != nil {
 			return nil, fmt.Errorf("expected a boolean, but got %s: %w", string(rawMessage), err)
 		}
 		result = b
+		isLeafNode = true
 	default:
 		return nil, fmt.Errorf("unsupported schema type: %s", schema.Type)
 	}
 
-	for _, builder := range dj.builders {
-		builder.SetField(currentPath, result)
+	if isLeafNode {
+		for _, builder := range dj.Builders {
+			builder.SetField(currentPath, result)
+		}
 	}
 
 	return result, nil
