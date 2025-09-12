@@ -3,8 +3,10 @@ module github.com/genmcp/gen-mcp
 go 1.24.4
 
 require (
+	github.com/google/jsonschema-go v0.2.1
 	github.com/lestrrat-go/jwx/v3 v3.0.10
 	github.com/mark3labs/mcp-go v0.39.1
+	github.com/modelcontextprotocol/go-sdk v0.4.0
 	github.com/onsi/ginkgo/v2 v2.25.3
 	github.com/onsi/gomega v1.38.2
 	github.com/pb33f/libopenapi v0.25.9
