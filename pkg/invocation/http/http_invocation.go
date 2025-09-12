@@ -12,9 +12,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/genmcp/gen-mcp/pkg/invocation"
+	"github.com/genmcp/gen-mcp/pkg/invocation/utils"
 )
 
 type HttpInvoker struct {
@@ -46,12 +48,12 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 
 	parsed, err := dj.ParseJson(req.Params.Arguments, hi.InputSchema.Schema())
 	if err != nil {
-		return mcpTextError("failed to parse tool call request: %s", err.Error()), err
+		return utils.McpTextError("failed to parse tool call request: %s", err.Error()), err
 	}
 
 	err = hi.InputSchema.Validate(parsed)
 	if err != nil {
-		return mcpTextError("failed to validate parsed tool call request: %s", err.Error()), err
+		return utils.McpTextError("failed to validate parsed tool call request: %s", err.Error()), err
 	}
 
 	url, _ := ub.GetResult()
@@ -60,7 +62,7 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 	if hasBody {
 		bodyJson, err := json.Marshal(deletePathsFromMap(parsed, slices.Collect(maps.Keys(hi.PathIndeces))))
 		if err != nil {
-			return mcpTextError("failed to marshal http request body: %s", err.Error()), err
+			return utils.McpTextError("failed to marshal http request body: %s", err.Error()), err
 		}
 
 		reqBody = bytes.NewBuffer(bodyJson)
@@ -68,7 +70,7 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 
 	httpReq, err := nethttp.NewRequest(hi.Method, url.(string), reqBody)
 	if err != nil {
-		return mcpTextError("failed to create http request: %s", err.Error()), err
+		return utils.McpTextError("failed to create http request: %s", err.Error()), err
 	}
 	if hasBody {
 		httpReq.Header.Set("Content-Type", "application/json; charset=UTF-8")
@@ -77,7 +79,7 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 	client := &nethttp.Client{}
 	response, err := client.Do(httpReq)
 	if err != nil {
-		return mcpTextError("failed to execute http request: %s", err.Error()), err
+		return utils.McpTextError("failed to execute http request: %s", err.Error()), err
 	}
 	defer func() {
 		_ = response.Body.Close()
@@ -159,14 +161,5 @@ func deletePathFromMap(m map[string]any, path string) {
 
 	if len(currentMap) == 0 && parentMap != nil {
 		delete(parentMap, keys[len(keys)-2])
-	}
-}
-
-func mcpTextError(format string, args ...any) *mcp.CallToolResult {
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: fmt.Sprintf(format, args...)},
-		},
-		IsError: true,
 	}
 }
