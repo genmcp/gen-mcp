@@ -11,6 +11,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Test formatter implementations
+type stringFormatter struct{}
+func (f stringFormatter) FormatValue(v any) string { return v.(string) }
+
+type intFormatter struct{}
+func (f intFormatter) FormatValue(v any) string { return strconv.Itoa(v.(int)) }
+
 var (
 	resolvedEmpty, _      = (&jsonschema.Schema{Type: invocation.JsonSchemaTypeObject}).Resolve(nil)
 	resolvedWithValues, _ = (&jsonschema.Schema{
@@ -48,7 +55,7 @@ func TestCliInvocation(t *testing.T) {
 			cliInvoker: CliInvoker{
 				CommandTemplate:    "echo 'hello, world!'",
 				ArgumentIndices:    make(map[string]int),
-				ArgumentFormatters: make(map[string]func(v any) string),
+				ArgumentFormatters: make(map[string]Formatter),
 				InputSchema:        resolvedEmpty,
 			},
 			request: &mcp.CallToolRequest{
@@ -69,8 +76,8 @@ func TestCliInvocation(t *testing.T) {
 				ArgumentIndices: map[string]int{
 					"path": 0,
 				},
-				ArgumentFormatters: map[string]func(v any) string{
-					"path": func(v any) string { return v.(string) },
+				ArgumentFormatters: map[string]Formatter{
+					"path": stringFormatter{},
 				},
 				InputSchema: resolvedWithPath,
 			},
@@ -91,7 +98,7 @@ func TestCliInvocation(t *testing.T) {
 			cliInvoker: CliInvoker{
 				CommandTemplate:    "echo 'base message'",
 				ArgumentIndices:    make(map[string]int),
-				ArgumentFormatters: make(map[string]func(v any) string),
+				ArgumentFormatters: make(map[string]Formatter),
 				InputSchema:        resolvedWithValues,
 			},
 			request: &mcp.CallToolRequest{
@@ -114,9 +121,9 @@ func TestCliInvocation(t *testing.T) {
 					"lines": 0,
 					"file":  1,
 				},
-				ArgumentFormatters: map[string]func(v any) string{
-					"lines": func(v any) string { return strconv.Itoa(v.(int)) },
-					"file":  func(v any) string { return v.(string) },
+				ArgumentFormatters: map[string]Formatter{
+					"lines": intFormatter{},
+					"file":  stringFormatter{},
 				},
 				InputSchema: resolvedWithCount,
 			},
@@ -137,7 +144,7 @@ func TestCliInvocation(t *testing.T) {
 			cliInvoker: CliInvoker{
 				CommandTemplate:    "nonexistentcommand12345",
 				ArgumentIndices:    make(map[string]int),
-				ArgumentFormatters: make(map[string]func(v any) string),
+				ArgumentFormatters: make(map[string]Formatter),
 				InputSchema:        resolvedEmpty,
 			},
 			request: &mcp.CallToolRequest{

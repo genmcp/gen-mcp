@@ -12,11 +12,15 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+type Formatter interface {
+	FormatValue(v any) string
+}
+
 type CliInvoker struct {
-	CommandTemplate    string                        // template string for the command to execute
-	ArgumentIndices    map[string]int                // map to where each argument should go in the command
-	ArgumentFormatters map[string]func(v any) string // map to the functions to format each variable
-	InputSchema        *jsonschema.Resolved          // InputSchema for the tool
+	CommandTemplate    string               // template string for the command to execute
+	ArgumentIndices    map[string]int       // map to where each argument should go in the command
+	ArgumentFormatters map[string]Formatter // map to the functions to format each variable
+	InputSchema        *jsonschema.Resolved // InputSchema for the tool
 }
 
 var _ invocation.Invoker = &CliInvoker{}
@@ -65,7 +69,7 @@ func (ci *CliInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*mc
 type commandBuilder struct {
 	commandTemplate string
 	argIndices      map[string]int
-	argFormatters   map[string]func(v any) string
+	argFormatters   map[string]Formatter
 	argValues       []any
 	extraArgs       map[string]any
 }
@@ -81,7 +85,7 @@ func (cb *commandBuilder) SetField(path string, value any) {
 
 func (cb *commandBuilder) GetResult() (any, error) {
 	for argName, argIdx := range cb.argIndices {
-		cb.argValues[argIdx] = cb.argFormatters[argName](cb.argValues[argIdx])
+		cb.argValues[argIdx] = cb.argFormatters[argName].FormatValue(cb.argValues[argIdx])
 	}
 
 	formattedParts := make([]string, 0, len(cb.extraArgs)+1)
