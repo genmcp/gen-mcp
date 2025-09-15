@@ -24,9 +24,7 @@ import (
 
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/genmcp/gen-mcp/pkg/mcpserver"
-	mcpclient "github.com/mark3labs/mcp-go/client"
-	"github.com/mark3labs/mcp-go/client/transport"
-	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 var _ = Describe("TLS Integration", Ordered, func() {
@@ -168,28 +166,25 @@ var _ = Describe("TLS Integration", Ordered, func() {
 				}
 				httpClient := &http.Client{Transport: httpTransport}
 
-				client, err := mcpclient.NewStreamableHttpClient(
-					mcpServerHTTPSURL,
-					transport.WithHTTPBasicClient(httpClient),
-				)
+				client := mcp.NewClient(&mcp.Implementation{
+					Name:    "test tls client",
+					Version: "0.0.1",
+				}, nil)
+
+				transport := &mcp.StreamableClientTransport{
+					Endpoint:   mcpServerHTTPSURL,
+					HTTPClient: httpClient,
+				}
+
+				session, err := client.Connect(context.Background(), transport, nil)
 				Expect(err).NotTo(HaveOccurred())
 				defer func() {
-					_ = client.Close()
+					_ = session.Close()
 				}()
 
 				By("successfully initializing MCP connection over TLS")
-				initRequest := mcp.InitializeRequest{
-					Params: mcp.InitializeParams{
-						ProtocolVersion: mcp.LATEST_PROTOCOL_VERSION,
-						ClientInfo: mcp.Implementation{
-							Name:    "test tls client",
-							Version: "0.0.1",
-						},
-					},
-				}
-
-				_, err = client.Initialize(context.Background(), initRequest)
-				Expect(err).NotTo(HaveOccurred())
+				initResult := session.InitializeResult()
+				Expect(initResult).NotTo(BeNil())
 			})
 
 			It("should successfully call tools over TLS", func() {
@@ -199,46 +194,39 @@ var _ = Describe("TLS Integration", Ordered, func() {
 				}
 				httpClient := &http.Client{Transport: httpTransport}
 
-				client, err := mcpclient.NewStreamableHttpClient(
-					mcpServerHTTPSURL,
-					transport.WithHTTPBasicClient(httpClient),
-				)
+				client := mcp.NewClient(&mcp.Implementation{
+					Name:    "test tls client",
+					Version: "0.0.1",
+				}, nil)
+
+				transport := &mcp.StreamableClientTransport{
+					Endpoint:   mcpServerHTTPSURL,
+					HTTPClient: httpClient,
+				}
+
+				session, err := client.Connect(context.Background(), transport, nil)
 				Expect(err).NotTo(HaveOccurred())
 				defer func() {
-					_ = client.Close()
+					_ = session.Close()
 				}()
 
 				By("initializing MCP connection")
-				initRequest := mcp.InitializeRequest{
-					Params: mcp.InitializeParams{
-						ProtocolVersion: mcp.LATEST_PROTOCOL_VERSION,
-						ClientInfo: mcp.Implementation{
-							Name:    "test tls client",
-							Version: "0.0.1",
-						},
-					},
-				}
-
-				_, err = client.Initialize(context.Background(), initRequest)
-				Expect(err).NotTo(HaveOccurred())
+				initResult := session.InitializeResult()
+				Expect(initResult).NotTo(BeNil())
 
 				By("calling tool successfully over TLS")
 				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 				defer cancel()
 
-				toolCall := mcp.CallToolRequest{
-					Params: mcp.CallToolParams{
-						Name:      "get_status",
-						Arguments: map[string]any{},
-					},
-				}
-
-				result, err := client.CallTool(ctx, toolCall)
+				result, err := session.CallTool(ctx, &mcp.CallToolParams{
+					Name:      "get_status",
+					Arguments: map[string]any{},
+				})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(result).NotTo(BeNil())
 				Expect(result.Content).To(HaveLen(1))
 
-				textResult, ok := result.Content[0].(mcp.TextContent)
+				textResult, ok := result.Content[0].(*mcp.TextContent)
 				Expect(ok).To(BeTrue())
 				Expect(textResult.Text).To(MatchJSON(`{"status": "ok"}`))
 			})
