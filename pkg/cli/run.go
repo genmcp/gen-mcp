@@ -8,6 +8,9 @@ import (
 	"path/filepath"
 
 	"github.com/genmcp/gen-mcp/pkg/cli/utils"
+	"github.com/genmcp/gen-mcp/pkg/invocation"
+	_ "github.com/genmcp/gen-mcp/pkg/invocation/cli"
+	_ "github.com/genmcp/gen-mcp/pkg/invocation/http"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	"github.com/spf13/cobra"
@@ -47,6 +50,12 @@ func executeRunCmd(cobraCmd *cobra.Command, args []string) {
 	}
 
 	for _, s := range mcpFile.Servers {
+		err := s.Validate(invocation.InvocationValidator)
+		if err != nil {
+			fmt.Printf("invalid mcp file: %s\n", err)
+			return
+		}
+
 		if s.Runtime.TransportProtocol == mcpfile.TransportProtocolStdio && detach {
 			// TODO: re-enable this logging when we figure out logging w. stdio
 			// fmt.Printf("cannot detach when running stdio transport\n")
