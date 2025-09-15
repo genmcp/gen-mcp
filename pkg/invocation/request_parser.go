@@ -9,16 +9,6 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
-const (
-	JsonSchemaTypeObject  = "object"
-	JsonSchemaTypeNumber  = "number"
-	JsonSchemaTypeInteger = "integer"
-	JsonSchemaTypeString  = "string"
-	JsonSchemaTypeArray   = "array"
-	JsonSchemaTypeBoolean = "boolean"
-	JsonSchemaTypeNull    = "null"
-)
-
 // Builder is an interface used to build any objects needed to invoke a tool as
 // the request JSON is parsed. This avoids extra allocations/passes through the
 // parsed map[string]any, which possibly contains nested maps
