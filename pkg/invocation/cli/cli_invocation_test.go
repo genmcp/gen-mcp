@@ -13,9 +13,11 @@ import (
 
 // Test formatter implementations
 type stringFormatter struct{}
+
 func (f stringFormatter) FormatValue(v any) string { return v.(string) }
 
 type intFormatter struct{}
+
 func (f intFormatter) FormatValue(v any) string { return strconv.Itoa(v.(int)) }
 
 var (
@@ -29,7 +31,7 @@ var (
 	resolvedWithPath, _ = (&jsonschema.Schema{
 		Type: invocation.JsonSchemaTypeObject,
 		Properties: map[string]*jsonschema.Schema{
-			"path": {Type: invocation.JsonSchemaTypeString},
+			"path":      {Type: invocation.JsonSchemaTypeString},
 			"recursive": {Type: invocation.JsonSchemaTypeBoolean},
 		},
 	}).Resolve(nil)
@@ -37,7 +39,7 @@ var (
 		Type: invocation.JsonSchemaTypeObject,
 		Properties: map[string]*jsonschema.Schema{
 			"lines": {Type: invocation.JsonSchemaTypeInteger},
-			"file": {Type: invocation.JsonSchemaTypeString},
+			"file":  {Type: invocation.JsonSchemaTypeString},
 		},
 	}).Resolve(nil)
 )

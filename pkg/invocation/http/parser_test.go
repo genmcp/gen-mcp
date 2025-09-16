@@ -40,7 +40,7 @@ func TestParser_Parse(t *testing.T) {
 				InputSchema: &jsonschema.Schema{
 					Type: invocation.JsonSchemaTypeObject,
 					Properties: map[string]*jsonschema.Schema{
-						"id": {Type: invocation.JsonSchemaTypeInteger},
+						"id":     {Type: invocation.JsonSchemaTypeInteger},
 						"postId": {Type: invocation.JsonSchemaTypeString},
 					},
 				},
