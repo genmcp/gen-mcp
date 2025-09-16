@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/speakeasy-api/jsonpath/pkg/jsonpath"
-	jsonpathconfig "github.com/speakeasy-api/jsonpath/pkg/jsonpath/config"
+	"github.com/pb33f/jsonpath/pkg/jsonpath"
+	jsonpathconfig "github.com/pb33f/jsonpath/pkg/jsonpath/config"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 type Case int8
@@ -538,7 +538,10 @@ func IsNodeArray(node *yaml.Node) bool {
 		return false
 	}
 	n := NodeAlias(node)
-	return n.Tag == "!!seq"
+	if n.Tag == "!!seq" {
+		return true
+	}
+	return n.Kind == yaml.SequenceNode
 }
 
 // IsNodeStringValue checks if a node is a string value
