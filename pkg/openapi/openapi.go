@@ -158,21 +158,7 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 				continue
 			}
 
-			// hack to make sure everything is parsed correctly
-			toolJson, jsonErr := json.Marshal(tool)
-			if jsonErr != nil {
-				err = errors.Join(err, fmt.Errorf("failed to serialize tool %s into json, skipping tool: %w", tool.Name, jsonErr))
-				continue
-			}
-
-			t := &mcpfile.Tool{}
-			jsonErr = json.Unmarshal(toolJson, t)
-			if jsonErr != nil {
-				err = errors.Join(err, fmt.Errorf("failed to deserialize tool %s from json, skipping tool: %w", tool.Name, jsonErr))
-				continue
-			}
-
-			server.Tools = append(server.Tools, t)
+			server.Tools = append(server.Tools, tool)
 		}
 	}
 
@@ -291,21 +277,7 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 
 			}
 
-			// hack to make sure everything is parsed correctly
-			toolJson, jsonErr := json.Marshal(tool)
-			if jsonErr != nil {
-				err = errors.Join(err, fmt.Errorf("failed to serialize tool %s into json, skipping tool: %w", tool.Name, jsonErr))
-				continue
-			}
-
-			t := &mcpfile.Tool{}
-			jsonErr = json.Unmarshal(toolJson, t)
-			if jsonErr != nil {
-				err = errors.Join(err, fmt.Errorf("failed to deserialize tool %s from json, skipping tool: %w", tool.Name, jsonErr))
-				continue
-			}
-
-			server.Tools = append(server.Tools, t)
+			server.Tools = append(server.Tools, tool)
 		}
 	}
 
