@@ -17,7 +17,7 @@ import (
 	"github.com/pb33f/libopenapi/index"
 	"github.com/pb33f/libopenapi/orderedmap"
 	"github.com/pb33f/libopenapi/utils"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // Components represents a low-level OpenAPI 3+ Components Object, that is backed by a low-level one.
@@ -327,6 +327,14 @@ func extractComponentValues[T low.Buildable[N], N any](ctx context.Context, labe
 		nType := reflect.TypeOf(n)
 		nValue := reflect.ValueOf(n)
 
+		// for SchemaProxy, use the transformed node from sp.vn instead of original node
+		finalValueNode := node
+		if valueNodeGetter, ok := nValue.Interface().(low.HasValueNodeUntyped); ok {
+			if transformedNode := valueNodeGetter.GetValueNode(); transformedNode != nil {
+				finalValueNode = transformedNode
+			}
+		}
+
 		// Check if the type implements low.HasKeyNode
 		hasKeyNodeType := reflect.TypeOf((*low.HasKeyNode)(nil)).Elem()
 		if nType.Implements(hasKeyNodeType) {
@@ -345,7 +353,7 @@ func extractComponentValues[T low.Buildable[N], N any](ctx context.Context, labe
 			},
 			value: low.ValueReference[T]{
 				Value:     n,
-				ValueNode: node,
+				ValueNode: finalValueNode, // use transformed node if available
 			},
 		}, nil
 	}

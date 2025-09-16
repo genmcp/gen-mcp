@@ -10,7 +10,7 @@ import (
 	lowmodel "github.com/pb33f/libopenapi/datamodel/low"
 	"github.com/pb33f/libopenapi/datamodel/low/base"
 	"github.com/pb33f/libopenapi/orderedmap"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // Schema represents a JSON Schema that support Swagger, OpenAPI 3 and OpenAPI 3.1
@@ -491,7 +491,7 @@ func (s *Schema) RenderInline() ([]byte, error) {
 	return yaml.Marshal(d)
 }
 
-// MarshalYAML will create a ready to render YAML representation of the ExternalDoc object.
+// MarshalYAML will create a ready to render YAML representation of the Schema object.
 func (s *Schema) MarshalYAML() (interface{}, error) {
 	nb := high.NewNodeBuilder(s, s.low)
 

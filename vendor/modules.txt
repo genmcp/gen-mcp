@@ -53,17 +53,24 @@ github.com/invopop/jsonschema
 # github.com/lestrrat-go/blackmagic v1.0.4
 ## explicit; go 1.23
 github.com/lestrrat-go/blackmagic
+# github.com/lestrrat-go/dsig v1.0.0
+## explicit; go 1.23.0
+github.com/lestrrat-go/dsig
+github.com/lestrrat-go/dsig/internal/ecutil
+# github.com/lestrrat-go/dsig-secp256k1 v1.0.0
+## explicit; go 1.23.0
+github.com/lestrrat-go/dsig-secp256k1
 # github.com/lestrrat-go/httpcc v1.0.1
 ## explicit; go 1.16
 github.com/lestrrat-go/httpcc
-# github.com/lestrrat-go/httprc/v3 v3.0.0
-## explicit; go 1.23
+# github.com/lestrrat-go/httprc/v3 v3.0.1
+## explicit; go 1.23.0
 github.com/lestrrat-go/httprc/v3
 github.com/lestrrat-go/httprc/v3/errsink
 github.com/lestrrat-go/httprc/v3/proxysink
 github.com/lestrrat-go/httprc/v3/tracesink
-# github.com/lestrrat-go/jwx/v3 v3.0.10
-## explicit; go 1.23.0
+# github.com/lestrrat-go/jwx/v3 v3.0.11
+## explicit; go 1.24.4
 github.com/lestrrat-go/jwx/v3
 github.com/lestrrat-go/jwx/v3/cert
 github.com/lestrrat-go/jwx/v3/internal/base64
@@ -144,8 +151,13 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# github.com/pb33f/libopenapi v0.25.9
-## explicit; go 1.24.0
+# github.com/pb33f/jsonpath v0.1.2
+## explicit; go 1.24
+github.com/pb33f/jsonpath/pkg/jsonpath
+github.com/pb33f/jsonpath/pkg/jsonpath/config
+github.com/pb33f/jsonpath/pkg/jsonpath/token
+# github.com/pb33f/libopenapi v0.27.0
+## explicit; go 1.24.7
 github.com/pb33f/libopenapi
 github.com/pb33f/libopenapi/datamodel
 github.com/pb33f/libopenapi/datamodel/high
@@ -163,7 +175,7 @@ github.com/pb33f/libopenapi/orderedmap
 github.com/pb33f/libopenapi/utils
 github.com/pb33f/libopenapi/what-changed
 github.com/pb33f/libopenapi/what-changed/model
-# github.com/pb33f/ordered-map/v2 v2.2.0
+# github.com/pb33f/ordered-map/v2 v2.3.0
 ## explicit; go 1.24
 github.com/pb33f/ordered-map/v2
 # github.com/pmezard/go-difflib v1.0.0
@@ -178,11 +190,6 @@ github.com/segmentio/asm/cpu/arm64
 github.com/segmentio/asm/cpu/cpuid
 github.com/segmentio/asm/cpu/x86
 github.com/segmentio/asm/internal/unsafebytes
-# github.com/speakeasy-api/jsonpath v0.6.2
-## explicit; go 1.22
-github.com/speakeasy-api/jsonpath/pkg/jsonpath
-github.com/speakeasy-api/jsonpath/pkg/jsonpath/config
-github.com/speakeasy-api/jsonpath/pkg/jsonpath/token
 # github.com/spf13/cast v1.7.1
 ## explicit; go 1.19
 github.com/spf13/cast
@@ -219,20 +226,23 @@ go.yaml.in/yaml/v2
 # go.yaml.in/yaml/v3 v3.0.4
 ## explicit; go 1.16
 go.yaml.in/yaml/v3
-# golang.org/x/crypto v0.41.0
-## explicit; go 1.23.0
+# go.yaml.in/yaml/v4 v4.0.0-rc.2
+## explicit; go 1.18
+go.yaml.in/yaml/v4
+# golang.org/x/crypto v0.42.0
+## explicit; go 1.24.0
 golang.org/x/crypto/pbkdf2
 # golang.org/x/net v0.43.0
 ## explicit; go 1.23.0
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
-# golang.org/x/sys v0.35.0
-## explicit; go 1.23.0
+# golang.org/x/sys v0.36.0
+## explicit; go 1.24.0
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
-# golang.org/x/text v0.28.0
-## explicit; go 1.23.0
+# golang.org/x/text v0.29.0
+## explicit; go 1.24.0
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
