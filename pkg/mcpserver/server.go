@@ -43,69 +43,9 @@ func RunServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
 
 	switch strings.ToLower(mcpServerConfig.Runtime.TransportProtocol) {
 	case mcpfile.TransportProtocolStreamableHttp:
-		sm := NewServerManager(mcpServerConfig)
-		// Create a root mux to handle different endpoints
-		mux := http.NewServeMux()
-
-		// Set up MCP server under /mcp (or whatever is under BasePath)
-		handler := mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
-			s, err := sm.ServerFromContext(r.Context())
-			if err != nil {
-				return nil
-			}
-
-			return s
-		}, &mcp.StreamableHTTPOptions{})
-
-		oauthHandler := oauth.Middleware(mcpServerConfig)(handler)
-
-		mux.Handle(mcpServerConfig.Runtime.StreamableHTTPConfig.BasePath, oauthHandler)
-
-		// Set up OAuth protected resource metadata endpoint under / if needed
-		if mcpServerConfig.Runtime.StreamableHTTPConfig.Auth != nil {
-			mux.HandleFunc(oauth.ProtectedResourceMetadataEndpoint, oauth.ProtectedResourceMetadataHandler(mcpServerConfig))
-		}
-
-		// Use custom server with the mux
-		srv := &http.Server{
-			Addr:    fmt.Sprintf(":%d", mcpServerConfig.Runtime.StreamableHTTPConfig.Port),
-			Handler: mux,
-		}
-
-		fmt.Printf("starting listen on :%d\n", mcpServerConfig.Runtime.StreamableHTTPConfig.Port)
-
-		// Channel to capture server errors
-		errCh := make(chan error, 1)
-		go func() {
-			if mcpServerConfig.Runtime.StreamableHTTPConfig.TLS != nil {
-				if err := srv.ListenAndServeTLS(
-					mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.CertFile,
-					mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.KeyFile,
-				); err != nil && err != http.ErrServerClosed {
-					errCh <- err
-				}
-			} else {
-				if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-					errCh <- err
-				}
-			}
-		}()
-
-		// Wait for context cancellation or server error
-		select {
-		case <-ctx.Done():
-			fmt.Println("shutting down server...")
-			return srv.Shutdown(context.Background())
-		case err := <-errCh:
-			return err
-		}
+		return runStreamableHttpServer(ctx, mcpServerConfig)
 	case mcpfile.TransportProtocolStdio:
-		s, err := makeServerWithoutValidation(mcpServerConfig)
-		if err != nil {
-			return fmt.Errorf("failed to create server: %w", err)
-		}
-
-		return s.Run(ctx, &mcp.StdioTransport{})
+		return runStdioServer(ctx, mcpServerConfig)
 	default:
 		return fmt.Errorf("tried running invalid transport protocol")
 	}
@@ -140,6 +80,74 @@ func RunServers(ctx context.Context, mcpFilePath string) error {
 
 	wg.Wait()
 	return nil
+}
+
+func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
+	sm := NewServerManager(mcpServerConfig)
+	// Create a root mux to handle different endpoints
+	mux := http.NewServeMux()
+
+	// Set up MCP server under /mcp (or whatever is under BasePath)
+	handler := mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
+		s, err := sm.ServerFromContext(r.Context())
+		if err != nil {
+			return nil
+		}
+
+		return s
+	}, &mcp.StreamableHTTPOptions{})
+
+	oauthHandler := oauth.Middleware(mcpServerConfig)(handler)
+
+	mux.Handle(mcpServerConfig.Runtime.StreamableHTTPConfig.BasePath, oauthHandler)
+
+	// Set up OAuth protected resource metadata endpoint under / if needed
+	if mcpServerConfig.Runtime.StreamableHTTPConfig.Auth != nil {
+		mux.HandleFunc(oauth.ProtectedResourceMetadataEndpoint, oauth.ProtectedResourceMetadataHandler(mcpServerConfig))
+	}
+
+	// Use custom server with the mux
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%d", mcpServerConfig.Runtime.StreamableHTTPConfig.Port),
+		Handler: mux,
+	}
+
+	fmt.Printf("starting listen on :%d\n", mcpServerConfig.Runtime.StreamableHTTPConfig.Port)
+
+	// Channel to capture server errors
+	errCh := make(chan error, 1)
+	go func() {
+		if mcpServerConfig.Runtime.StreamableHTTPConfig.TLS != nil {
+			if err := srv.ListenAndServeTLS(
+				mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.CertFile,
+				mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.KeyFile,
+			); err != nil && err != http.ErrServerClosed {
+				errCh <- err
+			}
+		} else {
+			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				errCh <- err
+			}
+		}
+	}()
+
+	// Wait for context cancellation or server error
+	select {
+	case <-ctx.Done():
+		fmt.Println("shutting down server...")
+		return srv.Shutdown(context.Background())
+	case err := <-errCh:
+		return err
+	}
+}
+
+func runStdioServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
+	s, err := makeServerWithoutValidation(mcpServerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create server: %w", err)
+	}
+
+	return s.Run(ctx, &mcp.StdioTransport{})
 }
 
 // checkToolAuthorization verifies if user has required scopes for a tool
