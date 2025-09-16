@@ -30,7 +30,7 @@ func TestParseMcpFile(t *testing.T) {
 						Name:    "test-server",
 						Version: "1.0.0",
 						Runtime: &ServerRuntime{
-							TransportProtocol: "streamablehttp",
+							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
 								Port:     3000,
 								BasePath: DefaultBasePath,
@@ -49,7 +49,7 @@ func TestParseMcpFile(t *testing.T) {
 						Name:    "test-server",
 						Version: "1.0.0",
 						Runtime: &ServerRuntime{
-							TransportProtocol: "streamablehttp",
+							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
 								Port:     3000,
 								BasePath: DefaultBasePath,
@@ -87,7 +87,7 @@ func TestParseMcpFile(t *testing.T) {
 						Name:    "test-server",
 						Version: "1.0.0",
 						Runtime: &ServerRuntime{
-							TransportProtocol: "streamablehttp",
+							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
 								Port:     3000,
 								BasePath: DefaultBasePath,
@@ -125,7 +125,7 @@ func TestParseMcpFile(t *testing.T) {
 						Name:    "test-server",
 						Version: "1.0.0",
 						Runtime: &ServerRuntime{
-							TransportProtocol: "streamablehttp",
+							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
 								BasePath: DefaultBasePath,
 								Port:     3000,
@@ -171,7 +171,7 @@ func TestParseMcpFile(t *testing.T) {
 						Name:    "test-server",
 						Version: "1.0.0",
 						Runtime: &ServerRuntime{
-							TransportProtocol: "stdio",
+							TransportProtocol: TransportProtocolStdio,
 						},
 						Tools: []*Tool{
 							{
@@ -213,7 +213,7 @@ func TestParseMcpFile(t *testing.T) {
 						Name:    "git-github-example",
 						Version: "1.0.0",
 						Runtime: &ServerRuntime{
-							TransportProtocol: "streamablehttp",
+							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
 								Port: 8008,
 							},
