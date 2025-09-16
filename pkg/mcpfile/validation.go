@@ -7,9 +7,6 @@ import (
 	"strings"
 )
 
-const (
-	BasePathDefault = "/mcp"
-)
 
 type InvocationValidator func(invocationType string, data json.RawMessage, tool *Tool) error
 
@@ -100,7 +97,7 @@ func (r *ServerRuntime) Validate() error {
 		}
 
 		if r.StreamableHTTPConfig.BasePath == "" {
-			r.StreamableHTTPConfig.BasePath = BasePathDefault
+			r.StreamableHTTPConfig.BasePath = DefaultBasePath
 		}
 	}
 
