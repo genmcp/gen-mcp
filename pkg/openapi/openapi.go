@@ -176,10 +176,18 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 		}
 	}
 
-	validationErr := server.Validate(invocation.InvocationValidator)
-	if validationErr != nil {
-		err = errors.Join(err, fmt.Errorf("failed to validate converted server: %w", validationErr))
+	// the only errors we should see at this point are from the tools themselves - let's validate them and filter out invalid tools
+	validTools := make([]*mcpfile.Tool, 0, len(server.Tools))
+	for _, t := range server.Tools {
+		toolErr := t.Validate(invocation.InvocationValidator)
+		if toolErr != nil {
+			err = errors.Join(err, fmt.Errorf("skipping tool %s: %w", t.Name, toolErr))
+		} else {
+			validTools = append(validTools, t)
+		}
 	}
+
+	server.Tools = validTools
 
 	res.Servers = []*mcpfile.MCPServer{server}
 
@@ -309,10 +317,18 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 		}
 	}
 
-	validationErr := server.Validate(invocation.InvocationValidator)
-	if validationErr != nil {
-		return nil, errors.Join(err, fmt.Errorf("failed to validate converted server: %w", validationErr))
+	// the only errors we should see at this point are from the tools themselves - let's validate them and filter out invalid tools
+	validTools := make([]*mcpfile.Tool, 0, len(server.Tools))
+	for _, t := range server.Tools {
+		toolErr := t.Validate(invocation.InvocationValidator)
+		if toolErr != nil {
+			err = errors.Join(err, fmt.Errorf("skipping tool %s: %w", t.Name, toolErr))
+		} else {
+			validTools = append(validTools, t)
+		}
 	}
+
+	server.Tools = validTools
 
 	res.Servers = []*mcpfile.MCPServer{server}
 

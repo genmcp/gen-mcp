@@ -1,0 +1,64 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Test API with Invalid Tools",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com"
+    }
+  ],
+  "paths": {
+    "/valid-endpoint": {
+      "get": {
+        "summary": "Valid endpoint",
+        "description": "This endpoint has a proper description",
+        "operationId": "getValidEndpoint",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/invalid-endpoint": {
+      "get": {
+        "summary": "Invalid endpoint without description",
+        "operationId": "getInvalidEndpoint",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/another-valid-endpoint": {
+      "post": {
+        "summary": "Another valid endpoint",
+        "description": "This endpoint also has a proper description",
+        "operationId": "postAnotherValidEndpoint",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    }
+  }
+}
