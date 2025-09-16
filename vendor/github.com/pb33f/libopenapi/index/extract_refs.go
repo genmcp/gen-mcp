@@ -15,7 +15,7 @@ import (
 	"strings"
 
 	"github.com/pb33f/libopenapi/utils"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // ExtractRefs will return a deduplicated slice of references for every unique ref found in the document.
@@ -363,15 +363,32 @@ func (index *SpecIndex) ExtractRefs(ctx context.Context, node, parent *yaml.Node
 
 					_, p := utils.ConvertComponentIdIntoFriendlyPathSearch(componentName)
 
+					// check for sibling properties
+					siblingProps := make(map[string]*yaml.Node)
+					var siblingKeys []*yaml.Node
+					hasSiblings := len(node.Content) > 2
+
+					if hasSiblings {
+						for j := 0; j < len(node.Content); j += 2 {
+							if j+1 < len(node.Content) && node.Content[j].Value != "$ref" {
+								siblingProps[node.Content[j].Value] = node.Content[j+1]
+								siblingKeys = append(siblingKeys, node.Content[j])
+							}
+						}
+					}
+
 					ref := &Reference{
-						ParentNode:     parent,
-						FullDefinition: fullDefinitionPath,
-						Definition:     componentName,
-						Name:           name,
-						Node:           node,
-						KeyNode:        node.Content[i+1],
-						Path:           p,
-						Index:          index,
+						ParentNode:        parent,
+						FullDefinition:    fullDefinitionPath,
+						Definition:        componentName,
+						Name:              name,
+						Node:              node,
+						KeyNode:           node.Content[i+1],
+						Path:              p,
+						Index:             index,
+						HasSiblingProperties: len(siblingProps) > 0,
+						SiblingProperties: siblingProps,
+						SiblingKeys:       siblingKeys,
 					}
 
 					// add to raw sequenced refs
@@ -392,15 +409,30 @@ func (index *SpecIndex) ExtractRefs(ctx context.Context, node, parent *yaml.Node
 					// then add to refs with siblings
 					if len(node.Content) > 2 {
 						copiedNode := *node
+
+						// extract sibling properties and keys
+						siblingProps := make(map[string]*yaml.Node)
+						var siblingKeys []*yaml.Node
+
+						for j := 0; j < len(node.Content); j += 2 {
+							if j+1 < len(node.Content) && node.Content[j].Value != "$ref" {
+								siblingProps[node.Content[j].Value] = node.Content[j+1]
+								siblingKeys = append(siblingKeys, node.Content[j])
+							}
+						}
+
 						copied := Reference{
-							ParentNode:     parent,
-							FullDefinition: fullDefinitionPath,
-							Definition:     ref.Definition,
-							Name:           ref.Name,
-							Node:           &copiedNode,
-							KeyNode:        node.Content[i],
-							Path:           p,
-							Index:          index,
+							ParentNode:        parent,
+							FullDefinition:    fullDefinitionPath,
+							Definition:        ref.Definition,
+							Name:              ref.Name,
+							Node:              &copiedNode,
+							KeyNode:           node.Content[i],
+							Path:              p,
+							Index:             index,
+							HasSiblingProperties: len(siblingProps) > 0,
+							SiblingProperties: siblingProps,
+							SiblingKeys:       siblingKeys,
 						}
 						// protect this data using a copy, prevent the resolver from destroying things.
 						index.refsWithSiblings[value] = copied

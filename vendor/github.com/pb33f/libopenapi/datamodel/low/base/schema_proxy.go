@@ -11,10 +11,11 @@ import (
 	"log/slog"
 	"sync"
 
+	"github.com/pb33f/libopenapi/datamodel"
 	"github.com/pb33f/libopenapi/datamodel/low"
 	"github.com/pb33f/libopenapi/index"
 	"github.com/pb33f/libopenapi/utils"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // SchemaProxy exists as a stub that will create a Schema once (and only once) the Schema() method is called.
@@ -51,13 +52,14 @@ import (
 // when a schema is needed, so the rest of the document is parsed and ready to use.
 type SchemaProxy struct {
 	low.Reference
-	kn         *yaml.Node
-	vn         *yaml.Node
-	idx        *index.SpecIndex
-	rendered   *Schema
-	buildError error
-	ctx        context.Context
-	cachedHash *[32]byte // Cache computed hash to avoid recalculation
+	kn             *yaml.Node
+	vn             *yaml.Node
+	idx            *index.SpecIndex
+	rendered       *Schema
+	buildError     error
+	ctx            context.Context
+	cachedHash     *[32]byte  // Cache computed hash to avoid recalculation
+	TransformedRef *yaml.Node // Original node that contained the ref before transformation
 	*low.NodeMap
 }
 
@@ -65,12 +67,36 @@ type SchemaProxy struct {
 // Key maybe nil if absent.
 func (sp *SchemaProxy) Build(ctx context.Context, key, value *yaml.Node, idx *index.SpecIndex) error {
 	sp.kn = key
-	sp.vn = value
 	sp.idx = idx
 	sp.ctx = ctx
-	if rf, _, r := utils.IsNodeRefValue(value); rf {
-		sp.SetReference(r, value)
+
+	// transform sibling refs to allOf structure if enabled and applicable
+	// this ensures sp.vn contains the pre-transformed YAML as the source of truth
+	transformedValue := value
+	wasTransformed := false
+	if idx != nil && idx.GetConfig() != nil && idx.GetConfig().TransformSiblingRefs {
+		transformer := NewSiblingRefTransformer(idx)
+		if transformer.ShouldTransform(value) {
+			transformed, _ := transformer.TransformSiblingRef(value)
+			if transformed != nil {
+				transformedValue = transformed
+				wasTransformed = true
+				sp.TransformedRef = value // store original node that had the ref
+			}
+		}
 	}
+
+	sp.vn = transformedValue
+
+	// handle reference detection
+	if !wasTransformed {
+		// for non-transformed schemas, handle reference normally
+		if rf, _, r := utils.IsNodeRefValue(transformedValue); rf {
+			sp.SetReference(r, transformedValue)
+		}
+	}
+	// for transformed schemas, don't set reference since it's now an allOf structure
+	// the reference is embedded within the allOf, but the schema itself is not a pure reference
 	var m sync.Map
 	sp.NodeMap = &low.NodeMap{Nodes: &m}
 	return nil
@@ -91,9 +117,20 @@ func (sp *SchemaProxy) Schema() *Schema {
 	if sp.rendered != nil {
 		return sp.rendered
 	}
+
+	// handle property merging for references with sibling properties
+	buildNode := sp.vn
+	if sp.idx != nil && sp.idx.GetConfig() != nil {
+		if docConfig := sp.getDocumentConfig(); docConfig != nil && docConfig.MergeReferencedProperties {
+			if mergedNode := sp.attemptPropertyMerging(buildNode, docConfig); mergedNode != nil {
+				buildNode = mergedNode
+			}
+		}
+	}
+
 	schema := new(Schema)
-	utils.CheckForMergeNodes(sp.vn)
-	err := schema.Build(sp.ctx, sp.vn, sp.idx)
+	utils.CheckForMergeNodes(buildNode)
+	err := schema.Build(sp.ctx, buildNode, sp.idx)
 	if err != nil {
 		sp.buildError = err
 		return nil
@@ -148,7 +185,6 @@ func (sp *SchemaProxy) GetValueNode() *yaml.Node {
 
 // Hash will return a consistent SHA256 Hash of the SchemaProxy object (it will resolve it)
 func (sp *SchemaProxy) Hash() [32]byte {
-	// Return cached hash if available
 	if sp.cachedHash != nil {
 		return *sp.cachedHash
 	}
@@ -231,4 +267,65 @@ func (sp *SchemaProxy) GetIndex() *index.SpecIndex {
 
 type HasIndex interface {
 	GetIndex() *index.SpecIndex
+}
+
+// getDocumentConfig retrieves the document configuration from the index
+func (sp *SchemaProxy) getDocumentConfig() *datamodel.DocumentConfiguration {
+	if sp.idx == nil || sp.idx.GetRolodex() == nil {
+		return nil
+	}
+	rolodex := sp.idx.GetRolodex()
+	if config := rolodex.GetConfig(); config != nil {
+		return config.ToDocumentConfiguration()
+	}
+	return nil
+}
+
+// attemptPropertyMerging attempts to merge properties for references with siblings
+func (sp *SchemaProxy) attemptPropertyMerging(node *yaml.Node, config *datamodel.DocumentConfiguration) *yaml.Node {
+	if !config.MergeReferencedProperties || !utils.IsNodeMap(node) {
+		return nil
+	}
+
+	// extract ref value and sibling properties
+	var refValue string
+	siblings := make(map[string]*yaml.Node)
+
+	for i := 0; i < len(node.Content); i += 2 {
+		if i+1 < len(node.Content) {
+			if node.Content[i].Value == "$ref" {
+				refValue = node.Content[i+1].Value
+			} else {
+				siblings[node.Content[i].Value] = node.Content[i+1]
+			}
+		}
+	}
+
+	if refValue == "" || len(siblings) == 0 {
+		return nil // no merging needed
+	}
+
+	referencedComponent := sp.idx.FindComponentInRoot(sp.ctx, refValue)
+	if referencedComponent == nil || referencedComponent.Node == nil {
+		return nil // cannot resolve reference
+	}
+
+	// create property merger and merge
+	merger := NewPropertyMerger(config.PropertyMergeStrategy)
+
+	// create a local node with just the sibling properties
+	localNode := &yaml.Node{Kind: yaml.MappingNode}
+	for key, value := range siblings {
+		keyNode := &yaml.Node{Kind: yaml.ScalarNode, Value: key}
+		localNode.Content = append(localNode.Content, keyNode, value)
+	}
+
+	// merge local properties with referenced schema
+	merged, err := merger.MergeProperties(localNode, referencedComponent.Node)
+	if err != nil {
+		// if merging fails, return original node to preserve existing behavior
+		return nil
+	}
+
+	return merged
 }

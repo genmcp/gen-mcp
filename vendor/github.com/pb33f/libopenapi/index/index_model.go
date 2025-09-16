@@ -15,7 +15,7 @@ import (
 	"github.com/pb33f/libopenapi/utils"
 
 	"github.com/pb33f/libopenapi/datamodel"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // Reference is a wrapper around *yaml.Node results to make things more manageable when performing
@@ -37,6 +37,9 @@ type Reference struct {
 	RemoteLocation        string              `json:"remoteLocation,omitempty"`
 	Path                  string              `json:"path,omitempty"`               // this won't always be available.
 	RequiredRefProperties map[string][]string `json:"requiredProperties,omitempty"` // definition names (eg, #/definitions/One) to a list of required properties on this definition which reference that definition
+	HasSiblingProperties  bool                `json:"-"`                            // indicates if ref has sibling properties
+	SiblingProperties     map[string]*yaml.Node `json:"-"`                          // stores sibling property nodes
+	SiblingKeys           []*yaml.Node        `json:"-"`                            // stores sibling key nodes
 }
 
 // ReferenceMapped is a helper struct for mapped references put into sequence (we lose the key)
@@ -198,6 +201,17 @@ type SpecIndexConfig struct {
 	// If enabled, unknown URLs will be fetched and analyzed for JSON/YAML content with retry logic.
 	AllowUnknownExtensionContentDetection bool
 
+	// TransformSiblingRefs enables OpenAPI 3.1/JSON Schema Draft 2020-12 compliance for sibling refs.
+	// When enabled, schemas with $ref and additional properties will be transformed to use allOf.
+	TransformSiblingRefs bool
+
+	// MergeReferencedProperties enables merging of properties from referenced schemas with local properties.
+	// When enabled, properties from referenced schemas will be merged with local sibling properties.
+	MergeReferencedProperties bool
+
+	// PropertyMergeStrategy defines how to handle conflicts when merging properties.
+	PropertyMergeStrategy datamodel.PropertyMergeStrategy
+
 	// private fields
 	uri []string
 	id  string
@@ -222,6 +236,34 @@ func (s *SpecIndexConfig) GetId() string {
 		s.id = utils.GenerateAlphanumericString(6)
 	}
 	return s.id
+}
+
+// ToDocumentConfiguration converts SpecIndexConfig to DocumentConfiguration for compatibility
+func (s *SpecIndexConfig) ToDocumentConfiguration() *datamodel.DocumentConfiguration {
+	if s == nil {
+		return nil
+	}
+	// default strategy if not set
+	strategy := s.PropertyMergeStrategy
+	if strategy == 0 {
+		strategy = datamodel.PreserveLocal
+	}
+	return &datamodel.DocumentConfiguration{
+		BaseURL:                               s.BaseURL,
+		BasePath:                              s.BasePath,
+		SpecFilePath:                          s.SpecFilePath,
+		AllowFileReferences:                   s.AllowFileLookup,
+		AllowRemoteReferences:                 s.AllowRemoteLookup,
+		BypassDocumentCheck:                   s.SkipDocumentCheck,
+		IgnorePolymorphicCircularReferences:   s.IgnorePolymorphicCircularReferences,
+		IgnoreArrayCircularReferences:         s.IgnoreArrayCircularReferences,
+		UseSchemaQuickHash:                    s.UseSchemaQuickHash,
+		AllowUnknownExtensionContentDetection: s.AllowUnknownExtensionContentDetection,
+		TransformSiblingRefs:                  s.TransformSiblingRefs,
+		MergeReferencedProperties:             s.MergeReferencedProperties,
+		PropertyMergeStrategy:                 strategy,
+		Logger:                                s.Logger,
+	}
 }
 
 // CreateOpenAPIIndexConfig is a helper function to create a new SpecIndexConfig with the AllowRemoteLookup and
