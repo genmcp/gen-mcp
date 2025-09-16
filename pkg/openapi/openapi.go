@@ -9,7 +9,10 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/genmcp/gen-mcp/pkg/invocation"
+	ihttps "github.com/genmcp/gen-mcp/pkg/invocation/http"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/pb33f/libopenapi"
 	highbase "github.com/pb33f/libopenapi/datamodel/high/base"
 	v2high "github.com/pb33f/libopenapi/datamodel/high/v2"
@@ -94,27 +97,35 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 
 	for pathName, pathItem := range model.Paths.PathItems.FromOldest() {
 		for operationMethod, operation := range pathItem.GetOperations().FromOldest() {
-			if !mcpfile.IsValidHttpMethod(operationMethod) {
+			if !ihttps.IsValidHttpMethod(operationMethod) {
 				err = errors.Join(err, fmt.Errorf("%s is not a supported http method, skipping %s", operationMethod, toolName(pathName, operationMethod)))
 				continue
 			}
+
+			invocationData, marshalErr := json.Marshal(map[string]any{
+				"url":    fmt.Sprintf("%s%s", baseUrl, pathName),
+				"method": strings.ToUpper(operationMethod),
+			})
+			if marshalErr != nil {
+				err = errors.Join(err, fmt.Errorf("failed to marshal http invocation config for %s: %w", toolName(pathName, operationMethod), marshalErr))
+				continue
+			}
+
 			tool := &mcpfile.Tool{
 				Name:        toolName(pathName, operationMethod),
 				Title:       operation.Summary,
 				Description: operation.Description,
-				InputSchema: &mcpfile.JsonSchema{
-					Type:       mcpfile.JsonSchemaTypeObject,
-					Properties: make(map[string]*mcpfile.JsonSchema),
+				InputSchema: &jsonschema.Schema{
+					Type:       invocation.JsonSchemaTypeObject,
+					Properties: make(map[string]*jsonschema.Schema),
 					Required:   []string{},
 				},
-				Invocation: &mcpfile.HttpInvocation{
-					URL:    fmt.Sprintf("%s%s", baseUrl, pathName),
-					Method: strings.ToUpper(operationMethod),
-				},
+				InvocationData: invocationData,
+				InvocationType: mcpfile.InvocationTypeHttp,
 			}
 
 			numPathParams := 0
-			visited := make(map[*highbase.SchemaProxy]*mcpfile.JsonSchema)
+			visited := make(map[*highbase.SchemaProxy]*jsonschema.Schema)
 			for _, param := range operation.Parameters {
 				tool.InputSchema.Properties[param.Name] = convertV2Parameter(param, visited)
 
@@ -165,7 +176,7 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 		}
 	}
 
-	validationErr := server.Validate()
+	validationErr := server.Validate(invocation.InvocationValidator)
 	if validationErr != nil {
 		err = errors.Join(err, fmt.Errorf("failed to validate converted server: %w", validationErr))
 	}
@@ -213,26 +224,34 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 
 	for pathName, pathItem := range model.Paths.PathItems.FromOldest() {
 		for operationMethod, operation := range pathItem.GetOperations().FromOldest() {
-			if !mcpfile.IsValidHttpMethod(operationMethod) {
+			if !ihttps.IsValidHttpMethod(operationMethod) {
 				err = errors.Join(err, fmt.Errorf("%s is not a supported http method, skipping %s", operationMethod, toolName(pathName, operationMethod)))
 				continue
 			}
+
+			invocationData, marshalErr := json.Marshal(map[string]any{
+				"url":    fmt.Sprintf("%s%s", baseUrl, pathName),
+				"method": strings.ToUpper(operationMethod),
+			})
+			if marshalErr != nil {
+				err = errors.Join(err, fmt.Errorf("failed to marshal http invocation config for %s: %w", toolName(pathName, operationMethod), marshalErr))
+				continue
+			}
+
 			tool := &mcpfile.Tool{
 				Name:        toolName(pathName, operationMethod),
 				Title:       operation.Summary,
 				Description: operation.Description,
-				InputSchema: &mcpfile.JsonSchema{
-					Type:       mcpfile.JsonSchemaTypeObject,
-					Properties: make(map[string]*mcpfile.JsonSchema),
+				InputSchema: &jsonschema.Schema{
+					Type:       invocation.JsonSchemaTypeObject,
+					Properties: make(map[string]*jsonschema.Schema),
 					Required:   []string{},
 				},
-				Invocation: &mcpfile.HttpInvocation{
-					URL:    fmt.Sprintf("%s%s", baseUrl, pathName),
-					Method: strings.ToUpper(operationMethod),
-				},
+				InvocationData: invocationData,
+				InvocationType: mcpfile.InvocationTypeHttp,
 			}
 
-			visited := make(map[*highbase.SchemaProxy]*mcpfile.JsonSchema)
+			visited := make(map[*highbase.SchemaProxy]*jsonschema.Schema)
 			for _, param := range operation.Parameters {
 				tool.InputSchema.Properties[param.Name] = convertSchema(param.Schema, visited)
 
@@ -258,7 +277,7 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 
 				reqSchema := convertSchema(jsonSchema.Schema, visited)
 
-				if reqSchema.Type != mcpfile.JsonSchemaTypeObject {
+				if reqSchema.Type != invocation.JsonSchemaTypeObject {
 					// TODO: we probably want better error handling here
 					err = errors.Join(err, fmt.Errorf("JSON schema defined on request body for %s is not an object, skipping tool", tool.Name))
 					continue
@@ -290,7 +309,7 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 		}
 	}
 
-	validationErr := server.Validate()
+	validationErr := server.Validate(invocation.InvocationValidator)
 	if validationErr != nil {
 		return nil, errors.Join(err, fmt.Errorf("failed to validate converted server: %w", validationErr))
 	}
@@ -300,27 +319,26 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 	return res, err
 }
 
-func convertSchema(proxy *highbase.SchemaProxy, visited map[*highbase.SchemaProxy]*mcpfile.JsonSchema) *mcpfile.JsonSchema {
+func convertSchema(proxy *highbase.SchemaProxy, visited map[*highbase.SchemaProxy]*jsonschema.Schema) *jsonschema.Schema {
 	if proxy == nil {
 		return nil
 	}
 
 	if s, ok := visited[proxy]; ok {
-		js := &mcpfile.JsonSchema{
+		js := &jsonschema.Schema{
 			Type:                 s.Type,
 			Description:          s.Description,
 			AdditionalProperties: s.AdditionalProperties,
 		}
 
 		// hacks to break the cyclical JSON rendering
-		if s.Type == mcpfile.JsonSchemaTypeArray && s.Items != nil {
-			js.Items = &mcpfile.JsonSchema{
+		if s.Type == invocation.JsonSchemaTypeArray && s.Items != nil {
+			js.Items = &jsonschema.Schema{
 				Type:        s.Items.Type,
 				Description: s.Items.Description,
 			}
-		} else if s.Type == mcpfile.JsonSchemaTypeObject {
-			val := true
-			js.AdditionalProperties = &val
+		} else if s.Type == invocation.JsonSchemaTypeObject {
+			js.AdditionalProperties = &jsonschema.Schema{}
 		}
 
 		return js
@@ -332,19 +350,19 @@ func convertSchema(proxy *highbase.SchemaProxy, visited map[*highbase.SchemaProx
 		schemaType = schema.Type[0]
 	}
 
-	s := &mcpfile.JsonSchema{
+	s := &jsonschema.Schema{
 		Type:        strings.ToLower(schemaType),
 		Description: schema.Description,
 	}
 	visited[proxy] = s
 
 	switch schemaType {
-	case mcpfile.JsonSchemaTypeArray:
+	case invocation.JsonSchemaTypeArray:
 		if schema.Items != nil && schema.Items.IsA() {
 			s.Items = convertSchema(schema.Items.A, visited)
 		}
-	case mcpfile.JsonSchemaTypeObject:
-		s.Properties = map[string]*mcpfile.JsonSchema{}
+	case invocation.JsonSchemaTypeObject:
+		s.Properties = map[string]*jsonschema.Schema{}
 		if schema.Properties != nil {
 			for k, v := range schema.Properties.FromOldest() {
 				s.Properties[k] = convertSchema(v, visited)
@@ -353,25 +371,24 @@ func convertSchema(proxy *highbase.SchemaProxy, visited map[*highbase.SchemaProx
 	}
 
 	if schema.AdditionalProperties != nil && (schema.AdditionalProperties.IsA() || (schema.AdditionalProperties.IsB() && schema.AdditionalProperties.B)) {
-		val := true
-		s.AdditionalProperties = &val
+		s.AdditionalProperties = &jsonschema.Schema{}
 	}
 
 	return s
 }
 
-func convertV2Parameter(param *v2high.Parameter, visited map[*highbase.SchemaProxy]*mcpfile.JsonSchema) *mcpfile.JsonSchema {
+func convertV2Parameter(param *v2high.Parameter, visited map[*highbase.SchemaProxy]*jsonschema.Schema) *jsonschema.Schema {
 	if param.Schema != nil {
 		return convertSchema(param.Schema, visited)
 	}
 
-	s := &mcpfile.JsonSchema{
+	s := &jsonschema.Schema{
 		Type:        strings.ToLower(param.Type),
 		Description: param.Description,
 	}
-	if s.Type == mcpfile.JsonSchemaTypeArray {
+	if s.Type == invocation.JsonSchemaTypeArray {
 		if param.Items != nil {
-			s.Items = &mcpfile.JsonSchema{
+			s.Items = &jsonschema.Schema{
 				Type: strings.ToLower(param.Items.Type),
 			}
 		}

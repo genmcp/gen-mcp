@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -143,7 +144,7 @@ func (tv *TokenValidator) extractClaims(token jwt.Token) *TokenClaims {
 	// OAuth-specific claims
 	var scope string
 	if err := token.Get("scope", &scope); err == nil {
-		claims.Scope = scope
+		claims.Scope = createCanonicalScope(scope)
 	}
 
 	var clientID string
@@ -247,4 +248,26 @@ func (tv *TokenValidator) discoverFromOIDC(ctx context.Context, discoveryURL str
 	}
 
 	return doc.JWKSURI, nil
+}
+
+// createCanonicalScope ensures that the scope string is sorted and de-duplicated
+func createCanonicalScope(scope string) string {
+	scopes := strings.Split(scope, " ")
+
+	uniqueScopes := make(map[string]struct{}, len(scopes))
+
+	for _, s := range scopes {
+		if s != "" {
+			uniqueScopes[s] = struct{}{}
+		}
+	}
+
+	sortedScopes := make([]string, 0, len(uniqueScopes))
+	for s := range uniqueScopes {
+		sortedScopes = append(sortedScopes, s)
+	}
+
+	sort.Strings(sortedScopes)
+
+	return strings.Join(sortedScopes, " ")
 }

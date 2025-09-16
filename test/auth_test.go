@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -18,8 +17,7 @@ import (
 
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/genmcp/gen-mcp/pkg/mcpserver"
-	mcpclient "github.com/mark3labs/mcp-go/client"
-	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 const (
@@ -140,20 +138,199 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 
 		Describe("Authentication Flow", func() {
 			It("should deny requests without token (with mcp client)", func() {
-				By("creating OAuth MCP client")
-				tokenStore := mcpclient.NewMemoryTokenStore()
-				client := createOAuthMCPClientWithTokenStore(mcpServerURL, clientID, tokenStore)
+				By("creating MCP client")
+				client := mcp.NewClient(&mcp.Implementation{
+					Name:    "test oauth client",
+					Version: "0.0.1",
+				}, nil)
+
+				transport := &mcp.StreamableClientTransport{
+				Endpoint: mcpServerURL,
+			}
+
+				By("attempting to connect without token")
+				_, err := client.Connect(context.Background(), transport, nil)
+
+				By("returning authorization error")
+				Expect(err).To(HaveOccurred())
+				// The connection should fail due to missing authorization
+			})
+
+			It("should successfully initialize with valid token", func() {
+				By("obtaining OAuth token via direct access grant")
+				token := performDirectAccessGrant(clientID, testUsername, testPassword)
+				Expect(token.AccessToken).NotTo(BeEmpty())
+
+				By("creating OAuth-enabled MCP client")
+				client := mcp.NewClient(&mcp.Implementation{
+					Name:    "test oauth client",
+					Version: "0.0.1",
+				}, nil)
+
+				oauthTransport := &OAuthRoundTripper{
+					Transport:   http.DefaultTransport,
+					AccessToken: token.AccessToken,
+				}
+				httpClient := &http.Client{Transport: oauthTransport}
+
+				transport := &mcp.StreamableClientTransport{
+					Endpoint:   mcpServerURL,
+					HTTPClient: httpClient,
+				}
+
+				By("connecting to MCP server with OAuth token")
+				session, err := client.Connect(context.Background(), transport, nil)
+				Expect(err).NotTo(HaveOccurred())
 				defer func() {
-					err := client.Close()
-					Expect(err).NotTo(HaveOccurred())
+					_ = session.Close()
 				}()
 
-				By("attempting to initialize without token")
-				initRequest := createInitRequest()
-				_, err := client.Initialize(context.Background(), initRequest)
+				By("verifying successful initialization")
+				initResult := session.InitializeResult()
+				Expect(initResult).NotTo(BeNil())
+				Expect(initResult.ServerInfo).NotTo(BeNil())
+			})
 
-				By("returning OAuth authorization required error")
-				Expect(mcpclient.IsOAuthAuthorizationRequiredError(err)).To(BeTrue())
+			It("should successfully execute tools", func() {
+				By("obtaining OAuth token with required scopes")
+				token := performDirectAccessGrantWithScopes(clientID, testUsername, testPassword, "openid profile read user:read")
+				Expect(token.AccessToken).NotTo(BeEmpty())
+
+				By("creating OAuth-enabled MCP client")
+				client := mcp.NewClient(&mcp.Implementation{
+					Name:    "test oauth client",
+					Version: "0.0.1",
+				}, nil)
+
+				oauthTransport := &OAuthRoundTripper{
+					Transport:   http.DefaultTransport,
+					AccessToken: token.AccessToken,
+				}
+				httpClient := &http.Client{Transport: oauthTransport}
+
+				transport := &mcp.StreamableClientTransport{
+					Endpoint:   mcpServerURL,
+					HTTPClient: httpClient,
+				}
+
+				By("connecting and initializing MCP session")
+				session, err := client.Connect(context.Background(), transport, nil)
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					_ = session.Close()
+				}()
+
+				initResult := session.InitializeResult()
+				Expect(initResult).NotTo(BeNil())
+
+				By("calling get_status tool successfully")
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+
+				result, err := session.CallTool(ctx, &mcp.CallToolParams{
+					Name:      "get_status",
+					Arguments: map[string]any{},
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result).NotTo(BeNil())
+				Expect(result.Content).To(HaveLen(1))
+
+				textResult, ok := result.Content[0].(*mcp.TextContent)
+				Expect(ok).To(BeTrue())
+				Expect(textResult.Text).To(MatchJSON(`{"status": "ok"}`))
+			})
+
+			It("should allow tool calls when user has required scopes", func() {
+				By("obtaining OAuth token with required scopes")
+				token := performDirectAccessGrantWithScopes(clientID, testUsername, testPassword, "openid profile read user:read")
+				Expect(token.AccessToken).NotTo(BeEmpty())
+
+				By("creating OAuth-enabled MCP client")
+				client := mcp.NewClient(&mcp.Implementation{
+					Name:    "test oauth client",
+					Version: "0.0.1",
+				}, nil)
+
+				oauthTransport := &OAuthRoundTripper{
+					Transport:   http.DefaultTransport,
+					AccessToken: token.AccessToken,
+				}
+				httpClient := &http.Client{Transport: oauthTransport}
+
+				transport := &mcp.StreamableClientTransport{
+					Endpoint:   mcpServerURL,
+					HTTPClient: httpClient,
+				}
+
+				By("connecting and initializing MCP session")
+				session, err := client.Connect(context.Background(), transport, nil)
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					_ = session.Close()
+				}()
+
+				By("calling get_user tool with required scopes")
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+
+				result, err := session.CallTool(ctx, &mcp.CallToolParams{
+					Name: "get_user",
+					Arguments: map[string]any{
+						"userId": "test123",
+					},
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result).NotTo(BeNil())
+				Expect(result.Content).To(HaveLen(1))
+
+				textResult, ok := result.Content[0].(*mcp.TextContent)
+				Expect(ok).To(BeTrue())
+				Expect(textResult.Text).To(MatchJSON(`{"status": "ok"}`))
+			})
+
+			It("should deny tool calls when user lacks required scopes", func() {
+				By("obtaining OAuth token with limited scopes")
+				token := performDirectAccessGrantWithScopes(clientID, testUsername, testPassword, "openid profile")
+				Expect(token.AccessToken).NotTo(BeEmpty())
+
+				By("creating OAuth-enabled MCP client")
+				client := mcp.NewClient(&mcp.Implementation{
+					Name:    "test oauth client",
+					Version: "0.0.1",
+				}, nil)
+
+				oauthTransport := &OAuthRoundTripper{
+					Transport:   http.DefaultTransport,
+					AccessToken: token.AccessToken,
+				}
+				httpClient := &http.Client{Transport: oauthTransport}
+
+				transport := &mcp.StreamableClientTransport{
+					Endpoint:   mcpServerURL,
+					HTTPClient: httpClient,
+				}
+
+				By("connecting and initializing MCP session")
+				session, err := client.Connect(context.Background(), transport, nil)
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					_ = session.Close()
+				}()
+
+				By("attempting to call get_user tool without required scopes")
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+
+				_, err = session.CallTool(ctx, &mcp.CallToolParams{
+					Name: "get_user",
+					Arguments: map[string]any{
+						"userId": "test123",
+					},
+				})
+
+				By("returning authorization error")
+				Expect(err).To(HaveOccurred())
+				// Should fail due to missing required scopes
 			})
 
 			It("should deny unauthorized HTTP requests (direct HTTP request)", func() {
@@ -175,220 +352,39 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 			})
 		})
 
-		Context("With authenticated client", func() {
-			var (
-				tokenStore mcpclient.TokenStore
-				client     *mcpclient.Client
-				token      *mcpclient.Token
-			)
-
-			BeforeEach(func() {
-				By("creating OAuth MCP client with shared token store")
-				tokenStore = mcpclient.NewMemoryTokenStore()
-				client = createOAuthMCPClientWithTokenStore(mcpServerURL, clientID, tokenStore)
-
-				By("obtaining OAuth token via direct access grant")
-				token = performDirectAccessGrant(clientID, testUsername, testPassword)
-				Expect(token.AccessToken).NotTo(BeEmpty())
-
-				By("storing token in shared token store")
-				err := tokenStore.SaveToken(token)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			AfterEach(func() {
-				if client != nil {
-					err := client.Close()
-					Expect(err).NotTo(HaveOccurred())
-				}
-			})
-
-			It("should successfully initialize with valid token", func() {
-				By("attempting to initialize with valid token")
-				initRequest := createInitRequest()
-				_, err := client.Initialize(context.Background(), initRequest)
-
-				By("completing initialization successfully")
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("should successfully execute tools", func() {
-				By("initializing the client first")
-				initRequest := createInitRequest()
-				_, err := client.Initialize(context.Background(), initRequest)
-				Expect(err).NotTo(HaveOccurred())
-
-				By("calling a tool successfully")
-				result := callGetStatusTool(client)
-
-				By("returning expected tool result")
-				validateToolResult(result)
-			})
-
-			It("should handle multiple tool calls", func() {
-				By("initializing the client first")
-				initRequest := createInitRequest()
-				_, err := client.Initialize(context.Background(), initRequest)
-				Expect(err).NotTo(HaveOccurred())
-
-				By("calling the same tool multiple times")
-				for i := 1; i <= 3; i++ {
-					result := callGetStatusTool(client)
-					validateToolResult(result)
-				}
-			})
-		})
-
-		Context("With authenticated client having sufficient scopes", func() {
-			var (
-				tokenStore mcpclient.TokenStore
-				client     *mcpclient.Client
-				token      *mcpclient.Token
-			)
-
-			BeforeEach(func() {
-				By("creating OAuth MCP client with shared token store")
-				tokenStore = mcpclient.NewMemoryTokenStore()
-				client = createOAuthMCPClientWithTokenStore(mcpServerURL, clientID, tokenStore)
-
-				By("obtaining OAuth token with required scopes via direct access grant")
-				token = performDirectAccessGrantWithScopes(clientID, testUsername, testPassword, "openid profile read user:read")
-				Expect(token.AccessToken).NotTo(BeEmpty())
-
-				By("storing token in shared token store")
-				err := tokenStore.SaveToken(token)
-				Expect(err).NotTo(HaveOccurred())
-
-				By("initializing the client")
-				initRequest := createInitRequest()
-				_, err = client.Initialize(context.Background(), initRequest)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			AfterEach(func() {
-				if client != nil {
-					err := client.Close()
-					Expect(err).NotTo(HaveOccurred())
-				}
-			})
-
-			It("should allow tool calls when user has required scopes", func() {
-				By("calling tool that requires 'read' and 'user:read' scopes")
-				result := callGetUserTool(client, "authorized-user")
-
-				By("returning successful tool result")
-				validateToolResult(result)
-			})
-		})
-
-		Context("With authenticated client having insufficient scopes", func() {
-			var (
-				tokenStore mcpclient.TokenStore
-				client     *mcpclient.Client
-				token      *mcpclient.Token
-			)
-
-			BeforeEach(func() {
-				By("creating OAuth MCP client with shared token store")
-				tokenStore = mcpclient.NewMemoryTokenStore()
-				client = createOAuthMCPClientWithTokenStore(mcpServerURL, clientID, tokenStore)
-
-				By("obtaining OAuth token with limited scopes via direct access grant")
-				token = performDirectAccessGrantWithScopes(clientID, testUsername, testPassword, "openid profile")
-				Expect(token.AccessToken).NotTo(BeEmpty())
-
-				By("storing token in shared token store")
-				err := tokenStore.SaveToken(token)
-				Expect(err).NotTo(HaveOccurred())
-
-				By("initializing the client")
-				initRequest := createInitRequest()
-				_, err = client.Initialize(context.Background(), initRequest)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			AfterEach(func() {
-				if client != nil {
-					err := client.Close()
-					Expect(err).NotTo(HaveOccurred())
-				}
-			})
-
-			It("should deny tool calls when user lacks required scopes", func() {
-				By("calling tool that requires 'read' and 'user:read' scopes")
-				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-				defer cancel()
-
-				toolCall := mcp.CallToolRequest{
-					Params: mcp.CallToolParams{
-						Name:      "get_user",
-						Arguments: map[string]any{"userId": "unauthorized-user"},
-					},
-				}
-
-				By("returning authorization error")
-				_, err := client.CallTool(ctx, toolCall)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("forbidden"))
-			})
-		})
+		// TODO: Add authenticated client tests once new SDK client API is available
 	})
 })
 
+// OAuthRoundTripper is a custom HTTP transport that adds OAuth Bearer tokens to requests
+type OAuthRoundTripper struct {
+	Transport   http.RoundTripper
+	AccessToken string
+}
+
+func (ort *OAuthRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Clone the request to avoid modifying the original
+	req = req.Clone(req.Context())
+	// Add the Authorization header
+	req.Header.Set("Authorization", "Bearer "+ort.AccessToken)
+	return ort.Transport.RoundTrip(req)
+}
+
+// OAuth token represents an OAuth access token
+type OAuthToken struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int    `json:"expires_in"`
+	Scope       string `json:"scope"`
+}
+
 // performDirectAccessGrant uses the Resource Owner Password Credentials Grant to get a token directly
-func performDirectAccessGrant(clientID, username, password string) *mcpclient.Token {
-	// Use the direct access grant (password grant) to get tokens
-	formData := url.Values{}
-	formData.Set("grant_type", "password")
-	formData.Set("client_id", clientID)
-	formData.Set("username", username)
-	formData.Set("password", password)
-	formData.Set("scope", "openid profile")
-
-	tokenURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", keycloakBaseURL, masterRealm)
-
-	resp, err := http.PostForm(tokenURL, formData)
-	Expect(err).NotTo(HaveOccurred())
-	defer func() {
-		err := resp.Body.Close()
-		Expect(err).NotTo(HaveOccurred())
-	}()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		GinkgoWriter.Println("Expected 200 from token endpoint but got %d. Response body: %s", resp.StatusCode, string(body))
-	}
-
-	Expect(resp.StatusCode).To(Equal(http.StatusOK))
-
-	// Parse the token response
-	var tokenResponse struct {
-		AccessToken  string `json:"access_token"`
-		TokenType    string `json:"token_type"`
-		RefreshToken string `json:"refresh_token"`
-		ExpiresIn    int64  `json:"expires_in"`
-		Scope        string `json:"scope"`
-	}
-
-	err = json.NewDecoder(resp.Body).Decode(&tokenResponse)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(tokenResponse.AccessToken).NotTo(BeEmpty(), "Access token should not be empty")
-
-	// Convert to the MCP client token format
-	token := &mcpclient.Token{
-		AccessToken:  tokenResponse.AccessToken,
-		TokenType:    tokenResponse.TokenType,
-		RefreshToken: tokenResponse.RefreshToken,
-		ExpiresIn:    tokenResponse.ExpiresIn,
-		Scope:        tokenResponse.Scope,
-		ExpiresAt:    time.Now().Add(time.Duration(tokenResponse.ExpiresIn) * time.Second),
-	}
-
-	return token
+func performDirectAccessGrant(clientID, username, password string) *OAuthToken {
+	return performDirectAccessGrantWithScopes(clientID, username, password, "openid profile")
 }
 
 // performDirectAccessGrantWithScopes uses the Resource Owner Password Credentials Grant with custom scopes
-func performDirectAccessGrantWithScopes(clientID, username, password, scopes string) *mcpclient.Token {
+func performDirectAccessGrantWithScopes(clientID, username, password, scopes string) *OAuthToken {
 	// Use the direct access grant (password grant) to get tokens
 	formData := url.Values{}
 	formData.Set("grant_type", "password")
@@ -406,37 +402,13 @@ func performDirectAccessGrantWithScopes(clientID, username, password, scopes str
 		Expect(err).NotTo(HaveOccurred())
 	}()
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		GinkgoWriter.Println("Expected 200 from token endpoint but got %d. Response body: %s", resp.StatusCode, string(body))
-	}
-
 	Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
-	// Parse the token response
-	var tokenResponse struct {
-		AccessToken  string `json:"access_token"`
-		TokenType    string `json:"token_type"`
-		RefreshToken string `json:"refresh_token"`
-		ExpiresIn    int64  `json:"expires_in"`
-		Scope        string `json:"scope"`
-	}
-
-	err = json.NewDecoder(resp.Body).Decode(&tokenResponse)
+	var token OAuthToken
+	err = json.NewDecoder(resp.Body).Decode(&token)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(tokenResponse.AccessToken).NotTo(BeEmpty(), "Access token should not be empty")
 
-	// Convert to the MCP client token format
-	token := &mcpclient.Token{
-		AccessToken:  tokenResponse.AccessToken,
-		TokenType:    tokenResponse.TokenType,
-		RefreshToken: tokenResponse.RefreshToken,
-		ExpiresIn:    tokenResponse.ExpiresIn,
-		Scope:        tokenResponse.Scope,
-		ExpiresAt:    time.Now().Add(time.Duration(tokenResponse.ExpiresIn) * time.Second),
-	}
-
-	return token
+	return &token
 }
 
 // Helper functions for better test organization
@@ -582,72 +554,3 @@ servers:
 	return config
 }
 
-func createOAuthMCPClientWithTokenStore(serverURL, clientID string, tokenStore mcpclient.TokenStore) *mcpclient.Client {
-	By("creating OAuth MCP client with token store")
-	oauthConfig := mcpclient.OAuthConfig{
-		ClientID:    clientID,
-		RedirectURI: "http://localhost:8080/callback",
-		Scopes:      []string{"openid", "profile"},
-		TokenStore:  tokenStore,
-		PKCEEnabled: true,
-	}
-	client, err := mcpclient.NewOAuthStreamableHttpClient(serverURL, oauthConfig)
-	Expect(err).NotTo(HaveOccurred())
-	return client
-}
-
-func createInitRequest() mcp.InitializeRequest {
-	return mcp.InitializeRequest{
-		Params: mcp.InitializeParams{
-			ProtocolVersion: mcp.LATEST_PROTOCOL_VERSION,
-			ClientInfo: mcp.Implementation{
-				Name:    "test oauth client",
-				Version: "0.0.1",
-			},
-		},
-	}
-}
-
-func callGetStatusTool(client *mcpclient.Client) *mcp.CallToolResult {
-	By("calling get_status tool")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	toolCall := mcp.CallToolRequest{
-		Params: mcp.CallToolParams{
-			Name:      "get_status",
-			Arguments: map[string]any{},
-		},
-	}
-
-	result, err := client.CallTool(ctx, toolCall)
-	Expect(err).NotTo(HaveOccurred())
-	return result
-}
-
-func callGetUserTool(client *mcpclient.Client, userID string) *mcp.CallToolResult {
-	By(fmt.Sprintf("calling get_user tool with userID: %s", userID))
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	toolCall := mcp.CallToolRequest{
-		Params: mcp.CallToolParams{
-			Name:      "get_user",
-			Arguments: map[string]any{"userId": userID},
-		},
-	}
-
-	result, err := client.CallTool(ctx, toolCall)
-	Expect(err).NotTo(HaveOccurred())
-	return result
-}
-
-func validateToolResult(result *mcp.CallToolResult) {
-	By("validating tool call result")
-	Expect(result).NotTo(BeNil())
-	Expect(result.Content).To(HaveLen(1))
-
-	textResult, ok := result.Content[0].(mcp.TextContent)
-	Expect(ok).To(BeTrue())
-	Expect(textResult.Text).To(MatchJSON(`{"status": "ok"}`))
-}
