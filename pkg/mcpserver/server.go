@@ -26,6 +26,12 @@ func MakeServer(mcpServer *mcpfile.MCPServer) (*mcp.Server, error) {
 		return nil, fmt.Errorf("invalid server configuration: %w", err)
 	}
 
+	return makeServerWithoutValidation(mcpServer)
+}
+
+// makeServerWithoutValidation creates a server without performing validation
+// This is used internally when validation has already been performed
+func makeServerWithoutValidation(mcpServer *mcpfile.MCPServer) (*mcp.Server, error) {
 	return makeServerWithTools(mcpServer, mcpServer.Tools)
 }
 
@@ -94,7 +100,7 @@ func RunServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
 			return err
 		}
 	case mcpfile.TransportProtocolStdio:
-		s, err := MakeServer(mcpServerConfig)
+		s, err := makeServerWithoutValidation(mcpServerConfig)
 		if err != nil {
 			return fmt.Errorf("failed to create server: %w", err)
 		}
