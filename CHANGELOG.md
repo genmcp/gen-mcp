@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.1.0]
+
+### Added
+
+### Changed
+- GenMCP now uses the official [modelcontextprocotol SDK](https://github.com/modelcontextprotocol/go-sdk)
+- StreamableHttp servers are now registered as stateless, so you can safely scale them to 0 or to N
+
+### Deprecated
+
+### Removed
+
+### Fixed
+- When converting an OpenAPI spec, invalid tools will not cause the conversion to fail anymore
+
+### Security
+
 ## [v0.0.0]
 
 ### Added
