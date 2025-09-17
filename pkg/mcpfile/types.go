@@ -28,10 +28,11 @@ type Tool struct {
 }
 
 type StreamableHTTPConfig struct {
-	Port     int         `json:"port"`           // the port to start listening on
-	BasePath string      `json:"basePath"`       // the base path for the MCP server
-	Auth     *AuthConfig `json:"auth,omitempty"` // OAuth 2.0 configuration for protected resource
-	TLS      *TLSConfig  `json:"tls,omitempty"`  // TLS configuration for the http server
+	Port      int         `json:"port"`           // the port to start listening on
+	BasePath  string      `json:"basePath"`       // the base path for the MCP server
+	Stateless bool        `json:"stateless"`      // whether or not the server will be stateless
+	Auth      *AuthConfig `json:"auth,omitempty"` // OAuth 2.0 configuration for protected resource
+	TLS       *TLSConfig  `json:"tls,omitempty"`  // TLS configuration for the http server
 }
 
 type TLSConfig struct {

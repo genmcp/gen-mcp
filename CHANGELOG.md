@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - GenMCP now uses the official [modelcontextprocotol SDK](https://github.com/modelcontextprotocol/go-sdk)
-- StreamableHttp servers are now registered as stateless, so you can safely scale them to 0 or to N
+- StreamableHttp servers are now registered as stateless, so you can safely scale them to 0 or to N. This is configurable.
 
 ### Deprecated
 
