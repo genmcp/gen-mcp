@@ -32,8 +32,9 @@ func TestParseMcpFile(t *testing.T) {
 						Runtime: &ServerRuntime{
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
-								Port:     3000,
-								BasePath: DefaultBasePath,
+								Port:      3000,
+								BasePath:  DefaultBasePath,
+								Stateless: true,
 							},
 						},
 					},
@@ -51,8 +52,9 @@ func TestParseMcpFile(t *testing.T) {
 						Runtime: &ServerRuntime{
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
-								Port:     3000,
-								BasePath: DefaultBasePath,
+								Port:      3000,
+								BasePath:  DefaultBasePath,
+								Stateless: true,
 							},
 						},
 						Tools: []*Tool{
@@ -89,8 +91,9 @@ func TestParseMcpFile(t *testing.T) {
 						Runtime: &ServerRuntime{
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
-								Port:     3000,
-								BasePath: DefaultBasePath,
+								Port:      3000,
+								BasePath:  DefaultBasePath,
+								Stateless: true,
 							},
 						},
 						Tools: []*Tool{
@@ -127,8 +130,56 @@ func TestParseMcpFile(t *testing.T) {
 						Runtime: &ServerRuntime{
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
-								BasePath: DefaultBasePath,
-								Port:     3000,
+								BasePath:  DefaultBasePath,
+								Port:      3000,
+								Stateless: true,
+							},
+						},
+						Tools: []*Tool{
+							{
+								Name:        "clone_repo",
+								Title:       "Clone git repository",
+								Description: "Clone a git repository from a url to the local machine",
+								InputSchema: &jsonschema.Schema{
+									Type: "object",
+									Properties: map[string]*jsonschema.Schema{
+										"repoUrl": {
+											Type:        "string",
+											Description: "The git url of the repo to clone",
+										},
+										"depth": {
+											Type:        "integer",
+											Description: "The number of commits to clone",
+										},
+										"verbose": {
+											Type:        "boolean",
+											Description: "Whether to return verbose logs",
+										},
+									},
+									Required: []string{"repoUrl"},
+								},
+								InvocationData: json.RawMessage(`{"command":"git clone {repoUrl} {depth} {verbose}","templateVariables":{"depth":{"format":"--depth {depth}"},"verbose":{"format":"--verbose","omitIfFalse":true}}}`),
+								InvocationType: "cli",
+							},
+						},
+					},
+				},
+			},
+		},
+		"one server, stateful": {
+			testFileName: "one-server-stateful.yaml",
+			expected: &MCPFile{
+				FileVersion: MCPFileVersion,
+				Servers: []*MCPServer{
+					{
+						Name:    "test-server",
+						Version: "1.0.0",
+						Runtime: &ServerRuntime{
+							TransportProtocol: TransportProtocolStreamableHttp,
+							StreamableHTTPConfig: &StreamableHTTPConfig{
+								BasePath:  DefaultBasePath,
+								Port:      3000,
+								Stateless: false,
 							},
 						},
 						Tools: []*Tool{
@@ -215,7 +266,8 @@ func TestParseMcpFile(t *testing.T) {
 						Runtime: &ServerRuntime{
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
-								Port: 8008,
+								Port:      8008,
+								Stateless: true,
 							},
 						},
 						Tools: []*Tool{
@@ -306,7 +358,8 @@ func TestParseMcpFile(t *testing.T) {
 						Runtime: &ServerRuntime{
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
-								Port: 7007,
+								Port:      7007,
+								Stateless: true,
 								TLS: &TLSConfig{
 									CertFile: "/path/to/server.crt",
 									KeyFile:  "/path/to/server.key",

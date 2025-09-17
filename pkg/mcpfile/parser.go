@@ -53,16 +53,18 @@ func (s *MCPServer) UnmarshalJSON(data []byte) error {
 		s.Runtime = &ServerRuntime{
 			TransportProtocol: TransportProtocolStreamableHttp,
 			StreamableHTTPConfig: &StreamableHTTPConfig{
-				Port:     3000,
-				BasePath: DefaultBasePath,
+				Port:      3000,
+				BasePath:  DefaultBasePath,
+				Stateless: true,
 			},
 		}
 	}
 
 	if s.Runtime.TransportProtocol == TransportProtocolStreamableHttp && s.Runtime.StreamableHTTPConfig == nil {
 		s.Runtime.StreamableHTTPConfig = &StreamableHTTPConfig{
-			Port:     3000,
-			BasePath: DefaultBasePath,
+			Port:      3000,
+			BasePath:  DefaultBasePath,
+			Stateless: true,
 		}
 	}
 
@@ -92,6 +94,30 @@ func (t *Tool) UnmarshalJSON(data []byte) error {
 	for k, v := range tmp.Invocation {
 		t.InvocationType = strings.ToLower(k)
 		t.InvocationData = v
+	}
+
+	return nil
+}
+
+func (s *StreamableHTTPConfig) UnmarshalJSON(data []byte) error {
+	type Doppleganger StreamableHTTPConfig
+
+	tmp := struct {
+		Stateless *bool `json:"stateless,omitempty"`
+		*Doppleganger
+	}{
+		Doppleganger: (*Doppleganger)(s),
+	}
+
+	err := json.Unmarshal(data, &tmp)
+	if err != nil {
+		return err
+	}
+
+	if tmp.Stateless != nil {
+		s.Stateless = *tmp.Stateless
+	} else {
+		s.Stateless = true
 	}
 
 	return nil

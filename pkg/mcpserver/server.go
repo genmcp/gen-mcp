@@ -95,7 +95,9 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpfile.MCPSe
 		}
 
 		return s
-	}, &mcp.StreamableHTTPOptions{})
+	}, &mcp.StreamableHTTPOptions{
+		Stateless: mcpServerConfig.Runtime.StreamableHTTPConfig.Stateless,
+	})
 
 	oauthHandler := oauth.Middleware(mcpServerConfig)(handler)
 
