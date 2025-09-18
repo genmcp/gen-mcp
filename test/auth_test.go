@@ -21,13 +21,12 @@ import (
 )
 
 const (
-	keycloakBaseURL = "http://localhost:8080"
+	keycloakBaseURL = "http://localhost:8081"
 	masterRealm     = "master"
 	clientID        = "genmcp-client"
 	testUsername    = "admin"
 	testPassword    = "admin"
 )
-
 
 var _ = Describe("OAuth Integration", Ordered, func() {
 
@@ -145,8 +144,8 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 				}, nil)
 
 				transport := &mcp.StreamableClientTransport{
-				Endpoint: mcpServerURL,
-			}
+					Endpoint: mcpServerURL,
+				}
 
 				By("attempting to connect without token")
 				_, err := client.Connect(context.Background(), transport, nil)
@@ -553,4 +552,3 @@ servers:
 	Expect(err).NotTo(HaveOccurred())
 	return config
 }
-
