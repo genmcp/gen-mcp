@@ -66,6 +66,7 @@ func RunServers(ctx context.Context, mcpFilePath string) error {
 	}
 
 	var wg sync.WaitGroup
+	errChn := make(chan error, len(mcpConfig.Servers))
 	wg.Add(len(mcpConfig.Servers))
 
 	for _, s := range mcpConfig.Servers {
@@ -73,12 +74,20 @@ func RunServers(ctx context.Context, mcpFilePath string) error {
 			defer wg.Done()
 			err := RunServer(ctx, server)
 			if err != nil {
-				log.Printf("error running server: %s", err.Error())
+				errChn <- err
 			}
 		}(s)
 	}
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(errChn)
+	}()
+
+	for err := range errChn {
+		log.Printf("error running server: %s", err.Error())
+	}
+
 	return nil
 }
 
