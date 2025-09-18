@@ -113,7 +113,7 @@ function start_keycloak() {
   # Start Keycloak container with TLS and HTTP
   $CONTAINER_RUNTIME run -d --name ${KEYCLOAK_CONTAINER_NAME} \
     -p 8443:8443 \
-    -p 8080:8080 \
+    -p 8081:8080 \
     -p 9000:9000 \
     -v "${KEYCLOAK_CERTS}:/opt/keycloak/conf/certs" \
     -e KC_BOOTSTRAP_ADMIN_USERNAME=${KEYCLOAK_ADMIN} \
@@ -332,7 +332,7 @@ function disable_trusted_hosts() {
   # Configure admin CLI credentials
   $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh config credentials \
-    --server http://localhost:8080 \
+    --server http://localhost:8081 \
     --realm ${realm_name} \
     --user "${KEYCLOAK_ADMIN}" \
     --password "${KEYCLOAK_ADMIN_PASSWORD}"

@@ -6,7 +6,7 @@ servers:
       port: 8080
       auth:
         authorizationServers:
-          - http://localhost:8080/realms/master
+          - http://localhost:8081/realms/master
     transportProtocol: streamablehttp
   tools:
   - description: Returns a list of all features sorted by upvotes (highest first)
