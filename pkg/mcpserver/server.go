@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"slices"
 	"strings"
@@ -65,6 +64,10 @@ func RunServers(ctx context.Context, mcpFilePath string) error {
 		}
 	}
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	errChn := make(chan error, 1)
+
 	var wg sync.WaitGroup
 	wg.Add(len(mcpConfig.Servers))
 
@@ -73,13 +76,23 @@ func RunServers(ctx context.Context, mcpFilePath string) error {
 			defer wg.Done()
 			err := RunServer(ctx, server)
 			if err != nil {
-				log.Printf("error running server: %s", err.Error())
+				select {
+				case errChn <- fmt.Errorf("error running server: %s", err.Error()):
+				default:
+				}
 			}
 		}(s)
 	}
 
+	var firstErr error
+	select {
+	case firstErr = <-errChn:
+		cancel()
+	case <-ctx.Done():
+	}
+
 	wg.Wait()
-	return nil
+	return firstErr
 }
 
 func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
