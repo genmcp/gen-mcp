@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 
 	"github.com/spf13/cobra"
 )
@@ -16,7 +17,7 @@ var rootCmd = &cobra.Command{
 
 func Execute(version string) {
 	if version == "" {
-		cliVersion = "development"
+		cliVersion = getDevVersion().String()
 	} else {
 		cliVersion = version
 	}
@@ -25,4 +26,32 @@ func Execute(version string) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+type devVersion struct {
+	commit               string
+	hasUncommitedChanges bool
+}
+
+func (dv devVersion) String() string {
+	if dv.hasUncommitedChanges {
+		return fmt.Sprintf("development@%s+uncommitedChanges", dv.commit)
+	}
+	return fmt.Sprintf("development@%s", dv.commit)
+}
+
+func getDevVersion() devVersion {
+	dv := devVersion{}
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			switch setting.Key {
+			case "vcs.revision":
+				dv.commit = setting.Value
+			case "vcs.modified":
+				dv.hasUncommitedChanges = setting.Value == "true"
+			}
+		}
+	}
+
+	return dv
 }
