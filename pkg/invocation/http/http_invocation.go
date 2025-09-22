@@ -19,6 +19,8 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/invocation/utils"
 )
 
+const contentTypeHeader = "Content-Type"
+
 type HttpInvoker struct {
 	PathTemplate string               // template string for the request path
 	PathIndeces  map[string]int       // map to where each path parameter should go in the path
@@ -73,7 +75,7 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 		return utils.McpTextError("failed to create http request: %s", err.Error()), err
 	}
 	if hasBody {
-		httpReq.Header.Set("Content-Type", "application/json; charset=UTF-8")
+		httpReq.Header.Set(contentTypeHeader, "application/json; charset=UTF-8")
 	}
 
 	client := &nethttp.Client{}
@@ -87,15 +89,25 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 
 	body, _ := io.ReadAll(response.Body)
 
-	return &mcp.CallToolResult{
+	res := &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{
 				Text: string(body),
 			},
 		},
 		IsError: response.StatusCode < 200 || response.StatusCode >= 300,
-	}, nil
+	}
 
+	contentType := response.Header.Get(contentTypeHeader)
+	if strings.Contains(contentType, "application/json") {
+		var data map[string]any
+		err := json.Unmarshal(body, &data)
+		if err == nil {
+			res.StructuredContent = data
+		}
+	}
+
+	return res, nil
 }
 
 type urlBuilder struct {
