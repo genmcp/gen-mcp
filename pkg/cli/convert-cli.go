@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/genmcp/gen-mcp/pkg/cli_converter"
 	"github.com/ghodss/yaml"
@@ -44,8 +45,8 @@ func executeConvertCliCmd(cobraCmd *cobra.Command, args []string) {
 	}
 	fmt.Printf("%s", string(mcpFileBytes))
 
-	// err = os.WriteFile(outputPath, mcpFileBytes, 0644)
-	// if err != nil {
-	// 	fmt.Printf("could not write mcpfile to file at path %s: %s", outputPath, err.Error())
-	// }
+	err = os.WriteFile(outputPath, mcpFileBytes, 0644)
+	if err != nil {
+		fmt.Printf("could not write mcpfile to file at path %s: %s", outputPath, err.Error())
+	}
 }
