@@ -32,6 +32,7 @@ type Argument struct {
 type Option struct {
 	Flag        string `json:"flag"`
 	Description string `json:"description"`
+	Type        string `json:"type"`
 }
 
 type Command struct {

@@ -3,6 +3,7 @@ package cli_converter
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
@@ -24,7 +25,10 @@ func ExtractCLICommandInfo(cliCommand string, commandItems *[]CommandItem) (bool
 		}
 		fmt.Println("subcommands:", subcommands)
 		for _, subcommand := range subcommands {
-			ExtractCLICommandInfo(cliCommand+" "+subcommand, commandItems)
+			_, err := ExtractCLICommandInfo(cliCommand+" "+subcommand, commandItems)
+			if err != nil {
+				return false, err
+			}
 		}
 	} else {
 		command, err := ExtractCommand(cliCommand)
@@ -78,13 +82,13 @@ func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpfile.MCPFile, er
 
 func convertCommandItemToTool(commandItem CommandItem) (*mcpfile.Tool, error) {
 	// Create input schema for the tool based on arguments
-	inputSchema, err := createInputSchemaFromArguments(commandItem.Data.Arguments)
+	inputSchema, err := createInputSchemaFromArguments(commandItem.Data.Arguments, commandItem.Data.Options)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create input schema: %w", err)
 	}
 
 	// Create CLI invocation data
-	invocationData, err := createCLIInvocationData(commandItem.Command, commandItem.Data.Arguments)
+	invocationData, err := createCLIInvocationData(commandItem.Command, commandItem.Data.Arguments, commandItem.Data.Options)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create invocation data: %w", err)
 	}
@@ -104,40 +108,55 @@ func convertCommandItemToTool(commandItem CommandItem) (*mcpfile.Tool, error) {
 	return tool, nil
 }
 
-func createInputSchemaFromArguments(arguments []Argument) (*jsonschema.Schema, error) {
+func createInputSchemaFromArguments(arguments []Argument, options []Option) (*jsonschema.Schema, error) {
 	properties := make(map[string]*jsonschema.Schema)
 	required := make([]string, 0)
 
 	for _, arg := range arguments {
 		// Create a description based on the argument name if no specific description is available
-		description := fmt.Sprintf("%s parameter", strings.ReplaceAll(arg.Name, "_", " "))
+		description := fmt.Sprintf("%s parameter", processSafeName(arg.Name))
 
-		properties[arg.Name] = &jsonschema.Schema{
+		properties[processSafeName(arg.Name)] = &jsonschema.Schema{
 			Type:        "string",
 			Description: description,
 		}
 
 		if !arg.Optional {
-			required = append(required, arg.Name)
+			required = append(required, processSafeName(arg.Name))
+		}
+	}
+
+	for _, option := range options {
+		optionType := "string"
+		if option.Type == "" {
+			optionType = "boolean"
+		}
+		properties[processSafeName(option.Flag)] = &jsonschema.Schema{
+			Type:        optionType,
+			Description: option.Description,
 		}
 	}
 
 	schema := &jsonschema.Schema{
 		Type:       "object",
 		Properties: properties,
+		Required:   required,
 	}
 
 	return schema, nil
 }
 
-func createCLIInvocationData(command string, arguments []Argument) (json.RawMessage, error) {
+func createCLIInvocationData(command string, arguments []Argument, options []Option) (json.RawMessage, error) {
 	// Create command template with parameter placeholders
 	commandTemplate := command
 	for _, arg := range arguments {
-		commandTemplate += " {" + arg.Name + "}"
+		commandTemplate += " {" + processSafeName(arg.Name) + "}"
+	}
+	for _, option := range options {
+		commandTemplate += " {" + processSafeName(option.Flag) + "}"
 	}
 
-	templateVariables := createTemplateVariables(arguments)
+	templateVariables := createTemplateVariables(arguments, options)
 
 	invocation := map[string]interface{}{
 		"command":           commandTemplate,
@@ -152,14 +171,45 @@ func createCLIInvocationData(command string, arguments []Argument) (json.RawMess
 	return json.RawMessage(data), nil
 }
 
-func createTemplateVariables(arguments []Argument) map[string]interface{} {
+func createTemplateVariables(arguments []Argument, options []Option) map[string]interface{} {
 	templateVariables := make(map[string]interface{})
 	for _, arg := range arguments {
-		templateVariables[arg.Name] = map[string]interface{}{
-			"property":    arg.Name,
-			"format":      "\"" + "{" + arg.Name + "}\"",
+		templateVariables[processSafeName(arg.Name)] = map[string]interface{}{
+			"property":    processSafeName(arg.Name),
+			"format":      "\"" + "{" + processSafeName(arg.Name) + "}\"",
 			"omitIfFalse": arg.Optional,
 		}
 	}
+	for _, option := range options {
+		format := option.Flag
+		if option.Type != "" {
+			format = format + " {" + processSafeName(option.Flag) + "}"
+		}
+		templateVariables[processSafeName(option.Flag)] = map[string]interface{}{
+			"property":    processSafeName(option.Flag),
+			"format":      format,
+			"omitIfFalse": option.Type == "",
+		}
+	}
 	return templateVariables
+}
+
+func processSafeName(command string) string {
+	if after, ok := strings.CutPrefix(command, "--"); ok {
+		command = after
+	}
+	command = strings.TrimSpace(command)
+	command = strings.ToLower(command)
+	command = strings.ReplaceAll(command, "-", "_")
+	command = strings.ReplaceAll(command, " ", "_")
+	command = strings.ReplaceAll(command, ":", "_")
+	command = strings.ReplaceAll(command, ".", "")
+	command = strings.ReplaceAll(command, "*", "")
+	command = strings.ReplaceAll(command, "|", "")
+
+	// Remove all non-alphanumeric characters except underscore
+	re := regexp.MustCompile(`[^a-zA-Z0-9_]`)
+	command = re.ReplaceAllString(command, "")
+
+	return command
 }

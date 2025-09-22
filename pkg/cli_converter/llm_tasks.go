@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/openai/openai-go/v2"
@@ -178,6 +179,10 @@ func ExtractCommand(cliCommand string) (CommandItem, error) {
 		panic(err.Error())
 	}
 
+	// remove shorthand flags
+	re := regexp.MustCompile(`-\w\b`)
+	user_prompt = re.ReplaceAllString(user_prompt, "")
+
 	client := NewOpenAIClient()
 	ctx := context.Background()
 
@@ -218,8 +223,23 @@ func ExtractCommand(cliCommand string) (CommandItem, error) {
 		panic(err.Error())
 	}
 
+	postProcessOptions(&command.Options)
+
 	return CommandItem{
 		Command: cliCommand,
 		Data:    command,
 	}, nil
+}
+
+func postProcessOptions(options *[]Option) {
+	for i, option := range *options {
+		option.Flag = strings.TrimSpace(option.Flag)
+		re := regexp.MustCompile(`--[a-zA-Z0-9\-]+`)
+		matches := re.FindAllString(option.Flag, -1)
+		if len(matches) > 0 {
+			// No, this will not update the original objects in the main function because 'option' is a copy of each element in the slice.
+			// To update the original slice elements, you need to use the index to access and modify the elements directly:
+			(*options)[i].Flag = matches[0]
+		}
+	}
 }

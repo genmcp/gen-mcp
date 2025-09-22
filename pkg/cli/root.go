@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"runtime/debug"
 
@@ -9,10 +10,18 @@ import (
 )
 
 var cliVersion string
+var debugMode bool
 
 var rootCmd = &cobra.Command{
 	Use:   "genmcp",
 	Short: "genmcp manages gen-mcp servers, and their configuration",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		setupLogging()
+	},
+}
+
+func init() {
+	rootCmd.PersistentFlags().BoolVarP(&debugMode, "debug", "v", false, "enable debug/verbose logging")
 }
 
 func Execute(version string) {
@@ -25,6 +34,35 @@ func Execute(version string) {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+}
+
+func setupLogging() {
+	var level slog.Level
+	if debugMode {
+		level = slog.LevelDebug
+	} else {
+		level = slog.LevelInfo
+	}
+
+	opts := &slog.HandlerOptions{
+		Level: level,
+	}
+
+	var handler slog.Handler
+	if debugMode {
+		// Use text handler for more readable debug output
+		handler = slog.NewTextHandler(os.Stderr, opts)
+	} else {
+		// Use JSON handler for production
+		handler = slog.NewJSONHandler(os.Stderr, opts)
+	}
+
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
+
+	if debugMode {
+		slog.Debug("Debug mode enabled")
 	}
 }
 
@@ -47,10 +85,10 @@ func getDevVersion() devVersion {
 			switch setting.Key {
 			case "vcs.revision":
 				if len(setting.Value) >= 7 {
-                   dv.commit = setting.Value[:7]
-               } else {
-                  dv.commit = setting.Value
-               }
+					dv.commit = setting.Value[:7]
+				} else {
+					dv.commit = setting.Value
+				}
 			case "vcs.modified":
 				dv.hasUncommitedChanges = setting.Value == "true"
 			}
