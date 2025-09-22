@@ -93,6 +93,24 @@ func TestTemplateVariable_FormatValue(t *testing.T) {
 			value:    false,
 			expected: "",
 		},
+		{
+			name: "omit if false when value is nil",
+			tv: &TemplateVariable{
+				Template:    "--debug",
+				OmitIfFalse: true,
+			},
+			value:    nil,
+			expected: "",
+		},
+		{
+			name: "omit if false when value is true",
+			tv: &TemplateVariable{
+				Template:    "--debug",
+				OmitIfFalse: true,
+			},
+			value:    true,
+			expected: "--debug",
+		},
 	}
 
 	for _, tc := range tt {

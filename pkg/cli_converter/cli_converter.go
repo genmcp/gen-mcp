@@ -1,9 +1,12 @@
 package cli_converter
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+	"github.com/google/jsonschema-go/jsonschema"
 )
 
 func ExtractCLICommandInfo(cliCommand string, commandItems *[]CommandItem) (bool, error) {
@@ -37,34 +40,34 @@ func ExtractCLICommandInfo(cliCommand string, commandItems *[]CommandItem) (bool
 
 func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpfile.MCPFile, error) {
 	if commandItems == nil || len(*commandItems) == 0 {
-		return &mcpfile.MCPFile{
-			FileVersion: mcpfile.MCPFileVersion,
-			Servers:     []*mcpfile.MCPServer{},
-		}, nil
+		return nil, fmt.Errorf("no command items provided")
 	}
 
 	// Create tools from command items
-	var tools []*mcpfile.Tool
-	for _, cmdItem := range *commandItems {
-		tool, err := convertCommandItemToTool(&cmdItem)
+	tools := make([]*mcpfile.Tool, 0, len(*commandItems))
+
+	for _, commandItem := range *commandItems {
+		tool, err := convertCommandItemToTool(commandItem)
 		if err != nil {
-			return nil, fmt.Errorf("failed to convert command '%s' to tool: %w", cmdItem.Command, err)
+			return nil, fmt.Errorf("failed to convert command '%s' to tool: %w", commandItem.Command, err)
 		}
 		tools = append(tools, tool)
 	}
 
-	// Create a default MCP server with stdio runtime
+	// Create MCP server
 	server := &mcpfile.MCPServer{
-		Name:    "cli-tools-server",
-		Version: "1.0.0",
+		Name:    "cli-generated-server",
+		Version: "0.0.1",
 		Runtime: &mcpfile.ServerRuntime{
-			TransportProtocol: mcpfile.TransportProtocolStdio,
-			StdioConfig:       &mcpfile.StdioConfig{},
+			TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
+			StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
+				Port: 7008,
+			},
 		},
 		Tools: tools,
 	}
 
-	// Create the MCP file
+	// Create MCP file
 	mcpFile := &mcpfile.MCPFile{
 		FileVersion: mcpfile.MCPFileVersion,
 		Servers:     []*mcpfile.MCPServer{server},
@@ -73,118 +76,90 @@ func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpfile.MCPFile, er
 	return mcpFile, nil
 }
 
-// convertCommandItemToTool converts a single CommandItem to an MCP Tool
-func convertCommandItemToTool(cmdItem *CommandItem) (*mcpfile.Tool, error) {
-	// Generate tool name from command (replace spaces and special chars with underscores)
-	toolName := generateToolName(cmdItem.Command)
+func convertCommandItemToTool(commandItem CommandItem) (*mcpfile.Tool, error) {
+	// Create input schema for the tool based on arguments
+	inputSchema, err := createInputSchemaFromArguments(commandItem.Data.Arguments)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create input schema: %w", err)
+	}
 
-	// Create input schema from arguments and options
-	inputSchema := createInputSchema(&cmdItem.Data)
+	// Create CLI invocation data
+	invocationData, err := createCLIInvocationData(commandItem.Command, commandItem.Data.Arguments)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create invocation data: %w", err)
+	}
 
-	// Create CLI invocation with template variables
-	cliInvocation := createCliInvocation(cmdItem.Command, &cmdItem.Data)
+	// Create tool name from command (replace spaces and special chars with underscores)
+	toolName := strings.ReplaceAll(strings.ReplaceAll(commandItem.Command, " ", "_"), "-", "_")
 
 	tool := &mcpfile.Tool{
-		Name:        toolName,
-		Title:       cmdItem.Command,
-		Description: cmdItem.Data.Description,
-		InputSchema: inputSchema,
-		Invocation:  cliInvocation,
+		Name:           toolName,
+		Title:          commandItem.Command,
+		Description:    commandItem.Data.Description,
+		InputSchema:    inputSchema,
+		InvocationData: invocationData,
+		InvocationType: mcpfile.InvocationTypeCli,
 	}
 
 	return tool, nil
 }
 
-// generateToolName creates a valid tool name from a command string
-func generateToolName(command string) string {
-	// Replace spaces and special characters with underscores
-	toolName := ""
-	for _, char := range command {
-		if (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9') {
-			toolName += string(char)
-		} else if char == ' ' || char == '-' {
-			toolName += "_"
-		}
-	}
-	return toolName
-}
+func createInputSchemaFromArguments(arguments []Argument) (*jsonschema.Schema, error) {
+	properties := make(map[string]*jsonschema.Schema)
+	required := make([]string, 0)
 
-// createInputSchema generates a JSON schema for the tool input based on arguments and options
-func createInputSchema(cmd *Command) *mcpfile.JsonSchema {
-	properties := make(map[string]*mcpfile.JsonSchema)
-	var required []string
+	for _, arg := range arguments {
+		// Create a description based on the argument name if no specific description is available
+		description := fmt.Sprintf("%s parameter", strings.ReplaceAll(arg.Name, "_", " "))
 
-	// Add arguments to schema
-	for _, arg := range cmd.Arguments {
-		properties[arg.Name] = &mcpfile.JsonSchema{
-			Type:        mcpfile.JsonSchemaTypeString,
-			Description: fmt.Sprintf("Argument: %s", arg.Name),
+		properties[arg.Name] = &jsonschema.Schema{
+			Type:        "string",
+			Description: description,
 		}
+
 		if !arg.Optional {
 			required = append(required, arg.Name)
 		}
 	}
 
-	// Add options to schema
-	for _, opt := range cmd.Options {
-		// Remove leading dashes from flag name to create property name
-		propName := opt.Flag
-		if propName[0] == '-' {
-			propName = propName[1:]
-		}
-		if propName[0] == '-' {
-			propName = propName[1:]
-		}
-
-		properties[propName] = &mcpfile.JsonSchema{
-			Type:        mcpfile.JsonSchemaTypeString,
-			Description: opt.Description,
-		}
+	schema := &jsonschema.Schema{
+		Type:       "object",
+		Properties: properties,
 	}
 
-	schema := &mcpfile.JsonSchema{
-		Type:                 mcpfile.JsonSchemaTypeObject,
-		Properties:           properties,
-		AdditionalProperties: &[]bool{false}[0], // Set to false
-		Required:             required,
-		Description:          fmt.Sprintf("Input schema for %s command", cmd.Description),
-	}
-
-	return schema
+	return schema, nil
 }
 
-// createCliInvocation creates a CLI invocation with proper template variables
-func createCliInvocation(command string, cmd *Command) *mcpfile.CliInvocation {
-	templateVars := make(map[string]*mcpfile.TemplateVariable)
-
-	// Create template variables for arguments
-	for _, arg := range cmd.Arguments {
-		templateVars[arg.Name] = &mcpfile.TemplateVariable{
-			Property: arg.Name,
-			Format:   "{" + arg.Name + "}",
-		}
-		// Add positional argument placeholder to command using {} syntax
-		command += " {}"
+func createCLIInvocationData(command string, arguments []Argument) (json.RawMessage, error) {
+	// Create command template with parameter placeholders
+	commandTemplate := command
+	for _, arg := range arguments {
+		commandTemplate += " {" + arg.Name + "}"
 	}
 
-	// Create template variables for options
-	for _, opt := range cmd.Options {
-		propName := opt.Flag
-		if len(propName) > 0 && propName[0] == '-' {
-			propName = propName[1:]
-		}
-		if len(propName) > 0 && propName[0] == '-' {
-			propName = propName[1:]
-		}
+	templateVariables := createTemplateVariables(arguments)
 
-		templateVars[propName] = &mcpfile.TemplateVariable{
-			Property: propName,
-			Format:   fmt.Sprintf("%s {%s}", opt.Flag, propName),
-		}
+	invocation := map[string]interface{}{
+		"command":           commandTemplate,
+		"templateVariables": templateVariables,
 	}
 
-	return &mcpfile.CliInvocation{
-		Command:           command,
-		TemplateVariables: templateVars,
+	data, err := json.Marshal(invocation)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal CLI invocation data: %w", err)
 	}
+
+	return json.RawMessage(data), nil
+}
+
+func createTemplateVariables(arguments []Argument) map[string]interface{} {
+	templateVariables := make(map[string]interface{})
+	for _, arg := range arguments {
+		templateVariables[arg.Name] = map[string]interface{}{
+			"property":    arg.Name,
+			"format":      "\"" + "{" + arg.Name + "}\"",
+			"omitIfFalse": arg.Optional,
+		}
+	}
+	return templateVariables
 }

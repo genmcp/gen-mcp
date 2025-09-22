@@ -31,6 +31,10 @@ type TemplateVariable struct {
 
 func (tv *TemplateVariable) FormatValue(value any) string {
 	if tv.OmitIfFalse {
+		if value == nil {
+			// Input is nil, so we should omit the template variable
+			return ""
+		}
 		b := value.(bool)
 		if !b {
 			return ""

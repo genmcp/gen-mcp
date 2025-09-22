@@ -1,6 +1,10 @@
 # OpenAI Go API Library
 
+<!-- x-release-please-start-version -->
+
 <a href="https://pkg.go.dev/github.com/openai/openai-go/v2"><img src="https://pkg.go.dev/badge/github.com/openai/openai-go.svg" alt="Go Reference"></a>
+
+<!-- x-release-please-end -->
 
 The OpenAI Go library provides convenient access to the [OpenAI REST API](https://platform.openai.com/docs)
 from applications written in Go.
@@ -26,7 +30,7 @@ Or to pin the version:
 <!-- x-release-please-start-version -->
 
 ```sh
-go get -u 'github.com/openai/openai-go@v2.1.1'
+go get -u 'github.com/openai/openai-go/v2@v2.6.0'
 ```
 
 <!-- x-release-please-end -->
@@ -161,19 +165,21 @@ params := openai.ChatCompletionNewParams{
 	Messages: []openai.ChatCompletionMessageParamUnion{
 		openai.UserMessage(question),
 	},
-	Tools: []openai.ChatCompletionToolParam{
+	Tools: []openai.ChatCompletionToolUnionParam{
 		{
-			Function: openai.FunctionDefinitionParam{
-				Name:        "get_weather",
-				Description: openai.String("Get weather at the given location"),
-				Parameters: openai.FunctionParameters{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"location": map[string]string{
-							"type": "string",
+			OfFunction: &openai.ChatCompletionFunctionToolParam{
+				Function: openai.FunctionDefinitionParam{
+					Name:        "get_weather",
+					Description: openai.String("Get weather at the given location"),
+					Parameters: openai.FunctionParameters{
+						"type": "object",
+						"properties": map[string]interface{}{
+							"location": map[string]string{
+								"type": "string",
+							},
 						},
+						"required": []string{"location"},
 					},
-					"required": []string{"location"},
 				},
 			},
 		},
@@ -288,7 +294,6 @@ func main() {
 > See the [full structured outputs example](./examples/structured-outputs/main.go)
 
 </details>
-
 
 ### Request fields
 
@@ -930,7 +935,6 @@ func main() {
 	)
 }
 ```
-
 
 ## Semantic versioning
 

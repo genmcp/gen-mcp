@@ -10,6 +10,7 @@ import (
 	"github.com/openai/openai-go/v2/packages/param"
 	"github.com/openai/openai-go/v2/packages/respjson"
 	"github.com/openai/openai-go/v2/responses"
+	"github.com/openai/openai-go/v2/shared"
 	"github.com/openai/openai-go/v2/shared/constant"
 )
 
@@ -110,31 +111,35 @@ func (r *LabelModelGraderInput) UnmarshalJSON(data []byte) error {
 // LabelModelGraderInputContentUnion contains all possible properties and values
 // from [string], [responses.ResponseInputText],
 // [LabelModelGraderInputContentOutputText],
-// [LabelModelGraderInputContentInputImage], [[]any].
+// [LabelModelGraderInputContentInputImage], [responses.ResponseInputAudio],
+// [[]any].
 //
 // Use the methods beginning with 'As' to cast the union to one of its variants.
 //
 // If the underlying value is not a json object, one of the following properties
-// will be valid: OfString OfAnArrayOfInputTextAndInputImage]
+// will be valid: OfString OfAnArrayOfInputTextInputImageAndInputAudio]
 type LabelModelGraderInputContentUnion struct {
 	// This field will be present if the value is a [string] instead of an object.
 	OfString string `json:",inline"`
 	// This field will be present if the value is a [[]any] instead of an object.
-	OfAnArrayOfInputTextAndInputImage []any  `json:",inline"`
-	Text                              string `json:"text"`
-	Type                              string `json:"type"`
+	OfAnArrayOfInputTextInputImageAndInputAudio []any  `json:",inline"`
+	Text                                        string `json:"text"`
+	Type                                        string `json:"type"`
 	// This field is from variant [LabelModelGraderInputContentInputImage].
 	ImageURL string `json:"image_url"`
 	// This field is from variant [LabelModelGraderInputContentInputImage].
 	Detail string `json:"detail"`
-	JSON   struct {
-		OfString                          respjson.Field
-		OfAnArrayOfInputTextAndInputImage respjson.Field
-		Text                              respjson.Field
-		Type                              respjson.Field
-		ImageURL                          respjson.Field
-		Detail                            respjson.Field
-		raw                               string
+	// This field is from variant [responses.ResponseInputAudio].
+	InputAudio responses.ResponseInputAudioInputAudio `json:"input_audio"`
+	JSON       struct {
+		OfString                                    respjson.Field
+		OfAnArrayOfInputTextInputImageAndInputAudio respjson.Field
+		Text                                        respjson.Field
+		Type                                        respjson.Field
+		ImageURL                                    respjson.Field
+		Detail                                      respjson.Field
+		InputAudio                                  respjson.Field
+		raw                                         string
 	} `json:"-"`
 }
 
@@ -158,7 +163,12 @@ func (u LabelModelGraderInputContentUnion) AsInputImage() (v LabelModelGraderInp
 	return
 }
 
-func (u LabelModelGraderInputContentUnion) AsAnArrayOfInputTextAndInputImage() (v []any) {
+func (u LabelModelGraderInputContentUnion) AsInputAudio() (v responses.ResponseInputAudio) {
+	apijson.UnmarshalRoot(json.RawMessage(u.JSON.raw), &v)
+	return
+}
+
+func (u LabelModelGraderInputContentUnion) AsAnArrayOfInputTextInputImageAndInputAudio() (v []any) {
 	apijson.UnmarshalRoot(json.RawMessage(u.JSON.raw), &v)
 	return
 }
@@ -288,11 +298,12 @@ func init() {
 //
 // Use [param.IsOmitted] to confirm if a field is set.
 type LabelModelGraderInputContentUnionParam struct {
-	OfString                          param.Opt[string]                            `json:",omitzero,inline"`
-	OfInputText                       *responses.ResponseInputTextParam            `json:",omitzero,inline"`
-	OfOutputText                      *LabelModelGraderInputContentOutputTextParam `json:",omitzero,inline"`
-	OfInputImage                      *LabelModelGraderInputContentInputImageParam `json:",omitzero,inline"`
-	OfAnArrayOfInputTextAndInputImage []any                                        `json:",omitzero,inline"`
+	OfString                                    param.Opt[string]                            `json:",omitzero,inline"`
+	OfInputText                                 *responses.ResponseInputTextParam            `json:",omitzero,inline"`
+	OfOutputText                                *LabelModelGraderInputContentOutputTextParam `json:",omitzero,inline"`
+	OfInputImage                                *LabelModelGraderInputContentInputImageParam `json:",omitzero,inline"`
+	OfInputAudio                                *responses.ResponseInputAudioParam           `json:",omitzero,inline"`
+	OfAnArrayOfInputTextInputImageAndInputAudio []any                                        `json:",omitzero,inline"`
 	paramUnion
 }
 
@@ -301,7 +312,8 @@ func (u LabelModelGraderInputContentUnionParam) MarshalJSON() ([]byte, error) {
 		u.OfInputText,
 		u.OfOutputText,
 		u.OfInputImage,
-		u.OfAnArrayOfInputTextAndInputImage)
+		u.OfInputAudio,
+		u.OfAnArrayOfInputTextInputImageAndInputAudio)
 }
 func (u *LabelModelGraderInputContentUnionParam) UnmarshalJSON(data []byte) error {
 	return apijson.UnmarshalRoot(data, u)
@@ -316,8 +328,10 @@ func (u *LabelModelGraderInputContentUnionParam) asAny() any {
 		return u.OfOutputText
 	} else if !param.IsOmitted(u.OfInputImage) {
 		return u.OfInputImage
-	} else if !param.IsOmitted(u.OfAnArrayOfInputTextAndInputImage) {
-		return &u.OfAnArrayOfInputTextAndInputImage
+	} else if !param.IsOmitted(u.OfInputAudio) {
+		return u.OfInputAudio
+	} else if !param.IsOmitted(u.OfAnArrayOfInputTextInputImageAndInputAudio) {
+		return &u.OfAnArrayOfInputTextInputImageAndInputAudio
 	}
 	return nil
 }
@@ -339,6 +353,14 @@ func (u LabelModelGraderInputContentUnionParam) GetDetail() *string {
 }
 
 // Returns a pointer to the underlying variant's property, if present.
+func (u LabelModelGraderInputContentUnionParam) GetInputAudio() *responses.ResponseInputAudioInputAudioParam {
+	if vt := u.OfInputAudio; vt != nil {
+		return &vt.InputAudio
+	}
+	return nil
+}
+
+// Returns a pointer to the underlying variant's property, if present.
 func (u LabelModelGraderInputContentUnionParam) GetText() *string {
 	if vt := u.OfInputText; vt != nil {
 		return (*string)(&vt.Text)
@@ -355,6 +377,8 @@ func (u LabelModelGraderInputContentUnionParam) GetType() *string {
 	} else if vt := u.OfOutputText; vt != nil {
 		return (*string)(&vt.Type)
 	} else if vt := u.OfInputImage; vt != nil {
+		return (*string)(&vt.Type)
+	} else if vt := u.OfInputAudio; vt != nil {
 		return (*string)(&vt.Type)
 	}
 	return nil
@@ -467,7 +491,7 @@ type MultiGraderGradersUnion struct {
 	// This field is from variant [ScoreModelGrader].
 	Range []float64 `json:"range"`
 	// This field is from variant [ScoreModelGrader].
-	SamplingParams any `json:"sampling_params"`
+	SamplingParams ScoreModelGraderSamplingParams `json:"sampling_params"`
 	// This field is from variant [LabelModelGrader].
 	Labels []string `json:"labels"`
 	// This field is from variant [LabelModelGrader].
@@ -659,7 +683,7 @@ func (u MultiGraderGradersUnionParam) GetRange() []float64 {
 }
 
 // Returns a pointer to the underlying variant's property, if present.
-func (u MultiGraderGradersUnionParam) GetSamplingParams() *any {
+func (u MultiGraderGradersUnionParam) GetSamplingParams() *ScoreModelGraderSamplingParamsParam {
 	if vt := u.OfScoreModelGrader; vt != nil {
 		return &vt.SamplingParams
 	}
@@ -839,7 +863,7 @@ type ScoreModelGrader struct {
 	// The range of the score. Defaults to `[0, 1]`.
 	Range []float64 `json:"range"`
 	// The sampling parameters for the model.
-	SamplingParams any `json:"sampling_params"`
+	SamplingParams ScoreModelGraderSamplingParams `json:"sampling_params"`
 	// JSON contains metadata for fields, check presence with [respjson.Field.Valid].
 	JSON struct {
 		Input          respjson.Field
@@ -904,31 +928,35 @@ func (r *ScoreModelGraderInput) UnmarshalJSON(data []byte) error {
 // ScoreModelGraderInputContentUnion contains all possible properties and values
 // from [string], [responses.ResponseInputText],
 // [ScoreModelGraderInputContentOutputText],
-// [ScoreModelGraderInputContentInputImage], [[]any].
+// [ScoreModelGraderInputContentInputImage], [responses.ResponseInputAudio],
+// [[]any].
 //
 // Use the methods beginning with 'As' to cast the union to one of its variants.
 //
 // If the underlying value is not a json object, one of the following properties
-// will be valid: OfString OfAnArrayOfInputTextAndInputImage]
+// will be valid: OfString OfAnArrayOfInputTextInputImageAndInputAudio]
 type ScoreModelGraderInputContentUnion struct {
 	// This field will be present if the value is a [string] instead of an object.
 	OfString string `json:",inline"`
 	// This field will be present if the value is a [[]any] instead of an object.
-	OfAnArrayOfInputTextAndInputImage []any  `json:",inline"`
-	Text                              string `json:"text"`
-	Type                              string `json:"type"`
+	OfAnArrayOfInputTextInputImageAndInputAudio []any  `json:",inline"`
+	Text                                        string `json:"text"`
+	Type                                        string `json:"type"`
 	// This field is from variant [ScoreModelGraderInputContentInputImage].
 	ImageURL string `json:"image_url"`
 	// This field is from variant [ScoreModelGraderInputContentInputImage].
 	Detail string `json:"detail"`
-	JSON   struct {
-		OfString                          respjson.Field
-		OfAnArrayOfInputTextAndInputImage respjson.Field
-		Text                              respjson.Field
-		Type                              respjson.Field
-		ImageURL                          respjson.Field
-		Detail                            respjson.Field
-		raw                               string
+	// This field is from variant [responses.ResponseInputAudio].
+	InputAudio responses.ResponseInputAudioInputAudio `json:"input_audio"`
+	JSON       struct {
+		OfString                                    respjson.Field
+		OfAnArrayOfInputTextInputImageAndInputAudio respjson.Field
+		Text                                        respjson.Field
+		Type                                        respjson.Field
+		ImageURL                                    respjson.Field
+		Detail                                      respjson.Field
+		InputAudio                                  respjson.Field
+		raw                                         string
 	} `json:"-"`
 }
 
@@ -952,7 +980,12 @@ func (u ScoreModelGraderInputContentUnion) AsInputImage() (v ScoreModelGraderInp
 	return
 }
 
-func (u ScoreModelGraderInputContentUnion) AsAnArrayOfInputTextAndInputImage() (v []any) {
+func (u ScoreModelGraderInputContentUnion) AsInputAudio() (v responses.ResponseInputAudio) {
+	apijson.UnmarshalRoot(json.RawMessage(u.JSON.raw), &v)
+	return
+}
+
+func (u ScoreModelGraderInputContentUnion) AsAnArrayOfInputTextInputImageAndInputAudio() (v []any) {
 	apijson.UnmarshalRoot(json.RawMessage(u.JSON.raw), &v)
 	return
 }
@@ -1010,6 +1043,42 @@ func (r *ScoreModelGraderInputContentInputImage) UnmarshalJSON(data []byte) erro
 	return apijson.UnmarshalRoot(data, r)
 }
 
+// The sampling parameters for the model.
+type ScoreModelGraderSamplingParams struct {
+	// The maximum number of tokens the grader model may generate in its response.
+	MaxCompletionsTokens int64 `json:"max_completions_tokens,nullable"`
+	// Constrains effort on reasoning for
+	// [reasoning models](https://platform.openai.com/docs/guides/reasoning). Currently
+	// supported values are `minimal`, `low`, `medium`, and `high`. Reducing reasoning
+	// effort can result in faster responses and fewer tokens used on reasoning in a
+	// response.
+	//
+	// Any of "minimal", "low", "medium", "high".
+	ReasoningEffort shared.ReasoningEffort `json:"reasoning_effort,nullable"`
+	// A seed value to initialize the randomness, during sampling.
+	Seed int64 `json:"seed,nullable"`
+	// A higher temperature increases randomness in the outputs.
+	Temperature float64 `json:"temperature,nullable"`
+	// An alternative to temperature for nucleus sampling; 1.0 includes all tokens.
+	TopP float64 `json:"top_p,nullable"`
+	// JSON contains metadata for fields, check presence with [respjson.Field.Valid].
+	JSON struct {
+		MaxCompletionsTokens respjson.Field
+		ReasoningEffort      respjson.Field
+		Seed                 respjson.Field
+		Temperature          respjson.Field
+		TopP                 respjson.Field
+		ExtraFields          map[string]respjson.Field
+		raw                  string
+	} `json:"-"`
+}
+
+// Returns the unmodified JSON received from the API
+func (r ScoreModelGraderSamplingParams) RawJSON() string { return r.JSON.raw }
+func (r *ScoreModelGraderSamplingParams) UnmarshalJSON(data []byte) error {
+	return apijson.UnmarshalRoot(data, r)
+}
+
 // A ScoreModelGrader object that uses a model to assign a score to the input.
 //
 // The properties Input, Model, Name, Type are required.
@@ -1023,7 +1092,7 @@ type ScoreModelGraderParam struct {
 	// The range of the score. Defaults to `[0, 1]`.
 	Range []float64 `json:"range,omitzero"`
 	// The sampling parameters for the model.
-	SamplingParams any `json:"sampling_params,omitzero"`
+	SamplingParams ScoreModelGraderSamplingParamsParam `json:"sampling_params,omitzero"`
 	// The object type, which is always `score_model`.
 	//
 	// This field can be elided, and will marshal its zero value as "score_model".
@@ -1082,11 +1151,12 @@ func init() {
 //
 // Use [param.IsOmitted] to confirm if a field is set.
 type ScoreModelGraderInputContentUnionParam struct {
-	OfString                          param.Opt[string]                            `json:",omitzero,inline"`
-	OfInputText                       *responses.ResponseInputTextParam            `json:",omitzero,inline"`
-	OfOutputText                      *ScoreModelGraderInputContentOutputTextParam `json:",omitzero,inline"`
-	OfInputImage                      *ScoreModelGraderInputContentInputImageParam `json:",omitzero,inline"`
-	OfAnArrayOfInputTextAndInputImage []any                                        `json:",omitzero,inline"`
+	OfString                                    param.Opt[string]                            `json:",omitzero,inline"`
+	OfInputText                                 *responses.ResponseInputTextParam            `json:",omitzero,inline"`
+	OfOutputText                                *ScoreModelGraderInputContentOutputTextParam `json:",omitzero,inline"`
+	OfInputImage                                *ScoreModelGraderInputContentInputImageParam `json:",omitzero,inline"`
+	OfInputAudio                                *responses.ResponseInputAudioParam           `json:",omitzero,inline"`
+	OfAnArrayOfInputTextInputImageAndInputAudio []any                                        `json:",omitzero,inline"`
 	paramUnion
 }
 
@@ -1095,7 +1165,8 @@ func (u ScoreModelGraderInputContentUnionParam) MarshalJSON() ([]byte, error) {
 		u.OfInputText,
 		u.OfOutputText,
 		u.OfInputImage,
-		u.OfAnArrayOfInputTextAndInputImage)
+		u.OfInputAudio,
+		u.OfAnArrayOfInputTextInputImageAndInputAudio)
 }
 func (u *ScoreModelGraderInputContentUnionParam) UnmarshalJSON(data []byte) error {
 	return apijson.UnmarshalRoot(data, u)
@@ -1110,8 +1181,10 @@ func (u *ScoreModelGraderInputContentUnionParam) asAny() any {
 		return u.OfOutputText
 	} else if !param.IsOmitted(u.OfInputImage) {
 		return u.OfInputImage
-	} else if !param.IsOmitted(u.OfAnArrayOfInputTextAndInputImage) {
-		return &u.OfAnArrayOfInputTextAndInputImage
+	} else if !param.IsOmitted(u.OfInputAudio) {
+		return u.OfInputAudio
+	} else if !param.IsOmitted(u.OfAnArrayOfInputTextInputImageAndInputAudio) {
+		return &u.OfAnArrayOfInputTextInputImageAndInputAudio
 	}
 	return nil
 }
@@ -1133,6 +1206,14 @@ func (u ScoreModelGraderInputContentUnionParam) GetDetail() *string {
 }
 
 // Returns a pointer to the underlying variant's property, if present.
+func (u ScoreModelGraderInputContentUnionParam) GetInputAudio() *responses.ResponseInputAudioInputAudioParam {
+	if vt := u.OfInputAudio; vt != nil {
+		return &vt.InputAudio
+	}
+	return nil
+}
+
+// Returns a pointer to the underlying variant's property, if present.
 func (u ScoreModelGraderInputContentUnionParam) GetText() *string {
 	if vt := u.OfInputText; vt != nil {
 		return (*string)(&vt.Text)
@@ -1149,6 +1230,8 @@ func (u ScoreModelGraderInputContentUnionParam) GetType() *string {
 	} else if vt := u.OfOutputText; vt != nil {
 		return (*string)(&vt.Type)
 	} else if vt := u.OfInputImage; vt != nil {
+		return (*string)(&vt.Type)
+	} else if vt := u.OfInputAudio; vt != nil {
 		return (*string)(&vt.Type)
 	}
 	return nil
@@ -1196,6 +1279,35 @@ func (r ScoreModelGraderInputContentInputImageParam) MarshalJSON() (data []byte,
 	return param.MarshalObject(r, (*shadow)(&r))
 }
 func (r *ScoreModelGraderInputContentInputImageParam) UnmarshalJSON(data []byte) error {
+	return apijson.UnmarshalRoot(data, r)
+}
+
+// The sampling parameters for the model.
+type ScoreModelGraderSamplingParamsParam struct {
+	// The maximum number of tokens the grader model may generate in its response.
+	MaxCompletionsTokens param.Opt[int64] `json:"max_completions_tokens,omitzero"`
+	// A seed value to initialize the randomness, during sampling.
+	Seed param.Opt[int64] `json:"seed,omitzero"`
+	// A higher temperature increases randomness in the outputs.
+	Temperature param.Opt[float64] `json:"temperature,omitzero"`
+	// An alternative to temperature for nucleus sampling; 1.0 includes all tokens.
+	TopP param.Opt[float64] `json:"top_p,omitzero"`
+	// Constrains effort on reasoning for
+	// [reasoning models](https://platform.openai.com/docs/guides/reasoning). Currently
+	// supported values are `minimal`, `low`, `medium`, and `high`. Reducing reasoning
+	// effort can result in faster responses and fewer tokens used on reasoning in a
+	// response.
+	//
+	// Any of "minimal", "low", "medium", "high".
+	ReasoningEffort shared.ReasoningEffort `json:"reasoning_effort,omitzero"`
+	paramObj
+}
+
+func (r ScoreModelGraderSamplingParamsParam) MarshalJSON() (data []byte, err error) {
+	type shadow ScoreModelGraderSamplingParamsParam
+	return param.MarshalObject(r, (*shadow)(&r))
+}
+func (r *ScoreModelGraderSamplingParamsParam) UnmarshalJSON(data []byte) error {
 	return apijson.UnmarshalRoot(data, r)
 }
 
