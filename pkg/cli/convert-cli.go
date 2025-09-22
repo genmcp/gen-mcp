@@ -17,20 +17,20 @@ func init() {
 var mcpOutputPath string
 
 var convertCliCmd = &cobra.Command{
-	Use:   "convert-cli",
-	Short: "Convert CLI command to a MCPFile",
-	Args:  cobra.ExactArgs(1),
+	Use:   "convert-cli <command1> [command2] [command3] ...",
+	Short: "Convert one or more CLI commands to a MCPFile",
+	Args:  cobra.MinimumNArgs(1),
 	Run:   executeConvertCliCmd,
 }
 
 func executeConvertCliCmd(cobraCmd *cobra.Command, args []string) {
-	cliCommand := args[0]
-
 	commandItems := []cli_converter.CommandItem{}
 
-	_, err := cli_converter.ExtractCLICommandInfo(cliCommand, &commandItems)
-	if err != nil {
-		fmt.Printf("encountered errors while extracting cli command info: %s\n", err.Error())
+	for _, cliCommand := range args {
+		_, err := cli_converter.ExtractCLICommandInfo(cliCommand, &commandItems)
+		if err != nil {
+			fmt.Printf("encountered errors while extracting cli command info for '%s': %s\n", cliCommand, err.Error())
+		}
 	}
 
 	mcpFile, err := cli_converter.ConvertCommandsToMCPFile(&commandItems)
@@ -45,8 +45,8 @@ func executeConvertCliCmd(cobraCmd *cobra.Command, args []string) {
 	}
 	fmt.Printf("%s", string(mcpFileBytes))
 
-	err = os.WriteFile(outputPath, mcpFileBytes, 0644)
+	err = os.WriteFile(mcpOutputPath, mcpFileBytes, 0644)
 	if err != nil {
-		fmt.Printf("could not write mcpfile to file at path %s: %s", outputPath, err.Error())
+		fmt.Printf("could not write mcpfile to file at path %s: %s", mcpOutputPath, err.Error())
 	}
 }

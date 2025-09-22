@@ -15,15 +15,15 @@ func ExtractCLICommandInfo(cliCommand string, commandItems *[]CommandItem) (bool
 	if err != nil {
 		return false, err
 	}
-	fmt.Println("cliCommand:", cliCommand)
-	fmt.Println("is_sub_command:", is_sub_command)
+	// fmt.Println("cliCommand:", cliCommand)
+	// fmt.Println("is_sub_command:", is_sub_command)
 
 	if is_sub_command {
 		subcommands, err := ExtractSubCommands(cliCommand)
 		if err != nil {
 			return false, err
 		}
-		fmt.Println("subcommands:", subcommands)
+		// fmt.Println("subcommands:", subcommands)
 		for _, subcommand := range subcommands {
 			_, err := ExtractCLICommandInfo(cliCommand+" "+subcommand, commandItems)
 			if err != nil {
@@ -35,7 +35,7 @@ func ExtractCLICommandInfo(cliCommand string, commandItems *[]CommandItem) (bool
 		if err != nil {
 			return false, err
 		}
-		fmt.Println("command:", command)
+		// fmt.Println("command:", command)
 		*commandItems = append(*commandItems, command)
 	}
 
