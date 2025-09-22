@@ -1,10 +1,11 @@
 package mcpfile
 
 import (
+	"encoding/json"
 	"fmt"
-	"net/http"
 	"testing"
 
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,8 +32,9 @@ func TestParseMcpFile(t *testing.T) {
 						Runtime: &ServerRuntime{
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
-								Port: 3000,
-								BasePath: "/mcp",
+								Port:      3000,
+								BasePath:  DefaultBasePath,
+								Stateless: true,
 							},
 						},
 					},
@@ -50,8 +52,9 @@ func TestParseMcpFile(t *testing.T) {
 						Runtime: &ServerRuntime{
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
-								Port: 3000,
-								BasePath: "/mcp",
+								Port:      3000,
+								BasePath:  DefaultBasePath,
+								Stateless: true,
 							},
 						},
 						Tools: []*Tool{
@@ -59,20 +62,18 @@ func TestParseMcpFile(t *testing.T) {
 								Name:        "get_user_by_company",
 								Title:       "Users Provider",
 								Description: "Get list of users from a given company",
-								InputSchema: &JsonSchema{
-									Type: JsonSchemaTypeObject,
-									Properties: map[string]*JsonSchema{
+								InputSchema: &jsonschema.Schema{
+									Type: "object",
+									Properties: map[string]*jsonschema.Schema{
 										"companyName": {
-											Type:        JsonSchemaTypeString,
+											Type:        "string",
 											Description: "Name of the company",
 										},
 									},
 									Required: []string{"companyName"},
 								},
-								Invocation: &HttpInvocation{
-									URL:    "http://localhost:5000",
-									Method: http.MethodPost,
-								},
+								InvocationData: json.RawMessage(`{"method":"POST","url":"http://localhost:5000"}`),
+								InvocationType: "http",
 							},
 						},
 					},
@@ -90,8 +91,9 @@ func TestParseMcpFile(t *testing.T) {
 						Runtime: &ServerRuntime{
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
-								Port: 3000,
-								BasePath: "/mcp",
+								Port:      3000,
+								BasePath:  DefaultBasePath,
+								Stateless: true,
 							},
 						},
 						Tools: []*Tool{
@@ -99,21 +101,18 @@ func TestParseMcpFile(t *testing.T) {
 								Name:        "get_user_by_company",
 								Title:       "Users Provider",
 								Description: "Get list of users from a given company",
-								InputSchema: &JsonSchema{
-									Type: JsonSchemaTypeObject,
-									Properties: map[string]*JsonSchema{
+								InputSchema: &jsonschema.Schema{
+									Type: "object",
+									Properties: map[string]*jsonschema.Schema{
 										"companyName": {
-											Type:        JsonSchemaTypeString,
+											Type:        "string",
 											Description: "Name of the company",
 										},
 									},
 									Required: []string{"companyName"},
 								},
-								Invocation: &HttpInvocation{
-									URL:            "http://localhost:5000/%s/users",
-									Method:         http.MethodGet,
-									pathParameters: []string{"companyName"},
-								},
+								InvocationData: json.RawMessage(`{"method":"GET","url":"http://localhost:5000/{companyName}/users"}`),
+								InvocationType: "http",
 							},
 						},
 					},
@@ -131,8 +130,9 @@ func TestParseMcpFile(t *testing.T) {
 						Runtime: &ServerRuntime{
 							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
-								Port: 3000,
-								BasePath: "/mcp",
+								BasePath:  DefaultBasePath,
+								Port:      3000,
+								Stateless: true,
 							},
 						},
 						Tools: []*Tool{
@@ -140,38 +140,73 @@ func TestParseMcpFile(t *testing.T) {
 								Name:        "clone_repo",
 								Title:       "Clone git repository",
 								Description: "Clone a git repository from a url to the local machine",
-								InputSchema: &JsonSchema{
-									Type: JsonSchemaTypeObject,
-									Properties: map[string]*JsonSchema{
+								InputSchema: &jsonschema.Schema{
+									Type: "object",
+									Properties: map[string]*jsonschema.Schema{
 										"repoUrl": {
-											Type:        JsonSchemaTypeString,
+											Type:        "string",
 											Description: "The git url of the repo to clone",
 										},
 										"depth": {
-											Type:        JsonSchemaTypeInteger,
+											Type:        "integer",
 											Description: "The number of commits to clone",
 										},
 										"verbose": {
-											Type:        JsonSchemaTypeBoolean,
+											Type:        "boolean",
 											Description: "Whether to return verbose logs",
 										},
 									},
 									Required: []string{"repoUrl"},
 								},
-								Invocation: &CliInvocation{
-									Command: "git clone %s %s %s",
-									TemplateVariables: map[string]*TemplateVariable{
+								InvocationData: json.RawMessage(`{"command":"git clone {repoUrl} {depth} {verbose}","templateVariables":{"depth":{"format":"--depth {depth}"},"verbose":{"format":"--verbose","omitIfFalse":true}}}`),
+								InvocationType: "cli",
+							},
+						},
+					},
+				},
+			},
+		},
+		"one server, stateful": {
+			testFileName: "one-server-stateful.yaml",
+			expected: &MCPFile{
+				FileVersion: MCPFileVersion,
+				Servers: []*MCPServer{
+					{
+						Name:    "test-server",
+						Version: "1.0.0",
+						Runtime: &ServerRuntime{
+							TransportProtocol: TransportProtocolStreamableHttp,
+							StreamableHTTPConfig: &StreamableHTTPConfig{
+								BasePath:  DefaultBasePath,
+								Port:      3000,
+								Stateless: false,
+							},
+						},
+						Tools: []*Tool{
+							{
+								Name:        "clone_repo",
+								Title:       "Clone git repository",
+								Description: "Clone a git repository from a url to the local machine",
+								InputSchema: &jsonschema.Schema{
+									Type: "object",
+									Properties: map[string]*jsonschema.Schema{
+										"repoUrl": {
+											Type:        "string",
+											Description: "The git url of the repo to clone",
+										},
 										"depth": {
-											Format:           "--depth %d",
-											formatParameters: []string{"depth"},
+											Type:        "integer",
+											Description: "The number of commits to clone",
 										},
 										"verbose": {
-											Format:      "--verbose",
-											OmitIfFalse: true,
+											Type:        "boolean",
+											Description: "Whether to return verbose logs",
 										},
 									},
-									commandParameters: []string{"repoUrl", "depth", "verbose"},
+									Required: []string{"repoUrl"},
 								},
+								InvocationData: json.RawMessage(`{"command":"git clone {repoUrl} {depth} {verbose}","templateVariables":{"depth":{"format":"--depth {depth}"},"verbose":{"format":"--verbose","omitIfFalse":true}}}`),
+								InvocationType: "cli",
 							},
 						},
 					},
@@ -187,45 +222,33 @@ func TestParseMcpFile(t *testing.T) {
 						Name:    "test-server",
 						Version: "1.0.0",
 						Runtime: &ServerRuntime{
-							TransportProtocol: "stdio",
+							TransportProtocol: TransportProtocolStdio,
 						},
 						Tools: []*Tool{
 							{
 								Name:        "clone_repo",
 								Title:       "Clone git repository",
 								Description: "Clone a git repository from a url to the local machine",
-								InputSchema: &JsonSchema{
-									Type: JsonSchemaTypeObject,
-									Properties: map[string]*JsonSchema{
+								InputSchema: &jsonschema.Schema{
+									Type: "object",
+									Properties: map[string]*jsonschema.Schema{
 										"repoUrl": {
-											Type:        JsonSchemaTypeString,
+											Type:        "string",
 											Description: "The git url of the repo to clone",
 										},
 										"depth": {
-											Type:        JsonSchemaTypeInteger,
+											Type:        "integer",
 											Description: "The number of commits to clone",
 										},
 										"verbose": {
-											Type:        JsonSchemaTypeBoolean,
+											Type:        "boolean",
 											Description: "Whether to return verbose logs",
 										},
 									},
 									Required: []string{"repoUrl"},
 								},
-								Invocation: &CliInvocation{
-									Command: "git clone %s %s %s",
-									TemplateVariables: map[string]*TemplateVariable{
-										"depth": {
-											Format:           "--depth %d",
-											formatParameters: []string{"depth"},
-										},
-										"verbose": {
-											Format:      "--verbose",
-											OmitIfFalse: true,
-										},
-									},
-									commandParameters: []string{"repoUrl", "depth", "verbose"},
-								},
+								InvocationData: json.RawMessage(`{"command":"git clone {repoUrl} {depth} {verbose}","templateVariables":{"depth":{"format":"--depth {depth}"},"verbose":{"format":"--verbose","omitIfFalse":true}}}`),
+								InvocationType: "cli",
 							},
 						},
 					},
@@ -241,10 +264,10 @@ func TestParseMcpFile(t *testing.T) {
 						Name:    "git-github-example",
 						Version: "1.0.0",
 						Runtime: &ServerRuntime{
-							TransportProtocol: "streamablehttp",
+							TransportProtocol: TransportProtocolStreamableHttp,
 							StreamableHTTPConfig: &StreamableHTTPConfig{
-								Port: 8008,
-								BasePath: "/mcp",
+								Port:      8008,
+								Stateless: true,
 							},
 						},
 						Tools: []*Tool{
@@ -252,89 +275,114 @@ func TestParseMcpFile(t *testing.T) {
 								Name:        "clone_repo",
 								Title:       "Clone git repository",
 								Description: "Clone a git repository from a url to the local machine",
-								InputSchema: &JsonSchema{
-									Type: JsonSchemaTypeObject,
-									Properties: map[string]*JsonSchema{
+								InputSchema: &jsonschema.Schema{
+									Type: "object",
+									Properties: map[string]*jsonschema.Schema{
 										"repoUrl": {
-											Type:        JsonSchemaTypeString,
+											Type:        "string",
 											Description: "The git url of the repo to clone. If cloning with ssh, this should be the ssh url, if cloning with https this should be the https url.",
 										},
 										"depth": {
-											Type:        JsonSchemaTypeInteger,
+											Type:        "integer",
 											Description: "The number of commits to clone",
 										},
 										"verbose": {
-											Type:        JsonSchemaTypeBoolean,
+											Type:        "boolean",
 											Description: "Whether to return verbose logs",
 										},
 										"path": {
-											Type:        JsonSchemaTypeString,
+											Type:        "string",
 											Description: "The relative or absolute path to clone the repo to, if not cloning to {current directory}/{repo name}",
 										},
 									},
 									Required: []string{"repoUrl"},
 								},
-								Invocation: &CliInvocation{
-									Command: "git clone %s %s %s %s",
-									TemplateVariables: map[string]*TemplateVariable{
-										"depth": {
-											Format:           "--depth %d",
-											formatParameters: []string{"depth"},
-										},
-										"verbose": {
-											Format:      "--verbose",
-											OmitIfFalse: true,
-										},
-									},
-									commandParameters: []string{"depth", "verbose", "repoUrl", "path"},
-								},
+								InvocationData: json.RawMessage(`{"command":"git clone {depth} {verbose} {repoUrl} {path}","templateVariables":{"depth":{"format":"--depth {depth}"},"verbose":{"format":"--verbose","omitIfFalse":true}}}`),
+								InvocationType: "cli",
 							},
 							{
 								Name:        "ensure_dir_exists",
 								Title:       "Ensure directory exists",
 								Description: "Ensure that a given directory exists on the machine",
-								InputSchema: &JsonSchema{
-									Type: JsonSchemaTypeObject,
-									Properties: map[string]*JsonSchema{
+								InputSchema: &jsonschema.Schema{
+									Type: "object",
+									Properties: map[string]*jsonschema.Schema{
 										"path": {
-											Type:        JsonSchemaTypeString,
+											Type:        "string",
 											Description: "The path to the directory",
 										},
 									},
 									Required: []string{"path"},
 								},
-								Invocation: &CliInvocation{
-									Command:           "mkdir -p %s",
-									commandParameters: []string{"path"},
-								},
+								InvocationData: json.RawMessage(`{"command":"mkdir -p {path}"}`),
+								InvocationType: "cli",
 							},
 							{
 								Name:        "get_repo_url",
 								Title:       "Get repository url",
 								Description: "Get the https or ssh url for a git repository given the organization name and repo name",
-								InputSchema: &JsonSchema{
-									Type: JsonSchemaTypeObject,
-									Properties: map[string]*JsonSchema{
+								InputSchema: &jsonschema.Schema{
+									Type: "object",
+									Properties: map[string]*jsonschema.Schema{
 										"org": {
-											Type:        JsonSchemaTypeString,
+											Type:        "string",
 											Description: "The name of the github organization",
 										},
 										"repoName": {
-											Type:        JsonSchemaTypeString,
+											Type:        "string",
 											Description: "The name of the github repository",
 										},
 										"scheme": {
-											Type:        JsonSchemaTypeString,
+											Type:        "string",
 											Description: "The scheme of the returned url. Must be one of https or ssh",
 										},
 									},
 									Required: []string{"org", "repoName"},
 								},
-								Invocation: &HttpInvocation{
-									URL:            "http://localhost:9090/repos/%s/%s",
-									Method:         http.MethodGet,
-									pathParameters: []string{"org", "repoName"},
+								InvocationData: json.RawMessage(`{"method":"GET","url":"http://localhost:9090/repos/{org}/{repoName}"}`),
+								InvocationType: "http",
+							},
+						},
+					},
+				},
+			},
+		},
+		"one server, with tls": {
+			testFileName: "one-server-tls.yaml",
+			expected: &MCPFile{
+				FileVersion: MCPFileVersion,
+				Servers: []*MCPServer{
+					{
+						Name:    "test-server",
+						Version: "1.0.0",
+						Runtime: &ServerRuntime{
+							TransportProtocol: TransportProtocolStreamableHttp,
+							StreamableHTTPConfig: &StreamableHTTPConfig{
+								Port:      7007,
+								Stateless: true,
+								TLS: &TLSConfig{
+									CertFile: "/path/to/server.crt",
+									KeyFile:  "/path/to/server.key",
 								},
+							},
+						},
+						Tools: []*Tool{
+							{
+								Name:        "get_user_by_company",
+								Title:       "Users Provider",
+								Description: "Get list of users from a given company",
+								InputSchema: &jsonschema.Schema{
+									Type: "object",
+									Properties: map[string]*jsonschema.Schema{
+										"companyName": {
+											Type:        "string",
+											Description: "Name of the company",
+										},
+									},
+									Required: []string{"companyName"},
+								},
+								InvocationData: json.RawMessage(`{"method":"POST","url":"http://localhost:5000"}`),
+								InvocationType: "http",
 							},
 						},
 					},

@@ -23,13 +23,25 @@ gen-mcp eliminates the complexity of building Model Context Protocol (MCP) serve
 - **📡 OpenAPI Auto-Conversion** - Transform existing OpenAPI specs into MCP servers instantly
 - **🔄 Real-Time Tool Exposure** - HTTP endpoints become callable AI tools automatically
 - **🛡️ Built-in Validation** - Schema validation and type safety out of the box
+- **🔐 Security Out of the Box** - TLS encryption and OAuth/OIDC authentication built-in
 - **⚡ Background Processing** - Detached server mode with process management
 - **🔧 Flexible Configuration** - Fine-tune which endpoints to expose and how they behave
 
 ## 🚀 Quick Start
 
-### 1. Build the Binaries
+### 1. Install gen-mcp
 
+**Option A: Download Pre-built Binary**
+```bash
+# Download from GitHub releases
+# Visit: https://github.com/genmcp/gen-mcp/releases
+# Or using curl (replace with latest version):
+curl -L https://github.com/genmcp/gen-mcp/releases/latest/download/genmcp-linux-amd64 -o genmcp
+chmod +x genmcp
+sudo mv genmcp /usr/local/bin
+```
+
+**Option B: Build from Source**
 ```bash
 # Clone and build
 git clone https://github.com/genmcp/gen-mcp.git
@@ -152,8 +164,10 @@ We welcome contributions! This is an early-stage research project with lots of r
 ```bash
 git clone https://github.com/genmcp/gen-mcp.git
 cd gen-mcp
-go mod download
 go test ./...
+
+# Build local binary
+go build -o genmcp ./cmd/genmcp
 ```
 
 ## 📄 License

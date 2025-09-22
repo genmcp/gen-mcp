@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ghodss/yaml"
 	"github.com/stretchr/testify/assert"
+	"sigs.k8s.io/yaml"
 )
 
 func TestConvertFromOpenApiSpec(t *testing.T) {
@@ -31,4 +31,53 @@ func TestDefaultPort8080InOpenAPIV3Conversion(t *testing.T) {
 
 	server := mcpfile.Servers[0]
 	assert.Equal(t, 8080, server.Runtime.StreamableHTTPConfig.Port, "OpenAPI v3 conversion should default to port 8080")
+}
+
+func TestInvalidToolsAreSkippedButValidOnesIncluded(t *testing.T) {
+	docBytes, _ := os.ReadFile("testdata/openapi_with_invalid_tools.json")
+
+	mcpfile, err := DocumentToMcpFile(docBytes, "")
+
+	// We should get an error about the invalid tool but still get a valid MCP file
+	assert.Error(t, err, "conversion should report errors about invalid tools")
+	assert.NotNil(t, mcpfile, "MCP file should still be generated")
+	assert.Len(t, mcpfile.Servers, 1, "should have one server")
+
+	server := mcpfile.Servers[0]
+	assert.NotNil(t, server.Tools, "server should have tools")
+
+	// Should have exactly 2 valid tools (the ones with descriptions)
+	assert.Len(t, server.Tools, 2, "should have exactly 2 valid tools")
+
+	// Check that the valid tools are present
+	toolNames := make([]string, len(server.Tools))
+	for i, tool := range server.Tools {
+		toolNames[i] = tool.Name
+		assert.NotEmpty(t, tool.Description, "all included tools should have descriptions")
+	}
+
+	assert.Contains(t, toolNames, "get_valid-endpoint", "should include the valid GET endpoint")
+	assert.Contains(t, toolNames, "post_another-valid-endpoint", "should include the valid POST endpoint")
+
+	// Check that the error message contains information about the skipped tool
+	assert.Contains(t, err.Error(), "get_invalid-endpoint", "error should mention the skipped tool")
+	assert.Contains(t, err.Error(), "description is required", "error should mention why the tool was skipped")
+}
+
+func TestAllToolsInvalidStillReturnsEmptyMcpFile(t *testing.T) {
+	docBytes, _ := os.ReadFile("testdata/openapi_all_invalid_tools.json")
+
+	mcpfile, err := DocumentToMcpFile(docBytes, "")
+
+	// Should get an error about all invalid tools
+	assert.Error(t, err, "conversion should report errors about all invalid tools")
+	assert.NotNil(t, mcpfile, "MCP file should still be generated")
+	assert.Len(t, mcpfile.Servers, 1, "should have one server")
+
+	server := mcpfile.Servers[0]
+	assert.Empty(t, server.Tools, "server should have no tools when all are invalid")
+
+	// Check that error mentions both skipped tools
+	assert.Contains(t, err.Error(), "get_no-description-1", "error should mention first skipped tool")
+	assert.Contains(t, err.Error(), "post_no-description-2", "error should mention second skipped tool")
 }

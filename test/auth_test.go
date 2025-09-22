@@ -7,114 +7,512 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"os/exec"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/genmcp/gen-mcp/pkg/mcpserver"
-	mcpclient "github.com/mark3labs/mcp-go/client"
-	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func TestOAuth(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "OAuth Suite")
-}
+const (
+	keycloakBaseURL = "http://localhost:8081"
+	masterRealm     = "master"
+	clientID        = "genmcp-client"
+	testUsername    = "admin"
+	testPassword    = "admin"
+)
 
-var _ = Describe("OAuth", Ordered, func() {
+var _ = Describe("OAuth Integration", Ordered, func() {
 
 	BeforeAll(func() {
-		By("Restart Keycloak, by first making sure it is not running")
-		stopCmd := exec.Command("bash", "-c", "./hack/keycloak.sh --stop")
-		stopCmd.Dir = "../" // Run from repo root
-		stopCmd.Env = os.Environ()
-		stopCmd.Stdout = GinkgoWriter
-		stopCmd.Stderr = GinkgoWriter
-		err := stopCmd.Run()
-		Expect(err).NotTo(HaveOccurred(), "Failed to stop1 Keycloak")
-
-		By("Starting Keycloak with initialization")
-		cmd := exec.Command("bash", "-c", "./hack/keycloak.sh --init --start")
-		cmd.Dir = "../" // Run from repo root
-		cmd.Env = os.Environ()
-		cmd.Stdout = GinkgoWriter
-		cmd.Stderr = GinkgoWriter
-		err = cmd.Run()
-		Expect(err).NotTo(HaveOccurred(), "Failed to start Keycloak")
-
-		By("Creating the genmcp-client in the master realm for testing")
-		clientCmd := exec.Command("bash", "-c", "./hack/keycloak.sh --add-client master genmcp-client")
-		clientCmd.Dir = "../"
-		clientCmd.Env = os.Environ()
-		clientCmd.Stdout = GinkgoWriter
-		clientCmd.Stderr = GinkgoWriter
-		err = clientCmd.Run()
-		Expect(err).NotTo(HaveOccurred(), "Failed to add genmcp-client")
+		stopKeycloak()
+		startKeycloakWithInit()
+		createTestClient()
 	})
 
 	AfterAll(func() {
-		By("Stopping Keycloak")
-
-		cmd := exec.Command("bash", "-c", "./hack/keycloak.sh --stop")
-		cmd.Dir = "../"
-		cmd.Env = os.Environ()
-		cmd.Stdout = GinkgoWriter
-		cmd.Stderr = GinkgoWriter
-
-		err := cmd.Run()
-		if err != nil {
-			GinkgoWriter.Printf("Warning: Failed to stop Keycloak: %v\n", err)
-		}
+		stopKeycloak()
 	})
 
-	Describe("MCP server with OAuth enabled", Ordered, func() {
+	Describe("MCP Server with OAuth Protection", Ordered, func() {
+		const (
+			mcpServerURL  = "http://localhost:8018/mcp"
+			mcpServerPort = 8018
+		)
 
-		var backendServer, callbackServer *httptest.Server
-		var mcpConfig *mcpfile.MCPFile
-		var mcpServerCancelFunc context.CancelFunc
+		var (
+			backendServer       *httptest.Server
+			callbackServer      *httptest.Server
+			mcpConfig           *mcpfile.MCPFile
+			mcpServerCancelFunc context.CancelFunc
+		)
 
 		BeforeEach(func() {
-			// Create a mock HTTP server for the backend API
-			// Note: This backend API doesn't need OAuth - the OAuth is for the MCP server itself
-			backendServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintln(w, `{"status": "ok"}`)
-			}))
+			backendServer = createMockBackendServer()
+			callbackServer = createOAuthCallbackServer()
+			mcpConfig = createTestMCPConfig(backendServer.URL, mcpServerPort)
 
-			// Create a callback server to handle OAuth redirects
-			callbackServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, "OAuth callback received")
-			}))
+			By("starting MCP server")
+			ctx := context.Background()
+			ctx, mcpServerCancelFunc = context.WithCancel(ctx)
 
-			// Define the MCP file with OAuth configuration using Keycloak
-			mcpYAML := fmt.Sprintf(`
+			go func() {
+				defer GinkgoRecover()
+				err := mcpserver.RunServer(ctx, mcpConfig.Servers[0])
+				if err != nil && !strings.Contains(err.Error(), "Server closed") {
+					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
+				}
+			}()
+
+			time.Sleep(500 * time.Millisecond)
+		})
+
+		AfterEach(func() {
+			By("cleaning up test servers")
+			if backendServer != nil {
+				backendServer.Close()
+			}
+			if callbackServer != nil {
+				callbackServer.Close()
+			}
+			if mcpServerCancelFunc != nil {
+				mcpServerCancelFunc()
+			}
+		})
+
+		Describe("Protected Resource Metadata", func() {
+			It("should expose metadata endpoint", func() {
+				By("making a request to the metadata endpoint")
+				resp, err := http.Get("http://localhost:8018/.well-known/oauth-protected-resource")
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					err := resp.Body.Close()
+					Expect(err).NotTo(HaveOccurred())
+				}()
+
+				By("returning HTTP 200 OK")
+				Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("should include scopes from MCP file in scopes_supported", func() {
+				By("making a request to the metadata endpoint")
+				resp, err := http.Get("http://localhost:8018/.well-known/oauth-protected-resource")
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					err := resp.Body.Close()
+					Expect(err).NotTo(HaveOccurred())
+				}()
+
+				By("returning HTTP 200 OK")
+				Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+				By("parsing the metadata response")
+				var metadata map[string]any
+				err = json.NewDecoder(resp.Body).Decode(&metadata)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("verifying scopes_supported field contains required scopes")
+				scopesSupported, ok := metadata["scopes_supported"].([]any)
+				Expect(ok).To(BeTrue(), "scopes_supported should be an array")
+
+				// Convert to string slice for easier comparison
+				var scopeStrings []string
+				for _, scope := range scopesSupported {
+					if scopeStr, ok := scope.(string); ok {
+						scopeStrings = append(scopeStrings, scopeStr)
+					}
+				}
+
+				By("checking that required scopes from MCP file are present")
+				Expect(scopeStrings).To(ContainElement("read"))
+				Expect(scopeStrings).To(ContainElement("user:read"))
+			})
+		})
+
+		Describe("Authentication Flow", func() {
+			It("should deny requests without token (with mcp client)", func() {
+				By("creating MCP client")
+				client := mcp.NewClient(&mcp.Implementation{
+					Name:    "test oauth client",
+					Version: "0.0.1",
+				}, nil)
+
+				transport := &mcp.StreamableClientTransport{
+					Endpoint: mcpServerURL,
+				}
+
+				By("attempting to connect without token")
+				_, err := client.Connect(context.Background(), transport, nil)
+
+				By("returning authorization error")
+				Expect(err).To(HaveOccurred())
+				// The connection should fail due to missing authorization
+			})
+
+			It("should successfully initialize with valid token", func() {
+				By("obtaining OAuth token via direct access grant")
+				token := performDirectAccessGrant(clientID, testUsername, testPassword)
+				Expect(token.AccessToken).NotTo(BeEmpty())
+
+				By("creating OAuth-enabled MCP client")
+				client := mcp.NewClient(&mcp.Implementation{
+					Name:    "test oauth client",
+					Version: "0.0.1",
+				}, nil)
+
+				oauthTransport := &OAuthRoundTripper{
+					Transport:   http.DefaultTransport,
+					AccessToken: token.AccessToken,
+				}
+				httpClient := &http.Client{Transport: oauthTransport}
+
+				transport := &mcp.StreamableClientTransport{
+					Endpoint:   mcpServerURL,
+					HTTPClient: httpClient,
+				}
+
+				By("connecting to MCP server with OAuth token")
+				session, err := client.Connect(context.Background(), transport, nil)
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					_ = session.Close()
+				}()
+
+				By("verifying successful initialization")
+				initResult := session.InitializeResult()
+				Expect(initResult).NotTo(BeNil())
+				Expect(initResult.ServerInfo).NotTo(BeNil())
+			})
+
+			It("should successfully execute tools", func() {
+				By("obtaining OAuth token with required scopes")
+				token := performDirectAccessGrantWithScopes(clientID, testUsername, testPassword, "openid profile read user:read")
+				Expect(token.AccessToken).NotTo(BeEmpty())
+
+				By("creating OAuth-enabled MCP client")
+				client := mcp.NewClient(&mcp.Implementation{
+					Name:    "test oauth client",
+					Version: "0.0.1",
+				}, nil)
+
+				oauthTransport := &OAuthRoundTripper{
+					Transport:   http.DefaultTransport,
+					AccessToken: token.AccessToken,
+				}
+				httpClient := &http.Client{Transport: oauthTransport}
+
+				transport := &mcp.StreamableClientTransport{
+					Endpoint:   mcpServerURL,
+					HTTPClient: httpClient,
+				}
+
+				By("connecting and initializing MCP session")
+				session, err := client.Connect(context.Background(), transport, nil)
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					_ = session.Close()
+				}()
+
+				initResult := session.InitializeResult()
+				Expect(initResult).NotTo(BeNil())
+
+				By("calling get_status tool successfully")
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+
+				result, err := session.CallTool(ctx, &mcp.CallToolParams{
+					Name:      "get_status",
+					Arguments: map[string]any{},
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result).NotTo(BeNil())
+				Expect(result.Content).To(HaveLen(1))
+
+				textResult, ok := result.Content[0].(*mcp.TextContent)
+				Expect(ok).To(BeTrue())
+				Expect(textResult.Text).To(MatchJSON(`{"status": "ok"}`))
+			})
+
+			It("should allow tool calls when user has required scopes", func() {
+				By("obtaining OAuth token with required scopes")
+				token := performDirectAccessGrantWithScopes(clientID, testUsername, testPassword, "openid profile read user:read")
+				Expect(token.AccessToken).NotTo(BeEmpty())
+
+				By("creating OAuth-enabled MCP client")
+				client := mcp.NewClient(&mcp.Implementation{
+					Name:    "test oauth client",
+					Version: "0.0.1",
+				}, nil)
+
+				oauthTransport := &OAuthRoundTripper{
+					Transport:   http.DefaultTransport,
+					AccessToken: token.AccessToken,
+				}
+				httpClient := &http.Client{Transport: oauthTransport}
+
+				transport := &mcp.StreamableClientTransport{
+					Endpoint:   mcpServerURL,
+					HTTPClient: httpClient,
+				}
+
+				By("connecting and initializing MCP session")
+				session, err := client.Connect(context.Background(), transport, nil)
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					_ = session.Close()
+				}()
+
+				By("calling get_user tool with required scopes")
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+
+				result, err := session.CallTool(ctx, &mcp.CallToolParams{
+					Name: "get_user",
+					Arguments: map[string]any{
+						"userId": "test123",
+					},
+				})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result).NotTo(BeNil())
+				Expect(result.Content).To(HaveLen(1))
+
+				textResult, ok := result.Content[0].(*mcp.TextContent)
+				Expect(ok).To(BeTrue())
+				Expect(textResult.Text).To(MatchJSON(`{"status": "ok"}`))
+			})
+
+			It("should deny tool calls when user lacks required scopes", func() {
+				By("obtaining OAuth token with limited scopes")
+				token := performDirectAccessGrantWithScopes(clientID, testUsername, testPassword, "openid profile")
+				Expect(token.AccessToken).NotTo(BeEmpty())
+
+				By("creating OAuth-enabled MCP client")
+				client := mcp.NewClient(&mcp.Implementation{
+					Name:    "test oauth client",
+					Version: "0.0.1",
+				}, nil)
+
+				oauthTransport := &OAuthRoundTripper{
+					Transport:   http.DefaultTransport,
+					AccessToken: token.AccessToken,
+				}
+				httpClient := &http.Client{Transport: oauthTransport}
+
+				transport := &mcp.StreamableClientTransport{
+					Endpoint:   mcpServerURL,
+					HTTPClient: httpClient,
+				}
+
+				By("connecting and initializing MCP session")
+				session, err := client.Connect(context.Background(), transport, nil)
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					_ = session.Close()
+				}()
+
+				By("attempting to call get_user tool without required scopes")
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+
+				_, err = session.CallTool(ctx, &mcp.CallToolParams{
+					Name: "get_user",
+					Arguments: map[string]any{
+						"userId": "test123",
+					},
+				})
+
+				By("returning authorization error")
+				Expect(err).To(HaveOccurred())
+				// Should fail due to missing required scopes
+			})
+
+			It("should deny unauthorized HTTP requests (direct HTTP request)", func() {
+				By("making request without authorization header")
+				resp, err := http.Get(mcpServerURL)
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					err := resp.Body.Close()
+					Expect(err).NotTo(HaveOccurred())
+				}()
+
+				By("returning HTTP 401 Unauthorized")
+				Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
+
+				By("including WWW-Authenticate header")
+				wwwAuth := resp.Header.Get("WWW-Authenticate")
+				Expect(wwwAuth).To(ContainSubstring("Bearer resource_metadata="))
+				Expect(wwwAuth).To(ContainSubstring("http://localhost:8018/.well-known/oauth-protected-resource"))
+			})
+		})
+
+		// TODO: Add authenticated client tests once new SDK client API is available
+	})
+})
+
+// OAuthRoundTripper is a custom HTTP transport that adds OAuth Bearer tokens to requests
+type OAuthRoundTripper struct {
+	Transport   http.RoundTripper
+	AccessToken string
+}
+
+func (ort *OAuthRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Clone the request to avoid modifying the original
+	req = req.Clone(req.Context())
+	// Add the Authorization header
+	req.Header.Set("Authorization", "Bearer "+ort.AccessToken)
+	return ort.Transport.RoundTrip(req)
+}
+
+// OAuth token represents an OAuth access token
+type OAuthToken struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int    `json:"expires_in"`
+	Scope       string `json:"scope"`
+}
+
+// performDirectAccessGrant uses the Resource Owner Password Credentials Grant to get a token directly
+func performDirectAccessGrant(clientID, username, password string) *OAuthToken {
+	return performDirectAccessGrantWithScopes(clientID, username, password, "openid profile")
+}
+
+// performDirectAccessGrantWithScopes uses the Resource Owner Password Credentials Grant with custom scopes
+func performDirectAccessGrantWithScopes(clientID, username, password, scopes string) *OAuthToken {
+	// Use the direct access grant (password grant) to get tokens
+	formData := url.Values{}
+	formData.Set("grant_type", "password")
+	formData.Set("client_id", clientID)
+	formData.Set("username", username)
+	formData.Set("password", password)
+	formData.Set("scope", scopes)
+
+	tokenURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", keycloakBaseURL, masterRealm)
+
+	resp, err := http.PostForm(tokenURL, formData)
+	Expect(err).NotTo(HaveOccurred())
+	defer func() {
+		err := resp.Body.Close()
+		Expect(err).NotTo(HaveOccurred())
+	}()
+
+	Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+	var token OAuthToken
+	err = json.NewDecoder(resp.Body).Decode(&token)
+	Expect(err).NotTo(HaveOccurred())
+
+	return &token
+}
+
+// Helper functions for better test organization
+func stopKeycloak() {
+	By("stopping Keycloak if running")
+	cmd := createKeycloakCommand("--stop")
+	err := cmd.Run()
+	if err != nil {
+		GinkgoWriter.Printf("Warning: Failed to stop Keycloak: %v\n", err)
+	}
+}
+
+func startKeycloakWithInit() {
+	By("starting Keycloak with initialization")
+	cmd := createKeycloakCommand("--init --start")
+	err := cmd.Run()
+	Expect(err).NotTo(HaveOccurred(), "Failed to start Keycloak")
+}
+
+func createTestClient() {
+	By("creating test client in Keycloak")
+	cmd := createKeycloakCommand("--add-client master genmcp-client")
+	err := cmd.Run()
+	Expect(err).NotTo(HaveOccurred(), "Failed to create test client")
+
+	By("adding custom scopes to master realm")
+	addCustomScope("read")
+	addCustomScope("user:read")
+
+	By("assigning custom scopes to test client")
+	assignScopeToClient("read")
+	assignScopeToClient("user:read")
+}
+
+func addCustomScope(scopeName string) {
+	By(fmt.Sprintf("adding custom scope '%s' to master realm", scopeName))
+	cmd := createKeycloakCommand(fmt.Sprintf("--add-scope master %s", scopeName))
+	err := cmd.Run()
+	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Failed to add scope %s", scopeName))
+}
+
+func assignScopeToClient(scopeName string) {
+	By(fmt.Sprintf("assigning scope '%s' to client '%s'", scopeName, clientID))
+	cmd := createKeycloakCommand(fmt.Sprintf("--assign-scope master %s %s", clientID, scopeName))
+	err := cmd.Run()
+	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Failed to assign scope %s to client %s", scopeName, clientID))
+}
+
+func createKeycloakCommand(args string) *exec.Cmd {
+	cmd := exec.Command("bash", "-c", fmt.Sprintf("./hack/keycloak.sh %s", args))
+	cmd.Dir = "../"
+	cmd.Env = os.Environ()
+	cmd.Stdout = GinkgoWriter
+	cmd.Stderr = GinkgoWriter
+	return cmd
+}
+
+func createMockBackendServer() *httptest.Server {
+	By("creating mock backend server")
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, err := fmt.Fprintln(w, `{"status": "ok"}`)
+		Expect(err).NotTo(HaveOccurred())
+	}))
+}
+
+func createOAuthCallbackServer() *httptest.Server {
+	By("creating OAuth callback server")
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, err := fmt.Fprintf(w, "OAuth callback received")
+		Expect(err).NotTo(HaveOccurred())
+	}))
+}
+
+func createTestMCPConfig(backendURL string, port int) *mcpfile.MCPFile {
+	By("creating test MCP configuration")
+
+	mcpYAML := fmt.Sprintf(`
 mcpFileVersion: 0.0.1
 servers:
   - name: test-oauth-server-full-flow
     version: "1.0"
     runtime:
       streamableHttpConfig:
-        port: 8018
+        port: %d
         basePath: "/mcp"
         auth:
           authorizationServers:
-            - http://localhost:8080/realms/master
-          scopesSupported:
-            - "read"
-            - "write"
-            - "admin"
-          bearerMethodsSupported:
-            - "header"
-            - "body"
-          jwksUri: "http://localhost:8080/realms/master/protocol/openid-connect/certs"
+            - %s/realms/%s
+          jwksUri: "%s/realms/%s/protocol/openid-connect/certs"
       transportProtocol: streamablehttp
     tools:
+      - name: get_status
+        description: "Get server status"
+        inputSchema:
+          type: object
+          properties: {}
+        outputSchema:
+          type: object
+          properties:
+            status:
+              type: string
+        invocation:
+          http:
+            url: "%s/status"
+            method: "GET"
       - name: get_user
         description: "Get user by ID"
         inputSchema:
@@ -133,194 +531,24 @@ servers:
           http:
             url: "%s/users/{userId}"
             method: "GET"
-`, backendServer.URL)
+        requiredScopes:
+          - "read"
+          - "user:read"
+`, port, keycloakBaseURL, masterRealm, keycloakBaseURL, masterRealm, backendURL, backendURL)
 
-			// Write the MCP file to a temporary file
-			tmpfile, err := os.CreateTemp("", "mcp-oauth-full-*.yaml")
-			Expect(err).NotTo(HaveOccurred())
-			defer os.Remove(tmpfile.Name())
-
-			_, err = tmpfile.WriteString(mcpYAML)
-			Expect(err).NotTo(HaveOccurred())
-			err = tmpfile.Close()
-			Expect(err).NotTo(HaveOccurred())
-
-			// Parse the MCP file
-			mcpConfig, err = mcpfile.ParseMCPFile(tmpfile.Name())
-			Expect(err).NotTo(HaveOccurred())
-
-			// Create cancelable context for the MCP server
-			ctx := context.Background()
-			ctx, mcpServerCancelFunc = context.WithCancel(ctx)
-
-			// Start the MCP server using RunServer
-			go func() {
-				defer GinkgoRecover()
-
-				err := mcpserver.RunServer(ctx, mcpConfig.Servers[0])
-				if err != nil && !strings.Contains(err.Error(), "Server closed") {
-					Expect(err).NotTo(HaveOccurred(), "Failed to start mcp server")
-				}
-			}()
-
-			// Give the server time to start
-			time.Sleep(500 * time.Millisecond)
-		})
-
-		AfterEach(func() {
-			backendServer.Close()
-			callbackServer.Close()
-			// Cancel the context to shut down the MCP server
-			if mcpServerCancelFunc != nil {
-				mcpServerCancelFunc()
-			}
-		})
-
-		It("Should have a protected resource metadata endpoint", func() {
-			// Verify the protected resource metadata endpoint is working
-			resp, err := http.Get("http://localhost:8018/.well-known/oauth-protected-resource")
-			Expect(err).NotTo(HaveOccurred())
-			defer resp.Body.Close()
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		})
-
-		It("Should accept authenticated requests", func() {
-			// Create an MCP client with OAuth configuration
-			mcpServerURL := "http://localhost:8018/mcp"
-
-			oauthConfig := mcpclient.OAuthConfig{
-				ClientID:    "genmcp-client",
-				RedirectURI: "http://localhost:8080/callback", // Use a fixed redirect URI that should be configured
-				Scopes:      []string{"openid", "profile"},
-				TokenStore:  mcpclient.NewMemoryTokenStore(),
-				PKCEEnabled: true,
-				// Let the client discover auth server automatically
-			}
-
-			client, err := mcpclient.NewOAuthStreamableHttpClient(mcpServerURL, oauthConfig)
-			Expect(err).NotTo(HaveOccurred())
-			defer client.Close()
-
-			// Try to initialize - should trigger OAuth flow
-			initRequest := mcp.InitializeRequest{
-				Params: mcp.InitializeParams{
-					ProtocolVersion: mcp.LATEST_PROTOCOL_VERSION,
-					ClientInfo: mcp.Implementation{
-						Name:    "test oauth client full flow",
-						Version: "0.0.1",
-					},
-				},
-			}
-
-			ctx := context.Background()
-
-			_, err = client.Initialize(ctx, initRequest)
-			Expect(mcpclient.IsOAuthAuthorizationRequiredError(err)).To(BeTrue(), "Expected OAuth authorization required error, got: %v", err)
-
-			// Use direct access grant to get a token from Keycloak
-			GinkgoWriter.Println("Using direct access grant to obtain OAuth tokens from Keycloak")
-
-			token := performDirectAccessGrant("genmcp-client", "admin", "admin")
-			GinkgoWriter.Println("Successfully obtained access token: %s...", token.AccessToken[:20])
-
-			// 11. Store the token in the OAuth client's token store
-			err = oauthConfig.TokenStore.SaveToken(token)
-			Expect(err).NotTo(HaveOccurred(), "Failed to save token to token store")
-
-			// 13. Now try to initialize the MCP client again with the obtained token
-			_, err = client.Initialize(ctx, initRequest)
-			Expect(err).NotTo(HaveOccurred(), "Client should connect successfully with OAuth token")
-
-			GinkgoWriter.Println("MCP client initialized successfully with OAuth token")
-
-			// 14. Call a tool to verify the complete flow works
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-
-			toolCall := mcp.CallToolRequest{
-				Params: mcp.CallToolParams{
-					Name: "get_user",
-					Arguments: map[string]any{
-						"userId": "123",
-					},
-				},
-			}
-
-			res, err := client.CallTool(ctx, toolCall)
-			Expect(err).NotTo(HaveOccurred(), "Tool call should succeed with OAuth token")
-
-			// 15. Verify the result
-			Expect(res).NotTo(BeNil())
-			Expect(res.Content).To(HaveLen(1))
-
-			textResult, ok := res.Content[0].(mcp.TextContent)
-			Expect(ok).To(BeTrue())
-			Expect(textResult.Text).To(MatchJSON(`{"status": "ok"}`))
-
-			GinkgoWriter.Println("Complete OAuth integration test passed - full flow from authentication to tool call successful")
-		})
-
-		It("Should deny unauthorized requests", func() {
-			// Test unauthorized request returns 401 with proper WWW-Authenticate header
-			resp, err := http.Get("http://localhost:8018/mcp")
-			Expect(err).NotTo(HaveOccurred())
-			defer resp.Body.Close()
-
-			Expect(resp.StatusCode).To(Equal(http.StatusUnauthorized))
-			wwwAuth := resp.Header.Get("WWW-Authenticate")
-			Expect(wwwAuth).To(ContainSubstring("Bearer resource_metadata="))
-			Expect(wwwAuth).To(ContainSubstring("http://localhost:8018/.well-known/oauth-protected-resource"))
-
-			GinkgoWriter.Println("OAuth protection working correctly - unauthorized requests properly rejected")
-		})
-	})
-})
-
-// performDirectAccessGrant uses the Resource Owner Password Credentials Grant to get a token directly
-func performDirectAccessGrant(clientID, username, password string) *mcpclient.Token {
-	// Use the direct access grant (password grant) to get tokens
-	formData := url.Values{}
-	formData.Set("grant_type", "password")
-	formData.Set("client_id", clientID)
-	formData.Set("username", username)
-	formData.Set("password", password)
-	formData.Set("scope", "openid profile")
-
-	tokenURL := "http://localhost:8080/realms/master/protocol/openid-connect/token"
-
-	resp, err := http.PostForm(tokenURL, formData)
+	tmpfile, err := os.CreateTemp("", "mcp-oauth-*.yaml")
 	Expect(err).NotTo(HaveOccurred())
-	defer resp.Body.Close()
+	defer func() {
+		err := os.Remove(tmpfile.Name())
+		Expect(err).NotTo(HaveOccurred())
+	}()
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		GinkgoWriter.Println("Expected 200 from token endpoint but got %d. Response body: %s", resp.StatusCode, string(body))
-	}
-
-	Expect(resp.StatusCode).To(Equal(http.StatusOK))
-
-	// Parse the token response
-	var tokenResponse struct {
-		AccessToken  string `json:"access_token"`
-		TokenType    string `json:"token_type"`
-		RefreshToken string `json:"refresh_token"`
-		ExpiresIn    int64  `json:"expires_in"`
-		Scope        string `json:"scope"`
-	}
-
-	err = json.NewDecoder(resp.Body).Decode(&tokenResponse)
+	_, err = tmpfile.WriteString(mcpYAML)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(tokenResponse.AccessToken).NotTo(BeEmpty(), "Access token should not be empty")
+	err = tmpfile.Close()
+	Expect(err).NotTo(HaveOccurred())
 
-	// Convert to the MCP client token format
-	token := &mcpclient.Token{
-		AccessToken:  tokenResponse.AccessToken,
-		TokenType:    tokenResponse.TokenType,
-		RefreshToken: tokenResponse.RefreshToken,
-		ExpiresIn:    tokenResponse.ExpiresIn,
-		Scope:        tokenResponse.Scope,
-		ExpiresAt:    time.Now().Add(time.Duration(tokenResponse.ExpiresIn) * time.Second),
-	}
-
-	return token
+	config, err := mcpfile.ParseMCPFile(tmpfile.Name())
+	Expect(err).NotTo(HaveOccurred())
+	return config
 }

@@ -42,7 +42,9 @@ func executeStopCmd(cobraCmd *cobra.Command, args []string) {
 	proc, err := os.FindProcess(pid)
 	if err != nil {
 		fmt.Printf("failed to find process for pid %d: %s\n", pid, err.Error())
-		processManager.DeleteProcessId(mcpFilePath)
+		if err := processManager.DeleteProcessId(mcpFilePath); err != nil {
+			fmt.Printf("failed to delete process id: %s\n", err.Error())
+		}
 		return
 	}
 
@@ -52,7 +54,9 @@ func executeStopCmd(cobraCmd *cobra.Command, args []string) {
 		return
 	}
 
-	processManager.DeleteProcessId(mcpFilePath)
+	if err := processManager.DeleteProcessId(mcpFilePath); err != nil {
+		fmt.Printf("failed to delete process id: %s\n", err.Error())
+	}
 
 	fmt.Printf("successfully stopped gen-mcp server...\n")
 }
