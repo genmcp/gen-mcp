@@ -150,7 +150,7 @@ github.com/onsi/gomega/types
 github.com/pb33f/jsonpath/pkg/jsonpath
 github.com/pb33f/jsonpath/pkg/jsonpath/config
 github.com/pb33f/jsonpath/pkg/jsonpath/token
-# github.com/pb33f/libopenapi v0.27.0
+# github.com/pb33f/libopenapi v0.28.0
 ## explicit; go 1.24.7
 github.com/pb33f/libopenapi
 github.com/pb33f/libopenapi/datamodel
