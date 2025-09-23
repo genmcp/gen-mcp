@@ -11,7 +11,7 @@
 [![discord](https://img.shields.io/discord/923258363540815912)](https://discord.gg/x7VACVuEGP)
 [![Docs](https://img.shields.io/badge/godoc-reference-5fafd7)](https://pkg.go.dev/github.com/pb33f/libopenapi)
 
-libopenapi has full support for Swagger (OpenAPI 2), OpenAPI 3, 3.1 and 3.2. It can handle the largest and most
+libopenapi has full support for OpenAPI 3, 3.1 and 3.2. It can handle the largest and most
 complex specifications you can think of.
 
 ---
@@ -141,12 +141,9 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("cannot create new document: %e", err))
 	}
-	docModel, errors := document.BuildV3Model()
-	if len(errors) > 0 {
-		for i := range errors {
-			fmt.Printf("error: %e\n", errors[i])
-		}
-		panic(fmt.Sprintf("cannot create v3 model from document: %d errors reported", len(errors)))
+	docModel, err := document.BuildV3Model()
+	if err != nil {
+		panic(fmt.Sprintf("cannot create v3 model from document: %e", err))
 	}
 
 	// The following fails after the first iteration
