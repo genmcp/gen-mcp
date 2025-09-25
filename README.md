@@ -48,7 +48,7 @@ git clone https://github.com/genmcp/gen-mcp.git
 cd gen-mcp
 
 # Build CLI
-go build -o genmcp ./cmd/genmcp
+make build-cli
 
 # Add to PATH (recommended)
 sudo mv genmcp /usr/local/bin
@@ -167,7 +167,7 @@ cd gen-mcp
 go test ./...
 
 # Build local binary
-go build -o genmcp ./cmd/genmcp
+make build-cli
 ```
 
 ## 📄 License
