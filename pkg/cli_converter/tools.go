@@ -8,10 +8,18 @@ import (
 	"github.com/google/shlex"
 )
 
-// RunCommand takes a command line string, executes it locally, and returns its stdout output as a string.
-// Uses shell-style parsing to handle quoted arguments properly.
-// If the command fails, it returns an error.
-func RunCommand(cmdStr string) (string, error) {
+// CommandRunner is a function type for running commands
+type CommandRunner func(string) (string, error)
+
+// DefaultCommandRunner is the default implementation that actually executes commands
+var DefaultCommandRunner CommandRunner = runCommandImpl
+
+// RunCommand is the public interface that uses the current CommandRunner
+var RunCommand CommandRunner = DefaultCommandRunner
+
+// runCommandImpl is the actual implementation that executes commands
+func runCommandImpl(cmdStr string) (string, error) {
+
 	if cmdStr == "" {
 		return "", nil
 	}

@@ -4,10 +4,14 @@ go 1.24.7
 
 require (
 	github.com/google/jsonschema-go v0.3.0
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
+	github.com/invopop/jsonschema v0.13.0
+	github.com/joho/godotenv v1.5.1
 	github.com/lestrrat-go/jwx/v3 v3.0.11
 	github.com/modelcontextprotocol/go-sdk v0.6.0
 	github.com/onsi/ginkgo/v2 v2.25.3
 	github.com/onsi/gomega v1.38.2
+	github.com/openai/openai-go/v2 v2.6.0
 	github.com/pb33f/libopenapi v0.28.0
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
@@ -15,11 +19,7 @@ require (
 )
 
 require (
-	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
-	github.com/invopop/jsonschema v0.13.0 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/openai/openai-go/v2 v2.6.0 // indirect
 	github.com/tidwall/gjson v1.14.4 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
