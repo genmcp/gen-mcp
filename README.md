@@ -119,7 +119,7 @@ Instead of manually writing an MCP file for a CLI, you can use an LLM to generat
 
 ```bash
 # Set OpenAI endpoint configurations
-export MODEL_BASE_URL='' # OpenAI Base URL
+export MODEL_BASE_URL='https://HOST:PORT/v1' # OpenAI Base URL (v1 endpoint)
 export MODEL_KEY='' # OpenAI Access Token
 export MODEL_NAME=''  # OpenAI Model Name
 

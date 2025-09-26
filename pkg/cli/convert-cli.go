@@ -30,12 +30,14 @@ func executeConvertCliCmd(cobraCmd *cobra.Command, args []string) {
 		_, err := cli_converter.ExtractCLICommandInfo(cliCommand, &commandItems)
 		if err != nil {
 			fmt.Printf("encountered errors while extracting cli command info for '%s': %s\n", cliCommand, err.Error())
+			return
 		}
 	}
 
 	mcpFile, err := cli_converter.ConvertCommandsToMCPFile(&commandItems)
 	if err != nil {
 		fmt.Printf("encountered errors while converting commands to mcp file: %s\n", err.Error())
+		return
 	}
 
 	mcpFileBytes, err := yaml.Marshal(mcpFile)
@@ -48,5 +50,6 @@ func executeConvertCliCmd(cobraCmd *cobra.Command, args []string) {
 	err = os.WriteFile(mcpOutputPath, mcpFileBytes, 0644)
 	if err != nil {
 		fmt.Printf("could not write mcpfile to file at path %s: %s", mcpOutputPath, err.Error())
+		return
 	}
 }

@@ -13,23 +13,37 @@ import (
 	"github.com/openai/openai-go/v2/packages/param"
 )
 
-func NewOpenAIClient() openai.Client {
+func NewOpenAIClient() (openai.Client, error) {
 	key := os.Getenv("MODEL_KEY")
+	if key == "" {
+		return openai.Client{}, errors.New("MODEL_KEY environment variable is required but not set")
+	}
+
 	base_url := os.Getenv("MODEL_BASE_URL")
+	if base_url == "" {
+		return openai.Client{}, errors.New("MODEL_BASE_URL environment variable is required but not set")
+	}
 	// fmt.Println("base_url:", base_url)
 
-	return openai.NewClient(
+	client := openai.NewClient(
 		option.WithAPIKey(key),
 		option.WithBaseURL(base_url),
 	)
+	return client, nil
 }
 
 func RunInference(
 	system_prompt string,
 	user_prompt string,
 ) (string, error) {
-	client := NewOpenAIClient()
+	client, err := NewOpenAIClient()
+	if err != nil {
+		return "", err
+	}
 	model := os.Getenv("MODEL_NAME")
+	if model == "" {
+		return "", errors.New("MODEL_NAME environment variable is required but not set")
+	}
 	// fmt.Println("model:", model)
 
 	ctx := context.Background()
@@ -64,7 +78,16 @@ func DetectSubCommand(cliCommand string) (bool, error) {
 		panic(err.Error())
 	}
 
-	client := NewOpenAIClient()
+	client, err := NewOpenAIClient()
+	if err != nil {
+		return false, err
+	}
+
+	model := os.Getenv("MODEL_NAME")
+	if model == "" {
+		return false, errors.New("MODEL_NAME environment variable is required but not set")
+	}
+
 	ctx := context.Background()
 
 	schema_param := openai.ResponseFormatJSONSchemaJSONSchemaParam{
@@ -85,7 +108,7 @@ func DetectSubCommand(cliCommand string) (bool, error) {
 		ResponseFormat: openai.ChatCompletionNewParamsResponseFormatUnion{
 			OfJSONSchema: &openai.ResponseFormatJSONSchemaParam{JSONSchema: schema_param},
 		},
-		Model:       os.Getenv("MODEL_NAME"),
+		Model:       model,
 		Temperature: param.Opt[float64]{Value: 0.0},
 		TopP:        param.Opt[float64]{Value: 1.0},
 		MaxTokens:   param.Opt[int64]{Value: 4096},
@@ -125,7 +148,16 @@ func ExtractSubCommands(cliCommand string) ([]string, error) {
 		panic(err.Error())
 	}
 
-	client := NewOpenAIClient()
+	client, err := NewOpenAIClient()
+	if err != nil {
+		return []string{}, err
+	}
+
+	model := os.Getenv("MODEL_NAME")
+	if model == "" {
+		return []string{}, errors.New("MODEL_NAME environment variable is required but not set")
+	}
+
 	ctx := context.Background()
 
 	schema_param := openai.ResponseFormatJSONSchemaJSONSchemaParam{
@@ -146,7 +178,7 @@ func ExtractSubCommands(cliCommand string) ([]string, error) {
 		ResponseFormat: openai.ChatCompletionNewParamsResponseFormatUnion{
 			OfJSONSchema: &openai.ResponseFormatJSONSchemaParam{JSONSchema: schema_param},
 		},
-		Model:       os.Getenv("MODEL_NAME"),
+		Model:       model,
 		Temperature: param.Opt[float64]{Value: 0.0},
 		TopP:        param.Opt[float64]{Value: 1.0},
 		MaxTokens:   param.Opt[int64]{Value: 4096},
@@ -183,7 +215,16 @@ func ExtractCommand(cliCommand string) (CommandItem, error) {
 	re := regexp.MustCompile(`-\w\b`)
 	user_prompt = re.ReplaceAllString(user_prompt, "")
 
-	client := NewOpenAIClient()
+	client, err := NewOpenAIClient()
+	if err != nil {
+		return CommandItem{}, err
+	}
+
+	model := os.Getenv("MODEL_NAME")
+	if model == "" {
+		return CommandItem{}, errors.New("MODEL_NAME environment variable is required but not set")
+	}
+
 	ctx := context.Background()
 
 	schema_param := openai.ResponseFormatJSONSchemaJSONSchemaParam{
@@ -204,7 +245,7 @@ func ExtractCommand(cliCommand string) (CommandItem, error) {
 		ResponseFormat: openai.ChatCompletionNewParamsResponseFormatUnion{
 			OfJSONSchema: &openai.ResponseFormatJSONSchemaParam{JSONSchema: schema_param},
 		},
-		Model:       os.Getenv("MODEL_NAME"),
+		Model:       model,
 		Temperature: param.Opt[float64]{Value: 0.0},
 		TopP:        param.Opt[float64]{Value: 1.0},
 		MaxTokens:   param.Opt[int64]{Value: 4096},
