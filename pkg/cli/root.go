@@ -47,10 +47,10 @@ func getDevVersion() devVersion {
 			switch setting.Key {
 			case "vcs.revision":
 				if len(setting.Value) >= 7 {
-                   dv.commit = setting.Value[:7]
-               } else {
-                  dv.commit = setting.Value
-               }
+					dv.commit = setting.Value[:7]
+				} else {
+					dv.commit = setting.Value
+				}
 			case "vcs.modified":
 				dv.hasUncommitedChanges = setting.Value == "true"
 			}

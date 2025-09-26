@@ -113,6 +113,24 @@ genmcp convert https://api.example.com/openapi.json -o custom-name.yaml
 genmcp convert https://petstore.swagger.io/v2/swagger.json
 ```
 
+### Converting CLI (Experimental)
+
+Instead of manually writing an MCP file for a CLI, you can use an LLM to generate a genmcp-compatible mcpfile.yaml.
+
+```bash
+# Set OpenAI endpoint configurations
+export MODEL_BASE_URL='https://HOST:PORT/v1' # OpenAI Base URL (v1 endpoint)
+export MODEL_KEY='' # OpenAI Access Token
+export MODEL_NAME=''  # OpenAI Model Name
+
+# Run gen-mcp convert-cli to generate mcpfile.yaml
+MODEL_BASE_URL=$MODEL_BASE_URL MODEL_KEY=$MODEL_KEY MODEL_NAME=$MODEL_NAME genmcp convert-cli "podman images"
+
+# Start mcpserver with generated mcpfile.yaml 
+genmcp run
+```
+
+
 ### Managing Running Servers
 
 ```bash
