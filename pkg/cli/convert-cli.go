@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/genmcp/gen-mcp/pkg/cli_converter"
-	"github.com/ghodss/yaml"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 )
 
 func init() {

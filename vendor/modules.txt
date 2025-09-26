@@ -13,9 +13,6 @@ github.com/davecgh/go-spew/spew
 # github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
 ## explicit; go 1.17
 github.com/decred/dcrd/dcrec/secp256k1/v4
-# github.com/ghodss/yaml v1.0.0
-## explicit
-github.com/ghodss/yaml
 # github.com/go-logr/logr v1.4.3
 ## explicit; go 1.18
 github.com/go-logr/logr
@@ -307,9 +304,6 @@ golang.org/x/text/transform
 golang.org/x/tools/cover
 golang.org/x/tools/go/ast/edge
 golang.org/x/tools/go/ast/inspector
-# gopkg.in/yaml.v2 v2.4.0
-## explicit; go 1.15
-gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
