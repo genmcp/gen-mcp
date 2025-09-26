@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/google/jsonschema-go/jsonschema"
 	"sigs.k8s.io/yaml"
 )
 
@@ -85,6 +86,11 @@ func (t *Tool) UnmarshalJSON(data []byte) error {
 	err := json.Unmarshal(data, &tmp)
 	if err != nil {
 		return err
+	}
+
+	if t.InputSchema.Properties == nil {
+		// set the properties to be not nil so that it serializes as {} (required for some clients to properly parse the tool)
+		t.InputSchema.Properties = make(map[string]*jsonschema.Schema)
 	}
 
 	if len(tmp.Invocation) != 1 {
