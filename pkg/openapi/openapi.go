@@ -26,16 +26,14 @@ func DocumentToMcpFile(document []byte, host string) (*mcpfile.MCPFile, error) {
 	}
 
 	if strings.HasPrefix(doc.GetVersion(), "3") {
-		docModel, errs := doc.BuildV3Model()
-		err = errors.Join(errs...)
+		docModel, err := doc.BuildV3Model()
 		if err != nil {
 			return nil, fmt.Errorf("failed to build OpenAPI V3 model: %w", err)
 		}
 		return McpFileFromOpenApiV3Model(&docModel.Model, host)
 	}
 
-	docModel, errs := doc.BuildV2Model()
-	err = errors.Join(errs...)
+	docModel, err := doc.BuildV2Model()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build OpenAPI V2 model: %w", err)
 	}
