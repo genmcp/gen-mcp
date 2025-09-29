@@ -26,5 +26,13 @@ build-server-binaries: $(BUILD_DIR)
 build-cli: clean build-server-binaries
 	go build -o $(CLI_BINARY_NAME) ./cmd/genmcp
 
+.PHONY: test
+test: build-server-binaries
+	go test -v -race -count=1 ./...
+
+.PHONY: lint
+lint: build-server-binaries
+	golangci-lint run
+
 .PHONY: build-all
 build-all: clean build-server-binaries build-cli

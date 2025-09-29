@@ -25,6 +25,9 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
+      - name: Build server binaries
+        run: make build-server-binaries
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
