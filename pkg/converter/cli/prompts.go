@@ -1,4 +1,4 @@
-package cli_converter
+package cli
 
 var IsSubCommandPrompt = `Given below is the command and man page for CLI based utility.
 You must return true if the man page lists any sub-commands, otherwise return false.

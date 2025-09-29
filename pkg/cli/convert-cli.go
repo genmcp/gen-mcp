@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/genmcp/gen-mcp/pkg/cli_converter"
+	cliconverter "github.com/genmcp/gen-mcp/pkg/converter/cli"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
 )
@@ -24,17 +24,17 @@ var convertCliCmd = &cobra.Command{
 }
 
 func executeConvertCliCmd(cobraCmd *cobra.Command, args []string) {
-	commandItems := []cli_converter.CommandItem{}
+	commandItems := []cliconverter.CommandItem{}
 
 	for _, cliCommand := range args {
-		_, err := cli_converter.ExtractCLICommandInfo(cliCommand, &commandItems)
+		_, err := cliconverter.ExtractCLICommandInfo(cliCommand, &commandItems)
 		if err != nil {
 			fmt.Printf("encountered errors while extracting cli command info for '%s': %s\n", cliCommand, err.Error())
 			return
 		}
 	}
 
-	mcpFile, err := cli_converter.ConvertCommandsToMCPFile(&commandItems)
+	mcpFile, err := cliconverter.ConvertCommandsToMCPFile(&commandItems)
 	if err != nil {
 		fmt.Printf("encountered errors while converting commands to mcp file: %s\n", err.Error())
 		return

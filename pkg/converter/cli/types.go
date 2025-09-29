@@ -1,4 +1,4 @@
-package cli_converter
+package cli
 
 import (
 	"github.com/invopop/jsonschema"
