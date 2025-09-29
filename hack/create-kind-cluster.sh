@@ -14,7 +14,7 @@ KEYCLOAK_SVC_NAME="external-keycloak"
 KEYCLOAK_SVC_NAMESPACE="default"
 
 # create keycloak container unless it already exists
-if [ "$(docker inspect -f '{{.State.Running}}' "${KEYCLOAK_CONTAINER_NAME}" 2>/dev/null || true)" != 'true' ]; then
+if [ "$($CONTAINER_RUNTIME inspect -f '{{.State.Running}}' "${KEYCLOAK_CONTAINER_NAME}" 2>/dev/null || true)" != 'true' ]; then
   header_text "No keycloak container found. Will create one..."
   "$(dirname "$0")"/keycloak.sh --init "DNS:${KEYCLOAK_CONTAINER_NAME},DNS:${KEYCLOAK_SVC_NAME},DNS:${KEYCLOAK_SVC_NAME}.${KEYCLOAK_SVC_NAMESPACE}.svc,DNS:${KEYCLOAK_SVC_NAME}.${KEYCLOAK_SVC_NAMESPACE}.svc.${CLUSTER_SUFFIX}" --start
 else
