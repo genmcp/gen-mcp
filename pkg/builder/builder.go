@@ -281,7 +281,7 @@ func (b *ImageBuilder) createMCPFileLayer(
 func createTarWithFile(filepath, filename, os string, data []byte, fileInfo fs.FileInfo, mode int64) (*bytes.Buffer, error) {
 	buf := bytes.NewBuffer(nil)
 	tw := tar.NewWriter(buf)
-	defer tw.Close()
+	defer func() { _ = tw.Close() }()
 
 	if err := tw.WriteHeader(&tar.Header{
 		Name:     filepath,
