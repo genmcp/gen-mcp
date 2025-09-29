@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/genmcp/gen-mcp/pkg/openapi"
+	"github.com/genmcp/gen-mcp/pkg/converter/openapi"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
 )
