@@ -58,6 +58,7 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 
 	if err := b.Push(ctx, img, imageTag); err != nil {
 		fmt.Printf("failed to push image - ensure you are logged in: %s\n", err.Error())
+		os.Exit(1)
 	}
 
 	fmt.Printf("successfully pushed %s\n", imageTag)
