@@ -126,11 +126,19 @@ function start_keycloak() {
   echo "Health endpoint: https://localhost:9000/health"
   
   echo "Waiting for Keycloak to be ready..."
+  local timeout=180
+  local elapsed=0
   until curl -k -s https://localhost:9000/health/ready > /dev/null 2>&1; do
+    if [[ $elapsed -ge $timeout ]]; then
+      echo ""
+      abort "Error: Keycloak failed to become ready within ${timeout} seconds"
+    fi
+
     printf "."
     sleep 2
+    elapsed=$((elapsed + 2))
   done
-  header_text " Keycloak is ready!"
+  header_text "Keycloak is ready!"
 }
 
 function stop_keycloak() {
