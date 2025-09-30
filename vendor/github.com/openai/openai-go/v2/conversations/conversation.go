@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/openai/openai-go/v2/internal/apijson"
 	"github.com/openai/openai-go/v2/internal/requestconfig"
@@ -42,15 +43,15 @@ func NewConversationService(opts ...option.RequestOption) (r ConversationService
 
 // Create a conversation.
 func (r *ConversationService) New(ctx context.Context, body ConversationNewParams, opts ...option.RequestOption) (res *Conversation, err error) {
-	opts = append(r.Options[:], opts...)
+	opts = slices.Concat(r.Options, opts)
 	path := "conversations"
 	err = requestconfig.ExecuteNewRequest(ctx, http.MethodPost, path, body, &res, opts...)
 	return
 }
 
-// Get a conversation with the given ID.
+// Get a conversation
 func (r *ConversationService) Get(ctx context.Context, conversationID string, opts ...option.RequestOption) (res *Conversation, err error) {
-	opts = append(r.Options[:], opts...)
+	opts = slices.Concat(r.Options, opts)
 	if conversationID == "" {
 		err = errors.New("missing required conversation_id parameter")
 		return
@@ -60,9 +61,9 @@ func (r *ConversationService) Get(ctx context.Context, conversationID string, op
 	return
 }
 
-// Update a conversation's metadata with the given ID.
+// Update a conversation
 func (r *ConversationService) Update(ctx context.Context, conversationID string, body ConversationUpdateParams, opts ...option.RequestOption) (res *Conversation, err error) {
-	opts = append(r.Options[:], opts...)
+	opts = slices.Concat(r.Options, opts)
 	if conversationID == "" {
 		err = errors.New("missing required conversation_id parameter")
 		return
@@ -72,9 +73,9 @@ func (r *ConversationService) Update(ctx context.Context, conversationID string,
 	return
 }
 
-// Delete a conversation with the given ID.
+// Delete a conversation. Items in the conversation will not be deleted.
 func (r *ConversationService) Delete(ctx context.Context, conversationID string, opts ...option.RequestOption) (res *ConversationDeletedResource, err error) {
-	opts = append(r.Options[:], opts...)
+	opts = slices.Concat(r.Options, opts)
 	if conversationID == "" {
 		err = errors.New("missing required conversation_id parameter")
 		return
@@ -456,10 +457,11 @@ func (r *ConversationNewParams) UnmarshalJSON(data []byte) error {
 type ConversationUpdateParams struct {
 	// Set of 16 key-value pairs that can be attached to an object. This can be useful
 	// for storing additional information about the object in a structured format, and
-	// querying for objects via API or the dashboard. Keys are strings with a maximum
-	// length of 64 characters. Values are strings with a maximum length of 512
-	// characters.
-	Metadata map[string]string `json:"metadata,omitzero,required"`
+	// querying for objects via API or the dashboard.
+	//
+	// Keys are strings with a maximum length of 64 characters. Values are strings with
+	// a maximum length of 512 characters.
+	Metadata shared.Metadata `json:"metadata,omitzero,required"`
 	paramObj
 }
 

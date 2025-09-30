@@ -1,5 +1,38 @@
 # Changelog
 
+## 2.7.1 (2025-09-29)
+
+Full Changelog: [v2.7.0...v2.7.1](https://github.com/openai/openai-go/compare/v2.7.0...v2.7.1)
+
+### Bug Fixes
+
+* bugfix for setting JSON keys with special characters ([f9ae028](https://github.com/openai/openai-go/commit/f9ae0283fe34fef6a8a7909655423b45795e41fc))
+
+## 2.7.0 (2025-09-23)
+
+Full Changelog: [v2.6.1...v2.7.0](https://github.com/openai/openai-go/compare/v2.6.1...v2.7.0)
+
+### Features
+
+* **api:** gpt-5-codex ([b0eac3e](https://github.com/openai/openai-go/commit/b0eac3ed2bcf2b7f0a5d6d68c9e13e7b7e409f0f))
+
+## 2.6.1 (2025-09-22)
+
+Full Changelog: [v2.6.0...v2.6.1](https://github.com/openai/openai-go/compare/v2.6.0...v2.6.1)
+
+### Bug Fixes
+
+* **api:** fix mcp tool name ([6de601a](https://github.com/openai/openai-go/commit/6de601aa71c7325938f839cdc0f3b7c808a5d7f8))
+* use slices.Concat instead of sometimes modifying r.Options ([7312ee7](https://github.com/openai/openai-go/commit/7312ee73efec4bd523e18b9524072d6dcf8bab09))
+
+
+### Chores
+
+* **api:** openapi updates for conversations ([4a7d204](https://github.com/openai/openai-go/commit/4a7d204a4e1140babdeab43bdac59dfc8dae95b5))
+* bump minimum go version to 1.22 ([8396ab5](https://github.com/openai/openai-go/commit/8396ab5d918bf068b6d6f342c825ba32d1d982b0))
+* do not install brew dependencies in ./scripts/bootstrap by default ([d519b81](https://github.com/openai/openai-go/commit/d519b8100047bae1dbd1458112097c1c21880977))
+* update more docs for 1.22 ([1b0514d](https://github.com/openai/openai-go/commit/1b0514df9508a652a11cb8efa70ac30eaa088dbe))
+
 ## 2.6.0 (2025-09-19)
 
 Full Changelog: [v2.5.0...v2.6.0](https://github.com/openai/openai-go/compare/v2.5.0...v2.6.0)
