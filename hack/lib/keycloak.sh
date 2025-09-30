@@ -109,7 +109,7 @@ function start_keycloak() {
   fi
   
   # Start Keycloak container with TLS and HTTP
-  $CONTAINER_RUNTIME run -d --name ${KEYCLOAK_CONTAINER_NAME} \
+  $CONTAINER_ENGINE run -d --name ${KEYCLOAK_CONTAINER_NAME} \
     -p 8443:8443 \
     -p 8081:8080 \
     -p 9000:9000 \
@@ -150,13 +150,13 @@ function start_keycloak() {
 
 function stop_keycloak() {
   header_text "Stopping Keycloak..."
-  $CONTAINER_RUNTIME stop "${KEYCLOAK_CONTAINER_NAME}" || true
-  $CONTAINER_RUNTIME rm "${KEYCLOAK_CONTAINER_NAME}" || true
+  $CONTAINER_ENGINE stop "${KEYCLOAK_CONTAINER_NAME}" || true
+  $CONTAINER_ENGINE rm "${KEYCLOAK_CONTAINER_NAME}" || true
 }
 
 function keycloak_logs() {
   header_text "Receiving Keycloak logs..."
-  $CONTAINER_RUNTIME logs -f "${KEYCLOAK_CONTAINER_NAME}"
+  $CONTAINER_ENGINE logs -f "${KEYCLOAK_CONTAINER_NAME}"
 }
 
 function add_realm() {
@@ -169,12 +169,12 @@ function add_realm() {
   header_text "Adding realm: $realm_name"
   
   # Check if container is running
-  if ! $CONTAINER_RUNTIME ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
+  if ! $CONTAINER_ENGINE ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
     abort "Error: Keycloak container is not running. Start it with --start first."
   fi
   
   # Add realm using Keycloak admin CLI
-  $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+  $CONTAINER_ENGINE exec "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh create realms \
     -s realm="$realm_name" \
     -s enabled=true \
@@ -199,12 +199,12 @@ function add_client() {
   header_text "Adding client '$client_id' to realm '$realm_name'"
   
   # Check if container is running
-  if ! $CONTAINER_RUNTIME ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
+  if ! $CONTAINER_ENGINE ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
     abort "Error: Keycloak container is not running. Start it with --start first."
   fi
   
   # Add client using Keycloak admin CLI with direct access grant enabled
-  $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+  $CONTAINER_ENGINE exec "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh create clients \
     -r "$realm_name" \
     -s clientId="$client_id" \
@@ -234,12 +234,12 @@ function add_scope() {
   header_text "Adding scope '$scope_name' to realm '$realm_name'"
   
   # Check if container is running
-  if ! $CONTAINER_RUNTIME ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
+  if ! $CONTAINER_ENGINE ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
     abort "Error: Keycloak container is not running. Start it with --start first."
   fi
   
   # Add scope using Keycloak admin CLI
-  $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+  $CONTAINER_ENGINE exec "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh create client-scopes \
     -r "$realm_name" \
     -s name="$scope_name" \
@@ -267,13 +267,13 @@ function assign_scope() {
   header_text "Assigning scope '$scope_name' to client '$client_id' in realm '$realm_name'"
   
   # Check if container is running
-  if ! $CONTAINER_RUNTIME ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
+  if ! $CONTAINER_ENGINE ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
     abort "Error: Keycloak container is not running. Start it with --start first."
   fi
   
   # Get the client's internal ID
   local internal_client_id
-  internal_client_id=$($CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+  internal_client_id=$($CONTAINER_ENGINE exec "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh get clients \
     -r "$realm_name" \
     --fields id,clientId \
@@ -291,7 +291,7 @@ function assign_scope() {
   
   # Get the scope's internal ID
   local scope_id
-  scope_id=$($CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+  scope_id=$($CONTAINER_ENGINE exec "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh get client-scopes \
     -r "$realm_name" \
     --fields id,name \
@@ -308,7 +308,7 @@ function assign_scope() {
   fi
   
   # Assign the scope to the client as optional
-  $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+  $CONTAINER_ENGINE exec "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh update clients/"$internal_client_id"/optional-client-scopes/"$scope_id" \
     -r "$realm_name" \
     --server https://localhost:8443 \
@@ -331,12 +331,12 @@ function disable_trusted_hosts() {
   header_text "Disabling trusted hosts policy for dynamic client registration in realm '$realm_name'..."
 
   # Check if container is running
-  if ! $CONTAINER_RUNTIME ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
+  if ! $CONTAINER_ENGINE ps | grep -q "${KEYCLOAK_CONTAINER_NAME}"; then
     abort "Error: Keycloak container is not running. Start it with --start first."
   fi
 
   # Configure admin CLI credentials
-  $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+  $CONTAINER_ENGINE exec "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh config credentials \
     --server http://localhost:8081 \
     --realm "${realm_name}" \
@@ -345,7 +345,7 @@ function disable_trusted_hosts() {
 
   # Find and delete the trusted hosts policy component
   local trusted_hosts_id
-  trusted_hosts_id=$($CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+  trusted_hosts_id=$($CONTAINER_ENGINE exec "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh get components \
     --realm "$realm_name" \
     --query 'providerType=org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy' \
@@ -353,7 +353,7 @@ function disable_trusted_hosts() {
      jq -r '.[] | select(.providerId=="trusted-hosts") | .id')
 
   if [[ -n "$trusted_hosts_id" ]]; then
-    $CONTAINER_RUNTIME exec "${KEYCLOAK_CONTAINER_NAME}" \
+    $CONTAINER_ENGINE exec "${KEYCLOAK_CONTAINER_NAME}" \
       /opt/keycloak/bin/kcadm.sh delete components/"$trusted_hosts_id" -r "$realm_name"
     header_text "Trusted hosts policy removed successfully from realm '$realm_name' (ID: $trusted_hosts_id)"
   else
