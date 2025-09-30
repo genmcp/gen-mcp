@@ -224,16 +224,19 @@ func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*
 			continue
 		}
 
-		s.AddTool(
-			&mcp.Tool{
-				Name:         t.Name,
-				Description:  t.Description,
-				Title:        t.Title,
-				InputSchema:  t.InputSchema,
-				OutputSchema: t.OutputSchema,
-			},
-			handler,
-		)
+		tool := &mcp.Tool{
+			Name:        t.Name,
+			Description: t.Description,
+			Title:       t.Title,
+			InputSchema: t.InputSchema,
+		}
+
+		// Only set OutputSchema if it's not nil to avoid typed nil issues
+		if t.OutputSchema != nil {
+			tool.OutputSchema = t.OutputSchema
+		}
+
+		s.AddTool(tool, handler)
 	}
 
 	return s, toolErr
