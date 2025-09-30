@@ -39,6 +39,11 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	if imageTag == "" {
+		fmt.Printf("--tag is required to build/push an image\n")
+		os.Exit(1)
+	}
+
 	opts := builder.BuildOptions{
 		Platform:    parsedPlatform,
 		BaseImage:   baseImage,
