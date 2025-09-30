@@ -257,13 +257,17 @@ func (b *ImageBuilder) assembleImage(baseImg v1.Image, opts BuildOptions, layers
 	cfg = cfg.DeepCopy()
 
 	binaryPath := "/usr/local/bin/genmcp-server"
+	workingDir := "/app"
+	mcpFilePath := "/app/mcpfile.yaml"
 	if opts.Platform.OS == "windows" {
 		binaryPath = `C:\usr\local\bin\genmcp-server.exe`
+		workingDir = `C:\app`
+		mcpFilePath = `C:\app\mcpfile.yaml`
 	}
-	cfg.Config.Entrypoint = []string{binaryPath}
 
-	cfg.Config.WorkingDir = "/app"
-	cfg.Config.Env = append(cfg.Config.Env, "MCP_FILE_PATH=/app/mcpfile.yaml")
+	cfg.Config.Entrypoint = []string{binaryPath}
+	cfg.Config.WorkingDir = workingDir
+	cfg.Config.Env = append(cfg.Config.Env, "MCP_FILE_PATH="+mcpFilePath)
 	cfg.Config.User = "1001:1001"
 	cfg.Created = v1.Time{Time: createTime}
 
