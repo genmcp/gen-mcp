@@ -7,7 +7,6 @@ import (
 	"strings"
 )
 
-
 type InvocationValidator func(invocationType string, data json.RawMessage, tool *Tool) error
 
 func (t *Tool) Validate(invocationValidator InvocationValidator) error {

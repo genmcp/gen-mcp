@@ -108,8 +108,8 @@ github.com/moby/sys/sequential v0.6.0 h1:qrx7XFUd/5DxtqcoH1h438hF5TmOvzC/lspjy7z
 github.com/moby/sys/sequential v0.6.0/go.mod h1:uyv8EUTrca5PnDsdMGXhZe6CCe8U/UiTWd+lL+7b/Ko=
 github.com/moby/term v0.0.0-20221205130635-1aeaba878587 h1:HfkjXDfhgVaN5rmueG8cL8KKeFNecRCXFhaJ2qZ5SKA=
 github.com/moby/term v0.0.0-20221205130635-1aeaba878587/go.mod h1:8FzsFHVUBGZdbDsJw/ot+X+d5HLUbvklYLJ9uGfcI3Y=
-github.com/modelcontextprotocol/go-sdk v0.6.0 h1:cmtMYfRAUtEtCiuorOWPj7ygcypfuB2FgFEDBqZqgy4=
-github.com/modelcontextprotocol/go-sdk v0.6.0/go.mod h1:djQKZ74bEV+UMAmyG/L0coVhV0HM3fpVtGuUPls0znc=
+github.com/modelcontextprotocol/go-sdk v0.8.0 h1:jdsBtGzBLY287WKSIjYovOXAqtJkP+HtFQFKrZd4a6c=
+github.com/modelcontextprotocol/go-sdk v0.8.0/go.mod h1:nYtYQroQ2KQiM0/SbyEPUWQ6xs4B95gJjEalc9AQyOs=
 github.com/morikuni/aec v1.0.0 h1:nP9CBfwrvYnBRgY6qfDQkygYDmYwOilePFkwzv4dU8A=
 github.com/morikuni/aec v1.0.0/go.mod h1:BbKIizmSmc5MMPqRYbxO4ZU0S0+P200+tUnFx7PXmsc=
 github.com/onsi/ginkgo/v2 v2.25.3 h1:Ty8+Yi/ayDAGtk4XxmmfUy4GabvM+MegeB4cDLRi6nw=

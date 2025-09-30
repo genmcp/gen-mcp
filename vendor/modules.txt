@@ -241,7 +241,7 @@ github.com/mitchellh/go-homedir
 github.com/moby/docker-image-spec/specs-go/v1
 # github.com/moby/sys/sequential v0.6.0
 ## explicit; go 1.17
-# github.com/modelcontextprotocol/go-sdk v0.6.0
+# github.com/modelcontextprotocol/go-sdk v0.8.0
 ## explicit; go 1.23.0
 github.com/modelcontextprotocol/go-sdk/auth
 github.com/modelcontextprotocol/go-sdk/internal/jsonrpc2
