@@ -7,6 +7,13 @@ readonly KEYCLOAK_ADMIN="admin"
 readonly KEYCLOAK_ADMIN_PASSWORD="admin"
 readonly KEYCLOAK_CONTAINER_NAME="keycloak"
 readonly TRUSTSTORE_PASS="password"
+# Set volume mount flags conditionally based on OS
+# On macOS with podman, don't set the SELinux label
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  readonly VOLUME_MOUNT_FLAGS=""
+else
+  readonly VOLUME_MOUNT_FLAGS=":z"
+fi
 
 function show_keycloak_help() {
   cat << EOF
@@ -106,7 +113,7 @@ function start_keycloak() {
     -p 8443:8443 \
     -p 8081:8080 \
     -p 9000:9000 \
-    -v "${KEYCLOAK_CERTS}:/opt/keycloak/conf/certs" \
+    -v "${KEYCLOAK_CERTS}:/opt/keycloak/conf/certs${VOLUME_MOUNT_FLAGS}" \
     -e KC_BOOTSTRAP_ADMIN_USERNAME=${KEYCLOAK_ADMIN} \
     -e KC_BOOTSTRAP_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD} \
     -e KC_HOSTNAME=localhost \
