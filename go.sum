@@ -53,8 +53,8 @@ github.com/lestrrat-go/option/v2 v2.0.0 h1:XxrcaJESE1fokHy3FpaQ/cXW8ZsIdWcdFzzLO
 github.com/lestrrat-go/option/v2 v2.0.0/go.mod h1:oSySsmzMoR0iRzCDCaUfsCzxQHUEuhOViQObyy7S6Vg=
 github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0=
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
-github.com/modelcontextprotocol/go-sdk v0.6.0 h1:cmtMYfRAUtEtCiuorOWPj7ygcypfuB2FgFEDBqZqgy4=
-github.com/modelcontextprotocol/go-sdk v0.6.0/go.mod h1:djQKZ74bEV+UMAmyG/L0coVhV0HM3fpVtGuUPls0znc=
+github.com/modelcontextprotocol/go-sdk v0.8.0 h1:jdsBtGzBLY287WKSIjYovOXAqtJkP+HtFQFKrZd4a6c=
+github.com/modelcontextprotocol/go-sdk v0.8.0/go.mod h1:nYtYQroQ2KQiM0/SbyEPUWQ6xs4B95gJjEalc9AQyOs=
 github.com/onsi/ginkgo/v2 v2.25.3 h1:Ty8+Yi/ayDAGtk4XxmmfUy4GabvM+MegeB4cDLRi6nw=
 github.com/onsi/ginkgo/v2 v2.25.3/go.mod h1:43uiyQC4Ed2tkOzLsEYm7hnrb7UJTWHYNsuy3bG/snE=
 github.com/onsi/gomega v1.38.2 h1:eZCjf2xjZAqe+LeWvKb5weQ+NcPwX84kqJ0cZNxok2A=

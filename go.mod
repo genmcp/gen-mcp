@@ -8,7 +8,7 @@ require (
 	github.com/invopop/jsonschema v0.13.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lestrrat-go/jwx/v3 v3.0.11
-	github.com/modelcontextprotocol/go-sdk v0.6.0
+	github.com/modelcontextprotocol/go-sdk v0.8.0
 	github.com/onsi/ginkgo/v2 v2.25.3
 	github.com/onsi/gomega v1.38.2
 	github.com/openai/openai-go/v2 v2.6.0

@@ -88,9 +88,20 @@ func (t *Tool) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	if t.InputSchema == nil {
+		t.InputSchema = &jsonschema.Schema{
+			Properties: make(map[string]*jsonschema.Schema),
+		}
+	}
+
 	if t.InputSchema.Properties == nil {
 		// set the properties to be not nil so that it serializes as {} (required for some clients to properly parse the tool)
 		t.InputSchema.Properties = make(map[string]*jsonschema.Schema)
+	}
+
+	if t.InputSchema.Type == "" {
+		// ensure that this is object
+		t.InputSchema.Type = "object"
 	}
 
 	if len(tmp.Invocation) != 1 {
