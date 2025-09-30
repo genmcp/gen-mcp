@@ -13,6 +13,11 @@ NODE_SHA=${NODE_SHA:-"sha256:7416a61b42b1662ca6ca89f02028ac133a309a2a30ba309614e
 KEYCLOAK_SVC_NAME="external-keycloak"
 KEYCLOAK_SVC_NAMESPACE="default"
 
+# Set KIND provider for podman on Linux
+if [ "$(uname -s)" != "Darwin" ] && [ "$CONTAINER_ENGINE" = "podman" ]; then
+  export KIND_EXPERIMENTAL_PROVIDER=podman
+fi
+
 # create keycloak container unless it already exists
 if [ "$($CONTAINER_ENGINE inspect -f '{{.State.Running}}' "${KEYCLOAK_CONTAINER_NAME}" 2>/dev/null || true)" != 'true' ]; then
   header_text "No keycloak container found. Will create one..."
@@ -20,6 +25,8 @@ if [ "$($CONTAINER_ENGINE inspect -f '{{.State.Running}}' "${KEYCLOAK_CONTAINER_
 else
   header_text "Keycloak container exists already. Skipping Keycloak setup..."
 fi
+
+
 
 # Create KinD cluster
 cat <<EOF | kind create cluster --config=-
