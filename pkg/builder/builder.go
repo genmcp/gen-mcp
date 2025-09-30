@@ -93,7 +93,12 @@ func (d *DefaultImageDownloader) DownloadImage(ctx context.Context, baseImage st
 		return nil, fmt.Errorf("failed to parse base image name %s: %w", baseImage, err)
 	}
 
-	img, err := remote.Image(ref, remote.WithContext(ctx), remote.WithPlatform(*platform))
+	img, err := remote.Image(
+		ref,
+		remote.WithContext(ctx),
+		remote.WithPlatform(*platform),
+		remote.WithAuthFromKeychain(authn.DefaultKeychain),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to pull base image %s, %w", baseImage, err)
 	}
@@ -144,7 +149,7 @@ const (
 	ImageDescriptionLabel = "org.opencontainers.image.description"
 	ImageCreatedLabel     = "org.opencontainers.image.created"
 	ImageRefNameLabel     = "org.opencontainers.image.ref.name"
-	ImageVersionLabel     = "org.opencontainers.image.ref.version"
+	ImageVersionLabel     = "org.opencontainers.image.version"
 )
 
 type ImageBuilder struct {
@@ -250,7 +255,13 @@ func (b *ImageBuilder) assembleImage(baseImg v1.Image, opts BuildOptions, layers
 	createTime := time.Now()
 
 	cfg = cfg.DeepCopy()
-	cfg.Config.Entrypoint = []string{"/usr/local/bin/genmcp-server"}
+
+	binaryPath := "/usr/local/bin/genmcp-server"
+	if opts.Platform.OS == "windows" {
+		binaryPath = `C:\usr\local\bin\genmcp-server.exe`
+	}
+	cfg.Config.Entrypoint = []string{binaryPath}
+
 	cfg.Config.WorkingDir = "/app"
 	cfg.Config.Env = append(cfg.Config.Env, "MCP_FILE_PATH=/app/mcpfile.yaml")
 	cfg.Config.User = "1001:1001"
@@ -283,7 +294,12 @@ func (b *ImageBuilder) createBinaryLayer(
 	platform *v1.Platform,
 	layerMediaType types.MediaType,
 ) (v1.Layer, error) {
-	layerData, err := createTarWithFile("/usr/local/bin", "genmcp-server", platform.OS, binaryData, fileInfo, 0777)
+	fileName := "genmcp-server"
+	if platform.OS == "windows" {
+		fileName = "genmcp-server.exe"
+	}
+
+	layerData, err := createTarWithFile("/usr/local/bin", fileName, platform.OS, binaryData, fileInfo, 0777)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create layer for genmcp-server binary: %w", err)
 	}
