@@ -15,6 +15,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/daemon"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
@@ -32,10 +33,14 @@ type BinaryProvider interface {
 	ExtractServerBinary(platform *v1.Platform) ([]byte, fs.FileInfo, error)
 }
 
-// RegistryClient interface for container registry operations
-type RegistryClient interface {
+// ImageDownloader interface for downloading base images
+type ImageDownloader interface {
 	DownloadImage(ctx context.Context, baseImage string, platform *v1.Platform) (v1.Image, error)
-	PushImage(ctx context.Context, img v1.Image, ref string) error
+}
+
+// ImageSaver interface for saving built images to different destinations
+type ImageSaver interface {
+	SaveImage(ctx context.Context, img v1.Image, ref string) error
 }
 
 // OSFileSystem implements FileSystem using the standard os package
@@ -73,10 +78,16 @@ func (bp *EmbedBinaryProvider) ExtractServerBinary(platform *v1.Platform) ([]byt
 	return binary, fileInfo, nil
 }
 
-// DefaultRegistryClient implements RegistryClient using go-containerregistry
-type DefaultRegistryClient struct{}
+// DefaultImageDownloader implements ImageDownloader using go-containerregistry
+type DefaultImageDownloader struct{}
 
-func (rc *DefaultRegistryClient) DownloadImage(ctx context.Context, baseImage string, platform *v1.Platform) (v1.Image, error) {
+// RegistryImageSaver implements ImageSaver for pushing to container registries
+type RegistryImageSaver struct{}
+
+// DaemonImageSaver implements ImageSaver for saving to local container engine
+type DaemonImageSaver struct{}
+
+func (d *DefaultImageDownloader) DownloadImage(ctx context.Context, baseImage string, platform *v1.Platform) (v1.Image, error) {
 	ref, err := name.ParseReference(baseImage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse base image name %s: %w", baseImage, err)
@@ -90,7 +101,7 @@ func (rc *DefaultRegistryClient) DownloadImage(ctx context.Context, baseImage st
 	return img, nil
 }
 
-func (rc *DefaultRegistryClient) PushImage(ctx context.Context, img v1.Image, ref string) error {
+func (r *RegistryImageSaver) SaveImage(ctx context.Context, img v1.Image, ref string) error {
 	repo, err := name.ParseReference(ref)
 	if err != nil {
 		return fmt.Errorf("invalid reference %s: %w", ref, err)
@@ -101,6 +112,20 @@ func (rc *DefaultRegistryClient) PushImage(ctx context.Context, img v1.Image, re
 		remote.WithAuthFromKeychain(authn.DefaultKeychain),
 	); err != nil {
 		return fmt.Errorf("failed to push image to %s: %w", ref, err)
+	}
+
+	return nil
+}
+
+func (d *DaemonImageSaver) SaveImage(ctx context.Context, img v1.Image, ref string) error {
+	tag, err := name.NewTag(ref)
+	if err != nil {
+		return fmt.Errorf("failed to parse tag %s: %w", ref, err)
+	}
+
+	_, err = daemon.Write(tag, img, daemon.WithContext(ctx))
+	if err != nil {
+		return fmt.Errorf("failed to save image to local container engine: %w", err)
 	}
 
 	return nil
@@ -123,23 +148,32 @@ const (
 )
 
 type ImageBuilder struct {
-	fs             FileSystem
-	binaryProvider BinaryProvider
-	registryClient RegistryClient
+	fs              FileSystem
+	binaryProvider  BinaryProvider
+	imageDownloader ImageDownloader
+	imageSaver      ImageSaver
 }
 
-func New() *ImageBuilder {
+func New(saveToRegistry bool) *ImageBuilder {
+	var saver ImageSaver
+	if saveToRegistry {
+		saver = &RegistryImageSaver{}
+	} else {
+		saver = &DaemonImageSaver{}
+	}
+
 	return &ImageBuilder{
-		fs:             &OSFileSystem{},
-		binaryProvider: &EmbedBinaryProvider{binaries: serverBinaries},
-		registryClient: &DefaultRegistryClient{},
+		fs:              &OSFileSystem{},
+		binaryProvider:  &EmbedBinaryProvider{binaries: serverBinaries},
+		imageDownloader: &DefaultImageDownloader{},
+		imageSaver:      saver,
 	}
 }
 
 func (b *ImageBuilder) Build(ctx context.Context, opts BuildOptions) (v1.Image, error) {
 	opts.SetDefaults()
 
-	baseImg, err := b.registryClient.DownloadImage(ctx, opts.BaseImage, opts.Platform)
+	baseImg, err := b.imageDownloader.DownloadImage(ctx, opts.BaseImage, opts.Platform)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download base image: %w", err)
 	}
@@ -182,10 +216,9 @@ func (b *ImageBuilder) Build(ctx context.Context, opts BuildOptions) (v1.Image, 
 	return img, nil
 }
 
-func (b *ImageBuilder) Push(ctx context.Context, img v1.Image, ref string) error {
-	return b.registryClient.PushImage(ctx, img, ref)
+func (b *ImageBuilder) Save(ctx context.Context, img v1.Image, ref string) error {
+	return b.imageSaver.SaveImage(ctx, img, ref)
 }
-
 
 func (b *ImageBuilder) getLayerMediaType(baseImg v1.Image) (types.MediaType, error) {
 	mt, err := baseImg.MediaType()
@@ -202,7 +235,6 @@ func (b *ImageBuilder) getLayerMediaType(baseImg v1.Image) (types.MediaType, err
 		return "", fmt.Errorf("invalid base image media type '%s' expected one of '%s' or '%s'", mt, types.OCIManifestSchema1, types.DockerManifestSchema2)
 	}
 }
-
 
 func (b *ImageBuilder) assembleImage(baseImg v1.Image, opts BuildOptions, layers ...v1.Layer) (v1.Image, error) {
 	img, err := mutate.AppendLayers(baseImg, layers...)

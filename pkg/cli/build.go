@@ -15,11 +15,12 @@ func init() {
 	buildCmd.Flags().StringVarP(&mcpFile, "file", "f", "mcpfile.yaml", "mcp file to build")
 	buildCmd.Flags().StringVar(&platform, "platform", "linux/amd64", "the platform to build genmcp for")
 	buildCmd.Flags().StringVar(&imageTag, "tag", "", "image tag for the registry")
+	buildCmd.Flags().BoolVar(&push, "push", false, "push the image to the registry (if false, store locally)")
 }
 
 var buildCmd = &cobra.Command{
 	Use:   "build",
-	Short: "Build and push container image",
+	Short: "Build container image and save locally or push to registry",
 	Run:   executeBuildCmd,
 }
 
@@ -28,6 +29,7 @@ var (
 	mcpFile   string
 	platform  string
 	imageTag  string
+	push      bool
 )
 
 func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
@@ -40,7 +42,7 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 	}
 
 	if imageTag == "" {
-		fmt.Printf("--tag is required to build/push an image\n")
+		fmt.Printf("--tag is required to build an image\n")
 		os.Exit(1)
 	}
 
@@ -51,7 +53,7 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 		ImageTag:    imageTag,
 	}
 
-	b := builder.New()
+	b := builder.New(push)
 	fmt.Printf("building image...\n")
 	img, err := b.Build(ctx, opts)
 	if err != nil {
@@ -59,12 +61,24 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	fmt.Printf("successfully build image!\npushing image to %s...\n", imageTag)
+	if push {
+		fmt.Printf("successfully built image!\npushing image to %s...\n", imageTag)
+	} else {
+		fmt.Printf("successfully built image!\nsaving image to local container engine as %s...\n", imageTag)
+	}
 
-	if err := b.Push(ctx, img, imageTag); err != nil {
-		fmt.Printf("failed to push image - ensure you are logged in: %s\n", err.Error())
+	if err := b.Save(ctx, img, imageTag); err != nil {
+		if push {
+			fmt.Printf("failed to push image - ensure you are logged in: %s\n", err.Error())
+		} else {
+			fmt.Printf("failed to save image to local container engine: %s\n", err.Error())
+		}
 		os.Exit(1)
 	}
 
-	fmt.Printf("successfully pushed %s\n", imageTag)
+	if push {
+		fmt.Printf("successfully pushed %s\n", imageTag)
+	} else {
+		fmt.Printf("successfully saved %s to local container engine\n", imageTag)
+	}
 }
