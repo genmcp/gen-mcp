@@ -109,7 +109,7 @@ function start_keycloak() {
   fi
   
   # Start Keycloak container with TLS and HTTP
-  $CONTAINER_ENGINE run -d --name ${KEYCLOAK_CONTAINER_NAME} \
+  $CONTAINER_ENGINE run -d --net=bridge --name ${KEYCLOAK_CONTAINER_NAME} \
     -p 8443:8443 \
     -p 8081:8080 \
     -p 9000:9000 \
