@@ -45,11 +45,11 @@ func (m *mockBinaryProvider) ExtractServerBinary(platform *v1.Platform) ([]byte,
 	return args.Get(0).([]byte), args.Get(1).(fs.FileInfo), args.Error(2)
 }
 
-type mockRegistryClient struct {
+type mockImageDownloader struct {
 	mock.Mock
 }
 
-func (m *mockRegistryClient) DownloadImage(ctx context.Context, baseImage string, platform *v1.Platform) (v1.Image, error) {
+func (m *mockImageDownloader) DownloadImage(ctx context.Context, baseImage string, platform *v1.Platform) (v1.Image, error) {
 	args := m.Called(ctx, baseImage, platform)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -57,7 +57,11 @@ func (m *mockRegistryClient) DownloadImage(ctx context.Context, baseImage string
 	return args.Get(0).(v1.Image), args.Error(1)
 }
 
-func (m *mockRegistryClient) PushImage(ctx context.Context, img v1.Image, ref string) error {
+type mockImageSaver struct {
+	mock.Mock
+}
+
+func (m *mockImageSaver) SaveImage(ctx context.Context, img v1.Image, ref string) error {
 	args := m.Called(ctx, img, ref)
 	return args.Error(0)
 }
@@ -129,7 +133,7 @@ func TestImageBuilder_Build(t *testing.T) {
 	tt := []struct {
 		name           string
 		buildOptions   BuildOptions
-		setupMocks     func(*mockFileSystem, *mockBinaryProvider, *mockRegistryClient)
+		setupMocks     func(*mockFileSystem, *mockBinaryProvider, *mockImageDownloader)
 		expectedError  string
 		validateResult func(t *testing.T, img v1.Image)
 	}{
@@ -139,10 +143,10 @@ func TestImageBuilder_Build(t *testing.T) {
 				MCPFilePath: "/test/mcpfile.yaml",
 				ImageTag:    "test:latest",
 			},
-			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mrc *mockRegistryClient) {
+			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
 				// Mock base image download
 				baseImg := newTestImage(types.DockerManifestSchema2)
-				mrc.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(baseImg, nil)
+				mid.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(baseImg, nil)
 
 				// Mock binary extraction
 				binaryData := []byte("fake-binary-data")
@@ -167,9 +171,9 @@ func TestImageBuilder_Build(t *testing.T) {
 				MCPFilePath: "/custom/mcpfile.yaml",
 				ImageTag:    "custom:tag",
 			},
-			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mrc *mockRegistryClient) {
+			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
 				baseImg := newTestImage(types.OCIManifestSchema1)
-				mrc.On("DownloadImage", mock.Anything, "custom:base", &v1.Platform{OS: "windows", Architecture: "amd64"}).Return(baseImg, nil)
+				mid.On("DownloadImage", mock.Anything, "custom:base", &v1.Platform{OS: "windows", Architecture: "amd64"}).Return(baseImg, nil)
 
 				binaryData := []byte("windows-binary-data")
 				binaryInfo := &mockFileInfo{name: "genmcp-server.exe", size: int64(len(binaryData))}
@@ -189,8 +193,8 @@ func TestImageBuilder_Build(t *testing.T) {
 			buildOptions: BuildOptions{
 				MCPFilePath: "/test/mcpfile.yaml",
 			},
-			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mrc *mockRegistryClient) {
-				mrc.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(nil, errors.New("download failed"))
+			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
+				mid.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(nil, errors.New("download failed"))
 			},
 			expectedError: "failed to download base image: download failed",
 		},
@@ -199,9 +203,9 @@ func TestImageBuilder_Build(t *testing.T) {
 			buildOptions: BuildOptions{
 				MCPFilePath: "/test/mcpfile.yaml",
 			},
-			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mrc *mockRegistryClient) {
+			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
 				baseImg := newTestImage(types.DockerManifestSchema2)
-				mrc.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(baseImg, nil)
+				mid.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(baseImg, nil)
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "amd64"}).Return([]byte{}, nil, errors.New("binary not found"))
 			},
 			expectedError: "failed to extract server binary: binary not found",
@@ -211,9 +215,9 @@ func TestImageBuilder_Build(t *testing.T) {
 			buildOptions: BuildOptions{
 				MCPFilePath: "/nonexistent/mcpfile.yaml",
 			},
-			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mrc *mockRegistryClient) {
+			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
 				baseImg := newTestImage(types.DockerManifestSchema2)
-				mrc.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(baseImg, nil)
+				mid.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(baseImg, nil)
 
 				binaryData := []byte("fake-binary-data")
 				binaryInfo := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryData))}
@@ -228,9 +232,9 @@ func TestImageBuilder_Build(t *testing.T) {
 			buildOptions: BuildOptions{
 				MCPFilePath: "/test/mcpfile.yaml",
 			},
-			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mrc *mockRegistryClient) {
+			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
 				baseImg := newTestImage(types.DockerManifestSchema2)
-				mrc.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(baseImg, nil)
+				mid.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(baseImg, nil)
 
 				binaryData := []byte("fake-binary-data")
 				binaryInfo := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryData))}
@@ -247,9 +251,9 @@ func TestImageBuilder_Build(t *testing.T) {
 			buildOptions: BuildOptions{
 				MCPFilePath: "/test/mcpfile.yaml",
 			},
-			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mrc *mockRegistryClient) {
+			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
 				baseImg := newTestImage("application/vnd.unsupported")
-				mrc.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(baseImg, nil)
+				mid.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(baseImg, nil)
 
 				binaryData := []byte("fake-binary-data")
 				binaryInfo := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryData))}
@@ -271,15 +275,17 @@ func TestImageBuilder_Build(t *testing.T) {
 			// Setup mocks
 			mockFS := &mockFileSystem{}
 			mockBP := &mockBinaryProvider{}
-			mockRC := &mockRegistryClient{}
+			mockID := &mockImageDownloader{}
+			mockIS := &mockImageSaver{}
 
-			tc.setupMocks(mockFS, mockBP, mockRC)
+			tc.setupMocks(mockFS, mockBP, mockID)
 
 			// Create builder with mocked dependencies
 			builder := &ImageBuilder{
-				fs:             mockFS,
-				binaryProvider: mockBP,
-				registryClient: mockRC,
+				fs:              mockFS,
+				binaryProvider:  mockBP,
+				imageDownloader: mockID,
+				imageSaver:      mockIS,
 			}
 
 			// Execute test
@@ -301,30 +307,30 @@ func TestImageBuilder_Build(t *testing.T) {
 			// Verify all expectations were met
 			mockFS.AssertExpectations(t)
 			mockBP.AssertExpectations(t)
-			mockRC.AssertExpectations(t)
+			mockID.AssertExpectations(t)
 		})
 	}
 }
 
-func TestImageBuilder_Push(t *testing.T) {
+func TestImageBuilder_Save(t *testing.T) {
 	tt := []struct {
 		name          string
 		imageRef      string
-		setupMocks    func(*mockRegistryClient)
+		setupMocks    func(*mockImageSaver)
 		expectedError string
 	}{
 		{
 			name:     "successful push",
 			imageRef: "docker.io/test/image:latest",
-			setupMocks: func(mrc *mockRegistryClient) {
-				mrc.On("PushImage", mock.Anything, mock.Anything, "docker.io/test/image:latest").Return(nil)
+			setupMocks: func(mis *mockImageSaver) {
+				mis.On("SaveImage", mock.Anything, mock.Anything, "docker.io/test/image:latest").Return(nil)
 			},
 		},
 		{
 			name:     "push failure",
 			imageRef: "registry.example.com/test/image:v1.0.0",
-			setupMocks: func(mrc *mockRegistryClient) {
-				mrc.On("PushImage", mock.Anything, mock.Anything, "registry.example.com/test/image:v1.0.0").Return(errors.New("push failed"))
+			setupMocks: func(mis *mockImageSaver) {
+				mis.On("SaveImage", mock.Anything, mock.Anything, "registry.example.com/test/image:v1.0.0").Return(errors.New("push failed"))
 			},
 			expectedError: "push failed",
 		},
@@ -335,12 +341,12 @@ func TestImageBuilder_Push(t *testing.T) {
 			t.Parallel()
 
 			// Setup mocks
-			mockRC := &mockRegistryClient{}
-			tc.setupMocks(mockRC)
+			mockIS := &mockImageSaver{}
+			tc.setupMocks(mockIS)
 
 			// Create builder with mocked registry client
 			builder := &ImageBuilder{
-				registryClient: mockRC,
+				imageSaver: mockIS,
 			}
 
 			// Create fake image for testing
@@ -348,7 +354,7 @@ func TestImageBuilder_Push(t *testing.T) {
 
 			// Execute test
 			ctx := context.Background()
-			err := builder.Push(ctx, img, tc.imageRef)
+			err := builder.Save(ctx, img, tc.imageRef)
 
 			// Validate results
 			if tc.expectedError != "" {
@@ -359,7 +365,7 @@ func TestImageBuilder_Push(t *testing.T) {
 			}
 
 			// Verify all expectations were met
-			mockRC.AssertExpectations(t)
+			mockIS.AssertExpectations(t)
 		})
 	}
 }
@@ -417,10 +423,10 @@ func TestBuildOptions_SetDefaults(t *testing.T) {
 
 func TestGetLayerMediaType(t *testing.T) {
 	tt := []struct {
-		name           string
-		setupImage     func() v1.Image
-		expectedType   types.MediaType
-		expectedError  string
+		name          string
+		setupImage    func() v1.Image
+		expectedType  types.MediaType
+		expectedError string
 	}{
 		{
 			name: "OCI manifest should return OCI layer type",
@@ -511,3 +517,4 @@ func TestExtractTagFromReference(t *testing.T) {
 		})
 	}
 }
+
