@@ -14,7 +14,7 @@ KEYCLOAK_SVC_NAME="external-keycloak"
 KEYCLOAK_SVC_NAMESPACE="default"
 
 # create keycloak container unless it already exists
-if [ "$($CONTAINER_RUNTIME inspect -f '{{.State.Running}}' "${KEYCLOAK_CONTAINER_NAME}" 2>/dev/null || true)" != 'true' ]; then
+if [ "$($CONTAINER_ENGINE inspect -f '{{.State.Running}}' "${KEYCLOAK_CONTAINER_NAME}" 2>/dev/null || true)" != 'true' ]; then
   header_text "No keycloak container found. Will create one..."
   "$(dirname "$0")"/keycloak.sh --init "DNS:${KEYCLOAK_CONTAINER_NAME},DNS:${KEYCLOAK_SVC_NAME},DNS:${KEYCLOAK_SVC_NAME}.${KEYCLOAK_SVC_NAMESPACE}.svc,DNS:${KEYCLOAK_SVC_NAME}.${KEYCLOAK_SVC_NAMESPACE}.svc.${CLUSTER_SUFFIX}" --start
 else
@@ -51,12 +51,12 @@ nodes:
 EOF
 
 header_text "Connecting keycloak to the cluster network if not already connected..."
-if [ "$($CONTAINER_RUNTIME inspect -f='{{json .NetworkSettings.Networks.kind}}' "${KEYCLOAK_CONTAINER_NAME}")" = 'null' ]; then
-  $CONTAINER_RUNTIME network connect "kind" "${KEYCLOAK_CONTAINER_NAME}"
+if [ "$($CONTAINER_ENGINE inspect -f='{{json .NetworkSettings.Networks.kind}}' "${KEYCLOAK_CONTAINER_NAME}")" = 'null' ]; then
+  $CONTAINER_ENGINE network connect "kind" "${KEYCLOAK_CONTAINER_NAME}"
 fi
 
 header_text "Creating service ${KEYCLOAK_SVC_NAME} in ${KEYCLOAK_SVC_NAMESPACE} namespace to expose Keycloak service..."
-readonly KEYCLOAK_IP="$($CONTAINER_RUNTIME inspect "${KEYCLOAK_CONTAINER_NAME}" --format='{{(index .NetworkSettings.Networks "kind").IPAddress}}')"
+readonly KEYCLOAK_IP="$($CONTAINER_ENGINE inspect "${KEYCLOAK_CONTAINER_NAME}" --format='{{(index .NetworkSettings.Networks "kind").IPAddress}}')"
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Service
@@ -99,5 +99,5 @@ EOF
 header_text "Update KinD nodes to reload the CA certificates"
 for no in $(kind get nodes); do
   # this is only for the nodes. The Pods need to mount the hostpath with the keycloak CA cert
-  $CONTAINER_RUNTIME exec -it "$no" update-ca-certificates;
+  $CONTAINER_ENGINE exec -it "$no" update-ca-certificates;
 done
