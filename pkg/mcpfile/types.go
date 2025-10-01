@@ -43,7 +43,7 @@ type Tool struct {
 
 func (t Tool) GetName() string                              { return t.Name }
 func (t Tool) GetDescription() string                       { return t.Description }
-func (t Tool) PrimitiveType() string                        { return "tool" }
+func (t Tool) PrimitiveType() string                        { return PrimitiveTypeTool }
 func (t Tool) GetInputSchema() *jsonschema.Schema           { return t.InputSchema }
 func (t Tool) GetOutputSchema() *jsonschema.Schema          { return t.OutputSchema }
 func (t Tool) GetInvocationData() json.RawMessage           { return t.InvocationData }
@@ -52,22 +52,22 @@ func (t Tool) GetRequiredScopes() []string                  { return t.RequiredS
 func (t Tool) GetResolvedInputSchema() *jsonschema.Resolved { return t.ResolvedInputSchema }
 
 type Prompt struct {
-	Name           string             `json:"name"`                     // name of the tool
-	Title          string             `json:"title,omitempty"`          // optional human readable name of the tool, for client display
-	Description    string             `json:"description"`              // description of the tool
+	Name           string             `json:"name"`                     // name of the prompt
+	Title          string             `json:"title,omitempty"`          // optional human readable name of the prompt, for client display
+	Description    string             `json:"description"`              // description of the prompt
 	Arguments      []*PromptArgument  `json:"arguments,omitempty"`      // list of arguments to use for templating the prompt.
-	InputSchema    *jsonschema.Schema `json:"inputSchema"`              // input schema to call the tool
-	OutputSchema   *jsonschema.Schema `json:"outputSchema,omitempty"`   // optional output schema of the tool
-	InvocationData json.RawMessage    `json:"invocation"`               // how the tool should be invoked
+	InputSchema    *jsonschema.Schema `json:"inputSchema"`              // input schema to call the prompt
+	OutputSchema   *jsonschema.Schema `json:"outputSchema,omitempty"`   // optional output schema of the prompt
+	InvocationData json.RawMessage    `json:"invocation"`               // how the prompt should be invoked
 	InvocationType string             `json:"-"`                        // which invocation type should be used
-	RequiredScopes []string           `json:"requiredScopes,omitempty"` // required OAuth scopes to be able to use the tool
+	RequiredScopes []string           `json:"requiredScopes,omitempty"` // required OAuth scopes to be able to use the prompt
 
 	ResolvedInputSchema *jsonschema.Resolved `json:"-"` // used internally after resolving the schema during validation
 }
 
 func (p Prompt) GetName() string                              { return p.Name }
 func (p Prompt) GetDescription() string                       { return p.Description }
-func (p Prompt) PrimitiveType() string                        { return "prompt" }
+func (p Prompt) PrimitiveType() string                        { return PrimitiveTypePrompt }
 func (p Prompt) GetInputSchema() *jsonschema.Schema           { return p.InputSchema }
 func (p Prompt) GetOutputSchema() *jsonschema.Schema          { return p.OutputSchema }
 func (p Prompt) GetInvocationData() json.RawMessage           { return p.InvocationData }

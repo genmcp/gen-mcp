@@ -162,7 +162,7 @@ func (p *Prompt) UnmarshalJSON(data []byte) error {
 	}
 
 	if len(tmp.Invocation) != 1 {
-		return fmt.Errorf("only one invocation handler should be defined per tool")
+		return fmt.Errorf("only one invocation handler should be defined per prompt")
 	}
 
 	for k, v := range tmp.Invocation {

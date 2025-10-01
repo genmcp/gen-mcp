@@ -20,7 +20,7 @@ func (t *Tool) MarshalJSON() ([]byte, error) {
 	return json.Marshal(tmp)
 }
 
-func (p *Prompt) MarshalPromptJSON() ([]byte, error) {
+func (p *Prompt) MarshalJSON() ([]byte, error) {
 	type Doppleganger Prompt
 
 	tmp := &struct {

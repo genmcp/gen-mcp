@@ -140,7 +140,7 @@ func runStdioServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) err
 	return s.Run(ctx, &mcp.StdioTransport{})
 }
 
-// checkPrimitiveAuthorization verifies if user has required scopes for a tool
+// checkPrimitiveAuthorization verifies if user has required scopes for a primitive (tool or prompt)
 func checkPrimitiveAuthorization(ctx context.Context, requiredScopes []string) error {
 	if len(requiredScopes) == 0 {
 		return nil // No scopes required
@@ -174,7 +174,7 @@ func createAuthorizedToolHandler(tool *mcpfile.Tool) (mcp.ToolHandler, error) {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Check if user has required scopes for this tool
 		if err := checkPrimitiveAuthorization(ctx, tool.RequiredScopes); err != nil {
-			return utils.McpTextError("forbidden: %s fpr tool '%s'", err.Error(), tool.Name), fmt.Errorf("forbidden: %s for tool '%s'", err.Error(), tool.Name)
+			return utils.McpTextError("forbidden: %s for tool '%s'", err.Error(), tool.Name), fmt.Errorf("forbidden: %s for tool '%s'", err.Error(), tool.Name)
 		}
 
 		return invoker.Invoke(ctx, req)
