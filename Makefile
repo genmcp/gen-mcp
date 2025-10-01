@@ -23,7 +23,7 @@ build-server-binaries: clean $(BUILD_DIR)
 	@echo "Server binaries built successfully"
 
 .PHONY: build-cli
-build-cli: clean build-server-binaries
+build-cli: build-server-binaries
 	go build -o $(CLI_BINARY_NAME) ./cmd/genmcp
 
 .PHONY: test
@@ -42,7 +42,7 @@ build-cli-platform: build-server-binaries
 		exit 1; \
 	fi
 	@CLI_NAME="$(CLI_BINARY_NAME)"; \
-	if [ "$(GOOS)" == "windows" ]; then \
+	if [ "$(GOOS)" = "windows" ]; then \
 		OUTPUT_NAME="$${CLI_NAME}-$(GOOS)-$(GOARCH).exe"; \
 	else \
 		OUTPUT_NAME="$${CLI_NAME}-$(GOOS)-$(GOARCH)"; \
@@ -55,4 +55,4 @@ build-cli-platform: build-server-binaries
 	fi
 
 .PHONY: build-all
-build-all: clean build-server-binaries build-cli
+build-all: build-server-binaries build-cli
