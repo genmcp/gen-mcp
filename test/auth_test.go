@@ -64,7 +64,14 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				err := mcpserver.RunServer(ctx, mcpConfig.Server)
+				// Convert MCPFile to MCPServer for RunServer
+				mcpServer := &mcpfile.MCPServer{
+					Name:    mcpConfig.Name,
+					Version: mcpConfig.Version,
+					Runtime: mcpConfig.Runtime,
+					Tools:   mcpConfig.Tools,
+				}
+				err := mcpserver.RunServer(ctx, mcpServer)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}
