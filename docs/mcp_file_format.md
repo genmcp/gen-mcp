@@ -2,7 +2,7 @@
 
 ## 1. Introduction
 
-The MCP (Model Context Protocol) file is a YAML-based configuration that defines the capabilities of one or more MCP servers. It specifies the tools available, their input and output schemas, and how they should be invoked. This document details version `0.0.1` of the file format.
+The MCP (Model Context Protocol) file is a YAML-based configuration that defines the capabilities of an MCP server. It specifies the tools available, their input and output schemas, and how they should be invoked. This document details version `0.0.1` of the file format.
 
 ## 2. Top-Level Object
 
@@ -11,14 +11,14 @@ The root of the configuration is a single top-level object with the following fi
 | Field | Type | Description | Required |
 |---|---|---|---|
 | `mcpFileVersion` | string | The version of the MCP file format. Must be `"0.0.1"`. | Yes |
-| `servers` | array of `MCPServer` | A list of servers defined in this file. | No |
+| `server` | `MCPServer` | The server defined in this file. | Yes |
 
 ### Example
 
 ```yaml
 mcpFileVersion: 0.0.1
-servers:
-  # ... server definitions
+server:
+  # ... server definition
 ```
 
 ## 3. MCPServer Object
@@ -35,14 +35,14 @@ An `MCPServer` object defines a single logical server and its set of tools.
 ### Example
 
 ```yaml
-- name: my-awesome-server
-  version: 1.2.3
-  runtime:
-    transportProtocol: streamablehttp
-    streamableHttpConfig:
-      port: 8080
-  tools:
-    # ... tool definitions
+name: my-awesome-server
+version: 1.2.3
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8080
+tools:
+  # ... tool definitions
 ```
 
 ## 4. ServerRuntime Object
@@ -190,8 +190,9 @@ invocation:
 To enable HTTPS for your MCP server, configure TLS in the `streamableHttpConfig`:
 
 ```yaml
-servers:
-- name: secure-server
+mcpFileVersion: "0.0.1"
+server:
+  name: secure-server
   version: "1.0.0"
   runtime:
     transportProtocol: streamablehttp
@@ -207,8 +208,9 @@ servers:
 To protect your MCP server with OAuth 2.0 authentication:
 
 ```yaml
-servers:
-- name: protected-server
+mcpFileVersion: "0.0.1"
+server:
+  name: protected-server
   version: "1.0.0"
   runtime:
     transportProtocol: streamablehttp
@@ -233,8 +235,9 @@ servers:
 For maximum security, combine both TLS and OAuth:
 
 ```yaml
-servers:
-- name: secure-protected-server
+mcpFileVersion: "0.0.1"
+server:
+  name: secure-protected-server
   version: "1.0.0"
   runtime:
     transportProtocol: streamablehttp
@@ -253,8 +256,8 @@ servers:
 
 ```yaml
 mcpFileVersion: "0.0.1"
-servers:
-- name: git-tools
+server:
+  name: git-tools
   version: "1.0.0"
   runtime:
     transportProtocol: stdio
@@ -289,27 +292,4 @@ servers:
             property: "verbose"
             format: "--verbose"
             omitIfFalse: true
-
-- name: user-service
-  version: "2.1.0"
-  runtime:
-    transportProtocol: streamablehttp
-    streamableHttpConfig:
-      port: 3000
-  tools:
-  - name: get_user
-    title: "Get User"
-    description: "Retrieves a user by their ID."
-    inputSchema:
-      type: object
-      properties:
-        userId:
-          type: string
-          description: "The ID of the user to retrieve."
-      required:
-      - userId
-    invocation:
-      http:
-        method: GET
-        url: http://localhost:8080/users/{userId}
 ```

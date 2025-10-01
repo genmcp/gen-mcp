@@ -173,7 +173,7 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 
 	server.Tools = validTools
 
-	res.Servers = []*mcpfile.MCPServer{server}
+	res.Server = server
 
 	return res, err
 }
@@ -300,7 +300,7 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 
 	server.Tools = validTools
 
-	res.Servers = []*mcpfile.MCPServer{server}
+	res.Server = server
 
 	return res, err
 }

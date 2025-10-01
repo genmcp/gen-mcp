@@ -29,7 +29,7 @@ func TestDefaultPort8080InOpenAPIV3Conversion(t *testing.T) {
 	assert.Error(t, err, "creating the mcp file from the openapi model should have errors on endpoints genmcp does not support")
 	assert.NotNil(t, mcpfile)
 
-	server := mcpfile.Servers[0]
+	server := mcpfile.Server
 	assert.Equal(t, 8080, server.Runtime.StreamableHTTPConfig.Port, "OpenAPI v3 conversion should default to port 8080")
 }
 
@@ -41,9 +41,8 @@ func TestInvalidToolsAreSkippedButValidOnesIncluded(t *testing.T) {
 	// We should get an error about the invalid tool but still get a valid MCP file
 	assert.Error(t, err, "conversion should report errors about invalid tools")
 	assert.NotNil(t, mcpfile, "MCP file should still be generated")
-	assert.Len(t, mcpfile.Servers, 1, "should have one server")
 
-	server := mcpfile.Servers[0]
+	server := mcpfile.Server
 	assert.NotNil(t, server.Tools, "server should have tools")
 
 	// Should have exactly 2 valid tools (the ones with descriptions)
@@ -72,9 +71,8 @@ func TestAllToolsInvalidStillReturnsEmptyMcpFile(t *testing.T) {
 	// Should get an error about all invalid tools
 	assert.Error(t, err, "conversion should report errors about all invalid tools")
 	assert.NotNil(t, mcpfile, "MCP file should still be generated")
-	assert.Len(t, mcpfile.Servers, 1, "should have one server")
 
-	server := mcpfile.Servers[0]
+	server := mcpfile.Server
 	assert.Empty(t, server.Tools, "server should have no tools when all are invalid")
 
 	// Check that error mentions both skipped tools

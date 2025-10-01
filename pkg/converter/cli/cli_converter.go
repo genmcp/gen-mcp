@@ -74,7 +74,7 @@ func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpfile.MCPFile, er
 	// Create MCP file
 	mcpFile := &mcpfile.MCPFile{
 		FileVersion: mcpfile.MCPFileVersion,
-		Servers:     []*mcpfile.MCPServer{server},
+		Server:      server,
 	}
 
 	return mcpFile, nil
