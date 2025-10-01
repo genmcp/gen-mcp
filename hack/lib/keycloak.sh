@@ -338,7 +338,7 @@ function disable_trusted_hosts() {
   # Configure admin CLI credentials
   $CONTAINER_ENGINE exec "${KEYCLOAK_CONTAINER_NAME}" \
     /opt/keycloak/bin/kcadm.sh config credentials \
-    --server http://localhost:8081 \
+    --server http://localhost:8080 \
     --realm "${realm_name}" \
     --user "${KEYCLOAK_ADMIN}" \
     --password "${KEYCLOAK_ADMIN_PASSWORD}"
