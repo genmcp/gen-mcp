@@ -1,6 +1,6 @@
 mcpFileVersion: 0.0.1
-servers:
-- name: Ollama
+server:
+  name: Ollama
   version: 0.0.1
   runtime:
     streamableHttpConfig:

@@ -1,6 +1,6 @@
 mcpFileVersion: 0.0.1
-servers:
-- name: git-github-example
+server:
+  name: git-github-example
   version: 1.0.0
   runtime:
     transportProtocol: streamablehttp

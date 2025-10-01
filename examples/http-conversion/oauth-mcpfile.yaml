@@ -1,6 +1,6 @@
 mcpFileVersion: 0.0.1
-servers:
-- name: Feature Request API
+server:
+  name: Feature Request API
   runtime:
     streamableHttpConfig:
       port: 8080

@@ -9,6 +9,18 @@ import (
 
 type InvocationValidator func(invocationType string, data json.RawMessage, tool *Tool) error
 
+func (m *MCPFile) Validate(invocationValidator InvocationValidator) error {
+	var err error = nil
+	if m.Server == nil {
+		err = errors.Join(err, fmt.Errorf("invalid mcpfile: server is required"))
+	} else {
+		if serverErr := m.Server.Validate(invocationValidator); serverErr != nil {
+			err = errors.Join(err, fmt.Errorf("invalid mcpfile: server is invalid: %w", serverErr))
+		}
+	}
+	return err
+}
+
 func (t *Tool) Validate(invocationValidator InvocationValidator) error {
 	var err error = nil
 	if t.Name == "" {

@@ -62,6 +62,6 @@ type MCPServer struct {
 }
 
 type MCPFile struct {
-	FileVersion string       `json:"mcpFileVersion"`
-	Servers     []*MCPServer `json:"servers,omitempty"`
+	FileVersion string      `json:"mcpFileVersion"`
+	Server      *MCPServer  `json:"server,omitempty"`
 }

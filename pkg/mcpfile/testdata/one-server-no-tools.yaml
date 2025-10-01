@@ -1,4 +1,4 @@
 mcpFileVersion: 0.0.1
-servers:
-- name: test-server
+server:
+  name: test-server
   version: 1.0.0

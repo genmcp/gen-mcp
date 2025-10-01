@@ -1,6 +1,6 @@
 mcpFileVersion: "0.0.1"
-servers:
-- name: ollama
+server:
+  name: ollama
   version: "1.0.0"
   runtime:
     transportProtocol: streamablehttp
