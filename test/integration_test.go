@@ -311,29 +311,28 @@ func createCLITestMCPConfig(port int) *mcpfile.MCPFile {
 
 	mcpYAML := fmt.Sprintf(`
 mcpFileVersion: 0.1.0
-servers:
-  - name: test-cli-server
-    version: "1.0"
-    runtime:
-      streamableHttpConfig:
-        port: %d
-        basePath: "/mcp"
-      transportProtocol: streamablehttp
-    tools:
-      - name: list_files
-        title: List Files
-        description: List files in a directory
-        inputSchema:
-          type: object
-          properties:
-            path:
-              type: string
-              description: Path to list
-          required:
-            - path
-        invocation:
-          cli:
-            command: "ls -la {path}"
+name: test-cli-server
+version: "1.0"
+runtime:
+  streamableHttpConfig:
+    port: %d
+    basePath: "/mcp"
+  transportProtocol: streamablehttp
+tools:
+  - name: list_files
+    title: List Files
+    description: List files in a directory
+    inputSchema:
+      type: object
+      properties:
+        path:
+          type: string
+          description: Path to list
+      required:
+        - path
+    invocation:
+      cli:
+        command: "ls -la {path}"
 `, port)
 
 	tmpfile, err := os.CreateTemp("", "mcp-cli-*.yaml")
