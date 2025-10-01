@@ -175,3 +175,98 @@ func deletePathFromMap(m map[string]any, path string) {
 		delete(parentMap, keys[len(keys)-2])
 	}
 }
+
+func (hi *HttpInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+	ub := &urlBuilder{
+		pathTemplate: hi.PathTemplate,
+		pathIndeces:  hi.PathIndeces,
+		pathValues:   make([]any, len(hi.PathIndeces)),
+	}
+
+	hasBody := hi.Method != nethttp.MethodGet && hi.Method != nethttp.MethodDelete && hi.Method != nethttp.MethodHead
+
+	if !hasBody {
+		ub.queryParams = neturl.Values{}
+		ub.buildQuery = len(hi.PathIndeces) > 0
+	}
+
+	dj := &invocation.DynamicJson{
+		Builders: []invocation.Builder{ub},
+	}
+
+	args := req.Params.Arguments
+	if args == nil {
+		args = make(map[string]string)
+	}
+
+	argsBytes, err := json.Marshal(args)
+	if err != nil {
+		return utils.McpPromptTextError("failed to marshal prompt request arguments: %s", err.Error()), err
+	}
+
+	parsed, err := dj.ParseJson(argsBytes, hi.InputSchema.Schema())
+	if err != nil {
+		return utils.McpPromptTextError("failed to parse prompt request arguments: %s", err.Error()), err
+	}
+
+	if err := hi.InputSchema.Validate(parsed); err != nil {
+		return utils.McpPromptTextError("failed to validate prompt request arguments: %s", err.Error()), err
+	}
+
+	url, _ := ub.GetResult()
+
+	var reqBody io.Reader
+	if hasBody {
+		bodyJson, err := json.Marshal(deletePathsFromMap(parsed, slices.Collect(maps.Keys(hi.PathIndeces))))
+		if err != nil {
+			return utils.McpPromptTextError("failed to marshal http request body: %s", err.Error()), err
+		}
+
+		reqBody = bytes.NewBuffer(bodyJson)
+	}
+
+	httpReq, err := nethttp.NewRequestWithContext(ctx, hi.Method, url.(string), reqBody)
+	if err != nil {
+		return utils.McpPromptTextError("failed to create http request: %s", err.Error()), err
+	}
+	if hasBody {
+		httpReq.Header.Set(contentTypeHeader, "application/json; charset=UTF-8")
+	}
+
+	client := &nethttp.Client{}
+
+	response, err := client.Do(httpReq)
+	if err != nil {
+		return utils.McpPromptTextError("failed to execute http request: %s", err.Error()), err
+	}
+	defer func() {
+		_ = response.Body.Close()
+	}()
+
+	body, _ := io.ReadAll(response.Body)
+
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return utils.McpPromptTextError("http request failed with status %d", response.StatusCode), fmt.Errorf("http request failed with status %d", response.StatusCode)
+	}
+
+	// Try to parse as JSON first
+	contentType := response.Header.Get("Content-Type")
+	if strings.Contains(contentType, "application/json") {
+		var result mcp.GetPromptResult
+		if err := json.Unmarshal(body, &result); err == nil {
+			return &result, nil
+		}
+	}
+
+	// Fallback to treating as plain text
+	result := &mcp.GetPromptResult{
+		Messages: []*mcp.PromptMessage{
+			{
+				Role:    "assistant",
+				Content: &mcp.TextContent{Text: string(body)},
+			},
+		},
+	}
+
+	return result, nil
+}

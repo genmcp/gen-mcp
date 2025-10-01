@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -95,4 +96,58 @@ func (cb *commandBuilder) GetResult() (any, error) {
 	}
 
 	return strings.Join(formattedParts, " "), nil
+}
+
+func (ci *CliInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+	cb := &commandBuilder{
+		commandTemplate: ci.CommandTemplate,
+		argIndices:      ci.ArgumentIndices,
+		argFormatters:   ci.ArgumentFormatters,
+		argValues:       make([]any, len(ci.ArgumentIndices)),
+		extraArgs:       make(map[string]any),
+	}
+
+	dj := &invocation.DynamicJson{
+		Builders: []invocation.Builder{cb},
+	}
+
+	args := req.Params.Arguments
+	if args == nil {
+		args = make(map[string]string)
+	}
+
+	argsBytes, err := json.Marshal(args)
+	if err != nil {
+		return utils.McpPromptTextError("failed to marshal prompt request arguments: %s", err.Error()), err
+	}
+
+	parsed, err := dj.ParseJson(argsBytes, ci.InputSchema.Schema())
+	if err != nil {
+		return utils.McpPromptTextError("failed to parse prompt request arguments: %s", err.Error()), err
+	}
+
+	if err := ci.InputSchema.Validate(parsed); err != nil {
+		return utils.McpPromptTextError("failed to validate prompt request arguments: %s", err.Error()), err
+	}
+
+	command, err := cb.GetResult()
+	if err != nil {
+		return utils.McpPromptTextError("failed to build command: %s", err.Error()), err
+	}
+
+	cmd := exec.Command("bash", "-c", command.(string))
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return utils.McpPromptTextError("encountered error while calling command: %s. output was: %s.", err.Error(), string(output)), err
+	}
+
+	return &mcp.GetPromptResult{
+		Messages: []*mcp.PromptMessage{
+			{
+				Role:    "assistant",
+				Content: &mcp.TextContent{Text: string(output)},
+			},
+		},
+	}, nil
 }

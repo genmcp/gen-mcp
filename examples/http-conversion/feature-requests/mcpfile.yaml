@@ -66,4 +66,23 @@ tools:
       url: http://feature-request-demo-default.apps.rosa.ozsht-2wqkz-4rk.36d8.p3.openshiftapps.com/features/vote
   name: features_vote-post
   title: Vote for feature
+prompts:
+- name: feature-analysis
+  title: "Feature Analysis Report"
+  description: "Analyze feature requests with priorities, resource recommendations, and implementation strategies based on current data and community voting"
+  inputSchema:
+    type: object
+    properties:
+      context:
+        type: string
+        description: "Planning context or goal (e.g., 'Q4 roadmap', 'post-launch review')"
+      focus:
+        type: string
+        description: "Analysis focus: 'priority' (ranking/sequencing), 'completion' (delivery speed), 'engagement' (user satisfaction), 'technical' (complexity/feasibility), 'business' (ROI/strategy)"
+    required:
+      - context
+  invocation:
+    http:
+      method: POST
+      url: http://feature-request-demo-default.apps.rosa.ozsht-2wqkz-4rk.36d8.p3.openshiftapps.com/prompts/feature-analysis
 version: 0.0.1

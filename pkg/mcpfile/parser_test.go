@@ -243,6 +243,53 @@ func TestParseMcpFile(t *testing.T) {
 				},
 			},
 		},
+		"one server, prompts": {
+			testFileName: "one-server-prompts.yaml",
+			expected: &MCPFile{
+				FileVersion: MCPFileVersion,
+				Servers: []*MCPServer{
+					{
+						Name:    "test-server",
+						Version: "1.0.0",
+						Runtime: &ServerRuntime{
+							TransportProtocol: TransportProtocolStreamableHttp,
+							StreamableHTTPConfig: &StreamableHTTPConfig{
+								BasePath:  DefaultBasePath,
+								Port:      3000,
+								Stateless: true,
+							},
+						},
+						Prompts: []*Prompt{
+							{
+								Name:        "code_review",
+								Title:       "Request Code Review",
+								Description: "Asks the LLM to analyze code quality and suggest improvements",
+								Arguments: []*PromptArgument{
+									{
+										Name:        "code",
+										Title:       "Code",
+										Description: "The code to review",
+										Required:    true,
+									},
+								},
+								InputSchema: &jsonschema.Schema{
+									Type: "object",
+									Properties: map[string]*jsonschema.Schema{
+										"code": {
+											Type:        "string",
+											Description: "The code to review",
+										},
+									},
+									Required: []string{"code"},
+								},
+								InvocationData: json.RawMessage(`{"method":"POST","url":"http://localhost:5000"}`),
+								InvocationType: "http",
+							},
+						},
+					},
+				},
+			},
+		},
 		"full demo": {
 			testFileName: "full-demo.yaml",
 			expected: &MCPFile{

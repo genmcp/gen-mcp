@@ -14,7 +14,56 @@ type Parser struct{}
 
 var _ invocation.InvocationConfigParser = &Parser{}
 
+type primitiveAdapter struct {
+	InputSchema *jsonschema.Schema
+}
+
 func (p *Parser) Parse(data json.RawMessage, tool *mcpfile.Tool) (invocation.InvocationConfig, error) {
+	return p.parsePrimitive(data, primitiveAdapter{InputSchema: tool.InputSchema})
+}
+
+func (p *Parser) ParsePrompt(data json.RawMessage, prompt *mcpfile.Prompt) (invocation.InvocationConfig, error) {
+	return p.parsePrimitive(data, primitiveAdapter{InputSchema: prompt.InputSchema})
+}
+
+func formatStringForParam(paramName string, schema *jsonschema.Schema) (string, error) {
+	schema, err := lookupParam(paramName, schema)
+	if err != nil {
+		return "", err
+	}
+
+	switch schema.Type {
+	case invocation.JsonSchemaTypeArray, invocation.JsonSchemaTypeNull, invocation.JsonSchemaTypeObject:
+		return "%v", nil
+	case invocation.JsonSchemaTypeBoolean:
+		return "%b", nil
+	case invocation.JsonSchemaTypeInteger:
+		return "%d", nil
+	case invocation.JsonSchemaTypeNumber:
+		return "%f", nil
+	case invocation.JsonSchemaTypeString:
+		return "%s", nil
+	default:
+		return "", fmt.Errorf("unknown json schema type: '%s'", schema.Type)
+	}
+}
+
+func lookupParam(paramName string, schema *jsonschema.Schema) (*jsonschema.Schema, error) {
+	path := strings.Split(paramName, ".")
+	currentSchema := schema
+	var ok bool
+
+	for _, p := range path {
+		currentSchema, ok = currentSchema.Properties[p]
+		if !ok {
+			return nil, fmt.Errorf("http invocation has %s path parameter, but there is no corresponding property defined on the input schema", paramName)
+		}
+	}
+
+	return currentSchema, nil
+}
+
+func (p *Parser) parsePrimitive(data json.RawMessage, primitive primitiveAdapter) (invocation.InvocationConfig, error) {
 	type Doppleganger HttpInvocationConfig
 
 	hic := &HttpInvocationConfig{}
@@ -54,7 +103,7 @@ func (p *Parser) Parse(data json.RawMessage, tool *mcpfile.Tool) (invocation.Inv
 
 			paramIdx++
 
-			formatVar, err := formatStringForParam(paramName, tool)
+			formatVar, err := formatStringForParam(paramName, primitive.InputSchema)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse invocation url: %w", err)
 			}
@@ -78,41 +127,4 @@ func (p *Parser) Parse(data json.RawMessage, tool *mcpfile.Tool) (invocation.Inv
 	hic.PathIndices = paramIndices
 
 	return hic, nil
-}
-
-func formatStringForParam(paramName string, tool *mcpfile.Tool) (string, error) {
-	schema, err := lookupParam(paramName, tool.InputSchema)
-	if err != nil {
-		return "", err
-	}
-
-	switch schema.Type {
-	case invocation.JsonSchemaTypeArray, invocation.JsonSchemaTypeNull, invocation.JsonSchemaTypeObject:
-		return "%v", nil
-	case invocation.JsonSchemaTypeBoolean:
-		return "%b", nil
-	case invocation.JsonSchemaTypeInteger:
-		return "%d", nil
-	case invocation.JsonSchemaTypeNumber:
-		return "%f", nil
-	case invocation.JsonSchemaTypeString:
-		return "%s", nil
-	default:
-		return "", fmt.Errorf("unknown json schema type: '%s'", schema.Type)
-	}
-}
-
-func lookupParam(paramName string, schema *jsonschema.Schema) (*jsonschema.Schema, error) {
-	path := strings.Split(paramName, ".")
-	currentSchema := schema
-	var ok bool
-
-	for _, p := range path {
-		currentSchema, ok = currentSchema.Properties[p]
-		if !ok {
-			return nil, fmt.Errorf("http invocation has %s path parameter, but there is no corresponding property defined on the input schema", paramName)
-		}
-	}
-
-	return currentSchema, nil
 }

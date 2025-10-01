@@ -34,11 +34,31 @@ func ParseInvocation(invocationType string, data json.RawMessage, tool *mcpfile.
 	return parser.Parse(data, tool)
 }
 
-func InvocationValidator(invocationType string, data json.RawMessage, tool *mcpfile.Tool) error {
-	config, err := ParseInvocation(invocationType, data, tool)
-	if err != nil {
-		return fmt.Errorf("failed to parse invocation: %w", err)
+func ParsePromptInvocation(invocationType string, data json.RawMessage, prompt *mcpfile.Prompt) (InvocationConfig, error) {
+	parser, exists := globalRegistry.parsers[invocationType]
+	if !exists {
+		return nil, fmt.Errorf("unknown invocation type: '%s'", invocationType)
 	}
 
-	return config.Validate()
+	return parser.ParsePrompt(data, prompt)
+}
+
+func InvocationValidator(invocationType string, data json.RawMessage, primitive mcpfile.Primitive) error {
+	switch p := primitive.(type) {
+	case *mcpfile.Tool:
+		config, err := ParseInvocation(invocationType, data, p)
+		if err != nil {
+			return fmt.Errorf("failed to parse invocation: %w", err)
+		}
+		return config.Validate()
+	case *mcpfile.Prompt:
+		config, err := ParsePromptInvocation(invocationType, data, p)
+		if err != nil {
+			return fmt.Errorf("failed to parse invocation: %w", err)
+		}
+
+		return config.Validate()
+	default:
+		return fmt.Errorf("unsupported primitive type %T", primitive)
+	}
 }

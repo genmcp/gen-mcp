@@ -12,7 +12,19 @@ import (
 
 type Parser struct{}
 
+type primitiveAdapter struct {
+	InputSchema *jsonschema.Schema
+}
+
 func (p *Parser) Parse(data json.RawMessage, tool *mcpfile.Tool) (invocation.InvocationConfig, error) {
+	return p.parsePrimitive(data, primitiveAdapter{InputSchema: tool.InputSchema})
+}
+
+func (p *Parser) ParsePrompt(data json.RawMessage, prompt *mcpfile.Prompt) (invocation.InvocationConfig, error) {
+	return p.parsePrimitive(data, primitiveAdapter{InputSchema: prompt.InputSchema})
+}
+
+func (p *Parser) parsePrimitive(data json.RawMessage, primitive primitiveAdapter) (invocation.InvocationConfig, error) {
 	type Doppleganger CliInvocationConfig
 
 	config := &CliInvocationConfig{}
@@ -32,7 +44,7 @@ func (p *Parser) Parse(data json.RawMessage, tool *mcpfile.Tool) (invocation.Inv
 
 	templateVariables := make(map[string]*TemplateVariable)
 	for tvName, tvRaw := range tmp.TemplateVariables {
-		tv, err := parseTemplateVariable(tvRaw, tool)
+		tv, err := parseTemplateVariable(tvRaw, primitive)
 		if err != nil {
 			return nil, err
 		}
@@ -78,7 +90,7 @@ func (p *Parser) Parse(data json.RawMessage, tool *mcpfile.Tool) (invocation.Inv
 	return config, nil
 }
 
-func parseTemplateVariable(data json.RawMessage, tool *mcpfile.Tool) (*TemplateVariable, error) {
+func parseTemplateVariable(data json.RawMessage, primitive primitiveAdapter) (*TemplateVariable, error) {
 	type Doppleganger TemplateVariable
 
 	tv := &TemplateVariable{}
@@ -122,7 +134,7 @@ func parseTemplateVariable(data json.RawMessage, tool *mcpfile.Tool) (*TemplateV
 
 	paramName := tmp.Format[varStart+1 : varEnd]
 
-	formatString, err := formatStringForParam(paramName, tool.InputSchema)
+	formatString, err := formatStringForParam(paramName, primitive.InputSchema)
 	if err != nil {
 		return nil, err
 	}
