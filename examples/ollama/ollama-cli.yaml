@@ -1,64 +1,63 @@
 mcpFileVersion: 0.0.1
-server:
-  name: Ollama
-  version: 0.0.1
-  runtime:
-    streamableHttpConfig:
-      port: 7008
-    transportProtocol: streamablehttp
-  tools:
-  - name: start_ollama
-    title: Start Ollama
-    description: Start ollama. Only run this if Ollama has not already started (use check_ollama_running).
-    inputSchema:
-      type: object
-    invocation:
-      cli:
-        command: nohup ollama start > /dev/null 2>&1 &
-  - name: check_ollama_running
-    title: Check if Ollama is Running
-    description: Check if Ollama is running.
-    inputSchema:
-      type: object
-    invocation:
-      cli:
-        command: 'curl http://localhost:11434 || echo "ollama is not running"'
-  - name: pull_model
-    title: Pull model
-    description: Pull a model so that Ollama can use it
-    inputSchema:
-      type: object
-      properties:
-        model:
-          type: string
-          description: The name of the model to pull
-    invocation:
-      cli:
-        command: ollama pull {model}
-  - name: list_models
-    title: List models
-    description: List all models ollama has pulled currently.
-    inputSchema:
-      type: object
-    invocation:
-      cli:
-        command: ollama list
-  - name: generate_completion
-    title: Generate completion
-    description: Generate a completion from Ollama
-    inputSchema:
-      type: object
-      properties:
-        model:
-          type: string
-          description: The name of the model to use for the completion
+name: Ollama
+version: 0.0.1
+runtime:
+  streamableHttpConfig:
+    port: 7008
+  transportProtocol: streamablehttp
+tools:
+- name: start_ollama
+  title: Start Ollama
+  description: Start ollama. Only run this if Ollama has not already started (use
+    check_ollama_running).
+  inputSchema:
+    type: object
+  invocation:
+    cli:
+      command: nohup ollama start > /dev/null 2>&1 &
+- name: check_ollama_running
+  title: Check if Ollama is Running
+  description: Check if Ollama is running.
+  inputSchema:
+    type: object
+  invocation:
+    cli:
+      command: curl http://localhost:11434 || echo "ollama is not running"
+- name: pull_model
+  title: Pull model
+  description: Pull a model so that Ollama can use it
+  inputSchema:
+    type: object
+    properties:
+      model:
+        type: string
+        description: The name of the model to pull
+  invocation:
+    cli:
+      command: ollama pull {model}
+- name: list_models
+  title: List models
+  description: List all models ollama has pulled currently.
+  inputSchema:
+    type: object
+  invocation:
+    cli:
+      command: ollama list
+- name: generate_completion
+  title: Generate completion
+  description: Generate a completion from Ollama
+  inputSchema:
+    type: object
+    properties:
+      model:
+        type: string
+        description: The name of the model to use for the completion
+      prompt:
+        type: string
+        description: The prompt to give the model
+  invocation:
+    cli:
+      command: ollama run {model} {prompt}
+      templateVariables:
         prompt:
-          type: string
-          description: The prompt to give the model
-    invocation:
-      cli:
-        command: 'ollama run {model} {prompt}'
-        templateVariables:
-          prompt:
-            format: '"{prompt}"'
-
+          format: '"{prompt}"'

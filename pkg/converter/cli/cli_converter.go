@@ -58,10 +58,11 @@ func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpfile.MCPFile, er
 		tools = append(tools, tool)
 	}
 
-	// Create MCP server
-	server := &mcpfile.MCPServer{
-		Name:    "cli-generated-server",
-		Version: "0.0.1",
+	// Create MCP file
+	mcpFile := &mcpfile.MCPFile{
+		FileVersion: mcpfile.MCPFileVersion,
+		Name:        "cli-generated-server",
+		Version:     "0.0.1",
 		Runtime: &mcpfile.ServerRuntime{
 			TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
 			StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
@@ -69,12 +70,6 @@ func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpfile.MCPFile, er
 			},
 		},
 		Tools: tools,
-	}
-
-	// Create MCP file
-	mcpFile := &mcpfile.MCPFile{
-		FileVersion: mcpfile.MCPFileVersion,
-		Server:      server,
 	}
 
 	return mcpFile, nil

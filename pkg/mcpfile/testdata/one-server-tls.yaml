@@ -1,28 +1,26 @@
 mcpFileVersion: 0.0.1
-server:
-  name: test-server
-  version: 1.0.0
-  runtime:
-    transportProtocol: streamablehttp
-    streamableHttpConfig:
-      port: 7007
-      tls:
-        certFile: /path/to/server.crt
-        keyFile: /path/to/server.key
-  tools:
-  - name: get_user_by_company
-    title: Users Provider
-    description: Get list of users from a given company
-    inputSchema:
-      type: object
-      properties:
-        companyName:
-          type: string
-          description: Name of the company
-      required:
-      - companyName
-    invocation:
-      http:
-        url: http://localhost:5000
-        method: POST
-
+name: test-server
+version: 1.0.0
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 7007
+    tls:
+      certFile: /path/to/server.crt
+      keyFile: /path/to/server.key
+tools:
+- name: get_user_by_company
+  title: Users Provider
+  description: Get list of users from a given company
+  inputSchema:
+    type: object
+    properties:
+      companyName:
+        type: string
+        description: Name of the company
+    required:
+    - companyName
+  invocation:
+    http:
+      url: http://localhost:5000
+      method: POST

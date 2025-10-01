@@ -245,30 +245,29 @@ func createBasicTestMCPConfig(backendURL string, port int) *mcpfile.MCPFile {
 
 	mcpYAML := fmt.Sprintf(`
 mcpFileVersion: 0.0.1
-server:
-  name: test-server
-  version: "1.0"
-  runtime:
-    streamableHttpConfig:
-      port: %d
-      basePath: "/mcp"
-    transportProtocol: streamablehttp
-  tools:
-    - name: get_users
-      title: Users Provider
-      description: Get list of users from a given company
-      inputSchema:
-        type: object
-        properties:
-          companyName:
-            type: string
-            description: Name of the company
-        required:
-          - companyName
-      invocation:
-        http:
-          url: "%s/{companyName}/users"
-          method: GET
+name: test-server
+version: "1.0"
+runtime:
+  streamableHttpConfig:
+    port: %d
+    basePath: "/mcp"
+  transportProtocol: streamablehttp
+tools:
+  - name: get_users
+    title: Users Provider
+    description: Get list of users from a given company
+    inputSchema:
+      type: object
+      properties:
+        companyName:
+          type: string
+          description: Name of the company
+      required:
+        - companyName
+    invocation:
+      http:
+        url: "%s/{companyName}/users"
+        method: GET
 `, port, backendURL)
 
 	tmpfile, err := os.CreateTemp("", "mcp-basic-*.yaml")

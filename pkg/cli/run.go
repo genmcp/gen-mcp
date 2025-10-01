@@ -55,7 +55,7 @@ func executeRunCmd(cobraCmd *cobra.Command, args []string) {
 		return
 	}
 
-	if mcpFile.Server.Runtime.TransportProtocol == mcpfile.TransportProtocolStdio && detach {
+	if mcpFile.Runtime.TransportProtocol == mcpfile.TransportProtocolStdio && detach {
 		// TODO: re-enable this logging when we figure out logging w. stdio
 		// fmt.Printf("cannot detach when running stdio transport\n")
 		detach = false

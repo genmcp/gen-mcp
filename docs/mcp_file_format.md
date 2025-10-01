@@ -11,22 +11,6 @@ The root of the configuration is a single top-level object with the following fi
 | Field | Type | Description | Required |
 |---|---|---|---|
 | `mcpFileVersion` | string | The version of the MCP file format. Must be `"0.0.1"`. | Yes |
-| `server` | `MCPServer` | The server defined in this file. | Yes |
-
-### Example
-
-```yaml
-mcpFileVersion: 0.0.1
-server:
-  # ... server definition
-```
-
-## 3. MCPServer Object
-
-An `MCPServer` object defines a single logical server and its set of tools.
-
-| Field | Type | Description | Required |
-|---|---|---|---|
 | `name` | string | The name of the server. | Yes |
 | `version` | string | The semantic version of the server's toolset. | Yes |
 | `runtime` | `ServerRuntime` | The runtime settings for the server. If omitted, it defaults to `streamablehttp` on port `3000`. | No |
@@ -35,6 +19,7 @@ An `MCPServer` object defines a single logical server and its set of tools.
 ### Example
 
 ```yaml
+mcpFileVersion: 0.0.1
 name: my-awesome-server
 version: 1.2.3
 runtime:
@@ -45,7 +30,7 @@ tools:
   # ... tool definitions
 ```
 
-## 4. ServerRuntime Object
+## 3. ServerRuntime Object
 
 The `ServerRuntime` object specifies the transport protocol and its configuration for the server.
 
@@ -55,7 +40,7 @@ The `ServerRuntime` object specifies the transport protocol and its configuratio
 | `streamableHttpConfig` | `StreamableHTTPConfig` | Configuration for the `streamablehttp` transport protocol. Required if `transportProtocol` is `streamablehttp`. | No |
 | `stdioConfig` | `StdioConfig` | Configuration for the `stdio` transport protocol. Required if `transportProtocol` is `stdio`. | No |
 
-### 4.1. StreamableHTTPConfig Object
+### 3.1. StreamableHTTPConfig Object
 
 | Field | Type | Description | Required |
 |---|---|---|---|
@@ -64,25 +49,25 @@ The `ServerRuntime` object specifies the transport protocol and its configuratio
 | `auth` | `AuthConfig` | OAuth 2.0 configuration for protected resource. | No |
 | `tls` | `TLSConfig` | TLS configuration for the HTTP server. | No |
 
-### 4.2. TLSConfig Object
+### 3.2. TLSConfig Object
 
 | Field | Type | Description | Required |
 |---|---|---|---|
 | `certFile` | string | The absolute path to the server's public certificate file on the runtime host where the MCP server will execute. | Yes |
 | `keyFile` | string | The absolute path to the server's private key file on the runtime host where the MCP server will execute. | Yes |
 
-### 4.3. AuthConfig Object
+### 3.3. AuthConfig Object
 
 | Field | Type | Description | Required |
 |---|---|---|---|
 | `authorizationServers` | array of string | List of authorization server URLs for OAuth 2.0 token validation. | No |
 | `jwksUri` | string | JSON Web Key Set URI for token signature verification. If no value is given but `authorizationServers` is set, gen-mcp will try to find a JWKS endpoint using different fallback paths.| No |
 
-### 4.4. StdioConfig Object
+### 3.4. StdioConfig Object
 
 This object is currently empty and serves as a placeholder for future configuration options.
 
-## 5. Tool Object
+## 4. Tool Object
 
 A `Tool` object describes a specific, invokable function.
 
@@ -96,7 +81,7 @@ A `Tool` object describes a specific, invokable function.
 | `invocation` | `Invocation` | An object describing how to execute the tool. Must contain a single key: either `http` or `cli`. | Yes |
 | `requiredScopes` | array of string | OAuth 2.0 scopes required to execute this tool. Only relevant when the server uses OAuth authentication. | No |
 
-## 6. JsonSchema Object
+## 5. JsonSchema Object
 
 The `inputSchema` and `outputSchema` fields use the JSON Schema standard to define data structures.
 
@@ -122,11 +107,11 @@ inputSchema:
     - location
 ```
 
-## 7. Invocation Object
+## 6. Invocation Object
 
 The `invocation` object specifies how a tool is executed. It must contain exactly one of the following keys.
 
-### 7.1. HTTP Invocation
+### 6.1. HTTP Invocation
 
 The `http` invocation type is used for tools that are called via an HTTP request.
 
@@ -144,7 +129,7 @@ invocation:
     url: http://localhost:8080/users/{userId}
 ```
 
-### 7.2. CLI Invocation
+### 6.2. CLI Invocation
 
 The `cli` invocation type is used for tools that are executed via a shell command.
 
@@ -183,45 +168,43 @@ invocation:
         omitIfFalse: true
 ```
 
-## 8. Security Configuration Examples
+## 7. Security Configuration Examples
 
-### 8.1. TLS Configuration
+### 7.1. TLS Configuration
 
 To enable HTTPS for your MCP server, configure TLS in the `streamableHttpConfig`:
 
 ```yaml
 mcpFileVersion: "0.0.1"
-server:
-  name: secure-server
-  version: "1.0.0"
-  runtime:
-    transportProtocol: streamablehttp
-    streamableHttpConfig:
-      port: 8443
-      tls:
-        certFile: /etc/ssl/certs/server.crt
-        keyFile: /etc/ssl/private/server.key
+name: secure-server
+version: "1.0.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8443
+    tls:
+      certFile: /etc/ssl/certs/server.crt
+      keyFile: /etc/ssl/private/server.key
 ```
 
-### 8.2. OAuth 2.0 Configuration
+### 7.2. OAuth 2.0 Configuration
 
 To protect your MCP server with OAuth 2.0 authentication:
 
 ```yaml
 mcpFileVersion: "0.0.1"
-server:
-  name: protected-server
-  version: "1.0.0"
-  runtime:
-    transportProtocol: streamablehttp
-    streamableHttpConfig:
-      port: 8080
-      auth:
-        authorizationServers:
-          - https://auth.example.com
-          - https://keycloak.company.com/auth/realms/mcp
-        jwksUri: https://auth.example.com/.well-known/jwks.json
-  tools:
+name: protected-server
+version: "1.0.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8080
+    auth:
+      authorizationServers:
+        - https://auth.example.com
+        - https://keycloak.company.com/auth/realms/mcp
+      jwksUri: https://auth.example.com/.well-known/jwks.json
+tools:
   - name: admin_tool
     description: "Administrative tool requiring elevated permissions"
     requiredScopes:
@@ -230,38 +213,36 @@ server:
     # ... rest of tool definition
 ```
 
-### 8.3. Combined TLS and OAuth Configuration
+### 7.3. Combined TLS and OAuth Configuration
 
 For maximum security, combine both TLS and OAuth:
 
 ```yaml
 mcpFileVersion: "0.0.1"
-server:
-  name: secure-protected-server
-  version: "1.0.0"
-  runtime:
-    transportProtocol: streamablehttp
-    streamableHttpConfig:
-      port: 8443
-      tls:
-        certFile: /etc/ssl/certs/server.crt
-        keyFile: /etc/ssl/private/server.key
-      auth:
-        authorizationServers:
-          - https://auth.example.com
-        jwksUri: https://auth.example.com/.well-known/jwks.json
+name: secure-protected-server
+version: "1.0.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8443
+    tls:
+      certFile: /etc/ssl/certs/server.crt
+      keyFile: /etc/ssl/private/server.key
+    auth:
+      authorizationServers:
+        - https://auth.example.com
+      jwksUri: https://auth.example.com/.well-known/jwks.json
 ```
 
-## 9. Complete Example
+## 8. Complete Example
 
 ```yaml
 mcpFileVersion: "0.0.1"
-server:
-  name: git-tools
-  version: "1.0.0"
-  runtime:
-    transportProtocol: stdio
-  tools:
+name: git-tools
+version: "1.0.0"
+runtime:
+  transportProtocol: stdio
+tools:
   - name: clone_repo
     title: "Clone Git Repository"
     description: "Clones a git repository from a URL to the local machine."

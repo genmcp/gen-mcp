@@ -1,70 +1,69 @@
 mcpFileVersion: 0.0.1
-server:
-  name: Feature Request API
-  runtime:
-    streamableHttpConfig:
-      port: 8080
-    transportProtocol: streamablehttp
-  tools:
-  - description: Returns a list of all features sorted by upvotes (highest first)
-    inputSchema:
-      type: object
-    invocation:
-      http:
-        method: GET
-        url: http://feature-request-demo-default.apps.rosa.ozsht-2wqkz-4rk.36d8.p3.openshiftapps.com/features
-    name: features-get
-    title: Get all features
-  - description: Create a new feature request
-    inputSchema:
-      properties:
-        description:
-          description: Detailed description of the feature
-          type: string
-        title:
-          description: Feature title
-          type: string
-      type: object
-    invocation:
-      http:
-        method: POST
-        url: http://feature-request-demo-default.apps.rosa.ozsht-2wqkz-4rk.36d8.p3.openshiftapps.com/features
-    name: features-post
-    title: Add new feature
-  - description: Returns the feature with the most upvotes
-    inputSchema:
-      type: object
-    invocation:
-      http:
-        method: GET
-        url: http://feature-request-demo-default.apps.rosa.ozsht-2wqkz-4rk.36d8.p3.openshiftapps.com/features/top
-    name: features_top-get
-    title: Get top feature
-  - description: Returns detailed information about a specific feature
-    inputSchema:
-      properties:
-        id:
-          type: integer
-      required:
-      - id
-      type: object
-    invocation:
-      http:
-        method: GET
-        url: http://feature-request-demo-default.apps.rosa.ozsht-2wqkz-4rk.36d8.p3.openshiftapps.com/features/{id}
-    name: features_id-get
-    title: Get feature details
-  - description: Increment the upvote count for a specific feature
-    inputSchema:
-      properties:
-        feature_id:
-          description: ID of the feature to vote for
-          type: integer
-      type: object
-    invocation:
-      http:
-        method: POST
-        url: http://feature-request-demo-default.apps.rosa.ozsht-2wqkz-4rk.36d8.p3.openshiftapps.com/features/vote
-    name: features_vote-post
-    title: Vote for feature
-  version: 0.0.1
+name: Feature Request API
+runtime:
+  streamableHttpConfig:
+    port: 8080
+  transportProtocol: streamablehttp
+tools:
+- description: Returns a list of all features sorted by upvotes (highest first)
+  inputSchema:
+    type: object
+  invocation:
+    http:
+      method: GET
+      url: http://feature-request-demo-default.apps.rosa.ozsht-2wqkz-4rk.36d8.p3.openshiftapps.com/features
+  name: features-get
+  title: Get all features
+- description: Create a new feature request
+  inputSchema:
+    properties:
+      description:
+        description: Detailed description of the feature
+        type: string
+      title:
+        description: Feature title
+        type: string
+    type: object
+  invocation:
+    http:
+      method: POST
+      url: http://feature-request-demo-default.apps.rosa.ozsht-2wqkz-4rk.36d8.p3.openshiftapps.com/features
+  name: features-post
+  title: Add new feature
+- description: Returns the feature with the most upvotes
+  inputSchema:
+    type: object
+  invocation:
+    http:
+      method: GET
+      url: http://feature-request-demo-default.apps.rosa.ozsht-2wqkz-4rk.36d8.p3.openshiftapps.com/features/top
+  name: features_top-get
+  title: Get top feature
+- description: Returns detailed information about a specific feature
+  inputSchema:
+    properties:
+      id:
+        type: integer
+    required:
+    - id
+    type: object
+  invocation:
+    http:
+      method: GET
+      url: http://feature-request-demo-default.apps.rosa.ozsht-2wqkz-4rk.36d8.p3.openshiftapps.com/features/{id}
+  name: features_id-get
+  title: Get feature details
+- description: Increment the upvote count for a specific feature
+  inputSchema:
+    properties:
+      feature_id:
+        description: ID of the feature to vote for
+        type: integer
+    type: object
+  invocation:
+    http:
+      method: POST
+      url: http://feature-request-demo-default.apps.rosa.ozsht-2wqkz-4rk.36d8.p3.openshiftapps.com/features/vote
+  name: features_vote-post
+  title: Vote for feature
+version: 0.0.1

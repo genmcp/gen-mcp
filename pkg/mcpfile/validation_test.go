@@ -12,28 +12,50 @@ func TestMCPFileValidate(t *testing.T) {
 		return nil
 	}
 
-	t.Run("missing server should fail validation", func(t *testing.T) {
+	t.Run("missing name should fail validation", func(t *testing.T) {
 		mcpFile := &MCPFile{
 			FileVersion: MCPFileVersion,
-			Server:      nil,
+			Version:     "1.0.0",
+			Runtime: &ServerRuntime{
+				TransportProtocol: TransportProtocolStreamableHttp,
+				StreamableHTTPConfig: &StreamableHTTPConfig{
+					Port:     3000,
+					BasePath: DefaultBasePath,
+				},
+			},
 		}
 		err := mcpFile.Validate(mockValidator)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "server is required")
+		assert.Contains(t, err.Error(), "name is required")
+	})
+
+	t.Run("missing version should fail validation", func(t *testing.T) {
+		mcpFile := &MCPFile{
+			FileVersion: MCPFileVersion,
+			Name:        "test-server",
+			Runtime: &ServerRuntime{
+				TransportProtocol: TransportProtocolStreamableHttp,
+				StreamableHTTPConfig: &StreamableHTTPConfig{
+					Port:     3000,
+					BasePath: DefaultBasePath,
+				},
+			},
+		}
+		err := mcpFile.Validate(mockValidator)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "version is required")
 	})
 
 	t.Run("valid server should pass validation", func(t *testing.T) {
 		mcpFile := &MCPFile{
 			FileVersion: MCPFileVersion,
-			Server: &MCPServer{
-				Name:    "test-server",
-				Version: "1.0.0",
-				Runtime: &ServerRuntime{
-					TransportProtocol: TransportProtocolStreamableHttp,
-					StreamableHTTPConfig: &StreamableHTTPConfig{
-						Port:     3000,
-						BasePath: DefaultBasePath,
-					},
+			Name:        "test-server",
+			Version:     "1.0.0",
+			Runtime: &ServerRuntime{
+				TransportProtocol: TransportProtocolStreamableHttp,
+				StreamableHTTPConfig: &StreamableHTTPConfig{
+					Port:     3000,
+					BasePath: DefaultBasePath,
 				},
 			},
 		}

@@ -60,7 +60,15 @@ func RunServers(ctx context.Context, mcpFilePath string) error {
 		return fmt.Errorf("mcp file is invalid: %w", err)
 	}
 
-	return RunServer(ctx, mcpConfig.Server)
+	// Convert MCPFile to MCPServer for internal use
+	mcpServer := &mcpfile.MCPServer{
+		Name:    mcpConfig.Name,
+		Version: mcpConfig.Version,
+		Runtime: mcpConfig.Runtime,
+		Tools:   mcpConfig.Tools,
+	}
+
+	return RunServer(ctx, mcpServer)
 }
 
 func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {

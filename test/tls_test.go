@@ -332,32 +332,31 @@ func createTestTLSMCPConfig(backendURL string, port int, certFile, keyFile strin
 
 	mcpYAML := fmt.Sprintf(`
 mcpFileVersion: 0.0.1
-server:
-  name: test-tls-server
-  version: "1.0"
-  runtime:
-    streamableHttpConfig:
-      port: %d
-      basePath: "/mcp"
-      tls:
-        certFile: %s
-        keyFile: %s
-    transportProtocol: streamablehttp
-  tools:
-    - name: get_status
-      description: "Get server status"
-      inputSchema:
-        type: object
-        properties: {}
-      outputSchema:
-        type: object
-        properties:
-          status:
-            type: string
-      invocation:
-        http:
-          url: "%s/status"
-          method: "GET"
+name: test-tls-server
+version: "1.0"
+runtime:
+  streamableHttpConfig:
+    port: %d
+    basePath: "/mcp"
+    tls:
+      certFile: %s
+      keyFile: %s
+  transportProtocol: streamablehttp
+tools:
+  - name: get_status
+    description: "Get server status"
+    inputSchema:
+      type: object
+      properties: {}
+    outputSchema:
+      type: object
+      properties:
+        status:
+          type: string
+    invocation:
+      http:
+        url: "%s/status"
+        method: "GET"
 `, port, certFile, keyFile, backendURL)
 
 	tmpfile, err := os.CreateTemp("", "mcp-tls-*.yaml")
