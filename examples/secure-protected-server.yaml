@@ -1,0 +1,33 @@
+mcpFileVersion: "0.1.0"
+name: secure-protected-server
+version: "1.0.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8443
+    tls:
+      certFile: /etc/ssl/certs/server.crt
+      keyFile: /etc/ssl/private/server.key
+    auth:
+      authorizationServers:
+        - https://auth.example.com
+      jwksUri: https://auth.example.com/.well-known/jwks.json
+tools:
+  - name: admin_tool
+    title: "Administrative Tool"
+    description: "Administrative tool requiring elevated permissions"
+    inputSchema:
+      type: object
+      properties:
+        action:
+          type: string
+          description: "The administrative action to perform"
+      required:
+        - action
+    requiredScopes:
+      - admin:write
+      - users:manage
+    invocation:
+      http:
+        method: POST
+        url: https://api.example.com/admin
