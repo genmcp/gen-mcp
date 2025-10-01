@@ -21,7 +21,7 @@ func TestParseMcpFile(t *testing.T) {
 				FileVersion: MCPFileVersion,
 			},
 		},
-		"one server, no tools": {
+		"no tools": {
 			testFileName: "one-server-no-tools.yaml",
 			expected: &MCPFile{
 				FileVersion: MCPFileVersion,
@@ -37,7 +37,7 @@ func TestParseMcpFile(t *testing.T) {
 				},
 			},
 		},
-		"one server, with tools": {
+		"with tools": {
 			testFileName: "one-server-tools.yaml",
 			expected: &MCPFile{
 				FileVersion: MCPFileVersion,
@@ -73,7 +73,7 @@ func TestParseMcpFile(t *testing.T) {
 
 			},
 		},
-		"one server, with tools and http params": {
+		"with tools and http params": {
 			testFileName: "one-server-tools-http-params.yaml",
 			expected: &MCPFile{
 				FileVersion: MCPFileVersion,
@@ -109,7 +109,7 @@ func TestParseMcpFile(t *testing.T) {
 
 			},
 		},
-		"one server, cli invocation": {
+		"cli invocation": {
 			testFileName: "one-server-cli-tools.yaml",
 			expected: &MCPFile{
 				FileVersion: MCPFileVersion,
@@ -153,7 +153,7 @@ func TestParseMcpFile(t *testing.T) {
 
 			},
 		},
-		"one server, stateful": {
+		"stateful": {
 			testFileName: "one-server-stateful.yaml",
 			expected: &MCPFile{
 				FileVersion: MCPFileVersion,
@@ -325,7 +325,7 @@ func TestParseMcpFile(t *testing.T) {
 
 			},
 		},
-		"one server, with tls": {
+		"with tls": {
 			testFileName: "one-server-tls.yaml",
 			expected: &MCPFile{
 				FileVersion: MCPFileVersion,
