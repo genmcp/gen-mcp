@@ -2,7 +2,7 @@
 
 ## 1. Introduction
 
-The MCP (Model Context Protocol) file is a YAML-based configuration that defines the capabilities of an MCP server. It specifies the tools available, their input and output schemas, and how they should be invoked. This document details version `0.0.1` of the file format.
+The MCP (Model Context Protocol) file is a YAML-based configuration that defines the capabilities of an MCP server. It specifies the tools available, their input and output schemas, and how they should be invoked. This document details version `0.1.0` of the file format.
 
 ## 2. Top-Level Object
 
@@ -10,7 +10,7 @@ The root of the configuration is a single top-level object with the following fi
 
 | Field | Type | Description | Required |
 |---|---|---|---|
-| `mcpFileVersion` | string | The version of the MCP file format. Must be `"0.0.1"`. | Yes |
+| `mcpFileVersion` | string | The version of the MCP file format. Must be `"0.1.0"`. | Yes |
 | `name` | string | The name of the server. | Yes |
 | `version` | string | The semantic version of the server's toolset. | Yes |
 | `runtime` | `ServerRuntime` | The runtime settings for the server. If omitted, it defaults to `streamablehttp` on port `3000`. | No |
@@ -19,7 +19,7 @@ The root of the configuration is a single top-level object with the following fi
 ### Example
 
 ```yaml
-mcpFileVersion: 0.0.1
+mcpFileVersion: 0.1.0
 name: my-awesome-server
 version: 1.2.3
 runtime:
@@ -175,7 +175,7 @@ invocation:
 To enable HTTPS for your MCP server, configure TLS in the `streamableHttpConfig`:
 
 ```yaml
-mcpFileVersion: "0.0.1"
+mcpFileVersion: "0.1.0"
 name: secure-server
 version: "1.0.0"
 runtime:
@@ -192,7 +192,7 @@ runtime:
 To protect your MCP server with OAuth 2.0 authentication:
 
 ```yaml
-mcpFileVersion: "0.0.1"
+mcpFileVersion: "0.1.0"
 name: protected-server
 version: "1.0.0"
 runtime:
@@ -218,7 +218,7 @@ tools:
 For maximum security, combine both TLS and OAuth:
 
 ```yaml
-mcpFileVersion: "0.0.1"
+mcpFileVersion: "0.1.0"
 name: secure-protected-server
 version: "1.0.0"
 runtime:
@@ -237,7 +237,7 @@ runtime:
 ## 8. Complete Example
 
 ```yaml
-mcpFileVersion: "0.0.1"
+mcpFileVersion: "0.1.0"
 name: git-tools
 version: "1.0.0"
 runtime:

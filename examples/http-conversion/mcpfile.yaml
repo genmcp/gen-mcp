@@ -1,4 +1,4 @@
-mcpFileVersion: 0.0.1
+mcpFileVersion: 0.1.0
 name: Feature Request API
 runtime:
   streamableHttpConfig:

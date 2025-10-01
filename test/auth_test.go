@@ -485,7 +485,7 @@ func createTestMCPConfig(backendURL string, port int) *mcpfile.MCPFile {
 	By("creating test MCP configuration")
 
 	mcpYAML := fmt.Sprintf(`
-mcpFileVersion: 0.0.1
+mcpFileVersion: 0.1.0
 name: test-oauth-server-full-flow
 version: "1.0"
 runtime:

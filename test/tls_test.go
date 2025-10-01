@@ -331,7 +331,7 @@ func createTestTLSMCPConfig(backendURL string, port int, certFile, keyFile strin
 	By("creating test MCP configuration with TLS")
 
 	mcpYAML := fmt.Sprintf(`
-mcpFileVersion: 0.0.1
+mcpFileVersion: 0.1.0
 name: test-tls-server
 version: "1.0"
 runtime:

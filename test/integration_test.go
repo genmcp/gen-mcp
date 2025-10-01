@@ -244,7 +244,7 @@ func createBasicTestMCPConfig(backendURL string, port int) *mcpfile.MCPFile {
 	By("creating basic test MCP configuration")
 
 	mcpYAML := fmt.Sprintf(`
-mcpFileVersion: 0.0.1
+mcpFileVersion: 0.1.0
 name: test-server
 version: "1.0"
 runtime:
@@ -296,7 +296,7 @@ func createCLITestMCPConfig(port int) *mcpfile.MCPFile {
 	By("creating CLI test MCP configuration")
 
 	mcpYAML := fmt.Sprintf(`
-mcpFileVersion: 0.0.1
+mcpFileVersion: 0.1.0
 servers:
   - name: test-cli-server
     version: "1.0"
