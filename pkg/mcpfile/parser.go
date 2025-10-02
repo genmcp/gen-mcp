@@ -73,26 +73,24 @@ func (s *MCPServer) UnmarshalJSON(data []byte) error {
 	}
 
 	// Only set defaults if we have a server defined (name or version present)
-	if s.Name == "" && s.Version == "" {
-		return nil
-	}
+	if s.Name != "" || s.Version != "" {
+		if s.Runtime == nil {
+			s.Runtime = &ServerRuntime{
+				TransportProtocol: TransportProtocolStreamableHttp,
+				StreamableHTTPConfig: &StreamableHTTPConfig{
+					Port:      3000,
+					BasePath:  DefaultBasePath,
+					Stateless: true,
+				},
+			}
+		}
 
-	if s.Runtime == nil {
-		s.Runtime = &ServerRuntime{
-			TransportProtocol: TransportProtocolStreamableHttp,
-			StreamableHTTPConfig: &StreamableHTTPConfig{
+		if s.Runtime.TransportProtocol == TransportProtocolStreamableHttp && s.Runtime.StreamableHTTPConfig == nil {
+			s.Runtime.StreamableHTTPConfig = &StreamableHTTPConfig{
 				Port:      3000,
 				BasePath:  DefaultBasePath,
 				Stateless: true,
-			},
-		}
-	}
-
-	if s.Runtime.TransportProtocol == TransportProtocolStreamableHttp && s.Runtime.StreamableHTTPConfig == nil {
-		s.Runtime.StreamableHTTPConfig = &StreamableHTTPConfig{
-			Port:      3000,
-			BasePath:  DefaultBasePath,
-			Stateless: true,
+			}
 		}
 	}
 

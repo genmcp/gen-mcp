@@ -28,12 +28,12 @@ tools:
     - repoUrl
   invocation:
     cli:
-      command: git clone {depth} {verbose} {repoUrl} {path}
+      command: "git clone {depth} {verbose} {repoUrl} {path}"
       templateVariables:
         depth:
-          format: --depth {depth}
+          format: "--depth {depth}"
         verbose:
-          format: --verbose
+          format: "--verbose"
           omitIfFalse: true
 - name: ensure_dir_exists
   title: Ensure directory exists
@@ -48,11 +48,10 @@ tools:
     - path
   invocation:
     cli:
-      command: mkdir -p {path}
+      command: "mkdir -p {path}"
 - name: get_repo_url
   title: Get repository url
-  description: Get the https or ssh url for a git repository given the organization
-    name and repo name
+  description: Get the https or ssh url for a git repository given the organization name and repo name
   inputSchema:
     type: object
     properties:
@@ -70,5 +69,5 @@ tools:
     - repoName
   invocation:
     http:
-      url: http://localhost:9090/repos/{org}/{repoName}
+      url: "http://localhost:9090/repos/{org}/{repoName}"
       method: GET

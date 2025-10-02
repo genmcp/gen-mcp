@@ -23,10 +23,10 @@ tools:
     - repoUrl
   invocation:
     cli:
-      command: git clone {repoUrl} {depth} {verbose}
+      command: "git clone {repoUrl} {depth} {verbose}"
       templateVariables:
         depth:
-          format: --depth {depth}
+          format: "--depth {depth}"
         verbose:
-          format: --verbose
+          format: "--verbose"
           omitIfFalse: true

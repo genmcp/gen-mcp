@@ -56,7 +56,7 @@ tools:
         description: The prompt to give the model
   invocation:
     cli:
-      command: ollama run {model} {prompt}
+      command: 'ollama run {model} {prompt}'
       templateVariables:
         prompt:
           format: '"{prompt}"'
