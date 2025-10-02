@@ -287,18 +287,18 @@ streamableHttpConfig:
   port: 3000
 tools:
 - name: get_user
-title: "Get User"
-description: "Retrieves a user by their ID."
-inputSchema:
-  type: object
-  properties:
-    userId:
-      type: string
-      description: "The ID of the user to retrieve."
-  required:
-  - userId
-invocation:
-  http:
-    method: GET
-    url: http://localhost:8080/users/{userId}
+  title: "Get User"
+  description: "Retrieves a user by their ID."
+  inputSchema:
+    type: object
+    properties:
+      userId:
+        type: string
+        description: "The ID of the user to retrieve."
+    required:
+    - userId
+  invocation:
+    http:
+      method: GET
+      url: http://localhost:8080/users/{userId}
 ```
