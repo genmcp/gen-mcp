@@ -14,8 +14,7 @@ tools:
     properties:
       repoUrl:
         type: string
-        description: The git url of the repo to clone. If cloning with ssh, this should
-          be the ssh url, if cloning with https this should be the https url.
+        description: The git url of the repo to clone. If cloning with ssh, this should be the ssh url, if cloning with https this should be the https url.
       depth:
         type: integer
         description: The number of commits to clone
@@ -24,8 +23,7 @@ tools:
         description: Whether to return verbose logs
       path:
         type: string
-        description: The relative or absolute path to clone the repo to, if not cloning
-          to {current directory}/{repo name}
+        description: The relative or absolute path to clone the repo to, if not cloning to {current directory}/{repo name}
     required:
     - repoUrl
   invocation:

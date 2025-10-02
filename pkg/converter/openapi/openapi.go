@@ -176,7 +176,7 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 	// 1. Set top level MCP file info
 	// 2. Create server in the MCP file, default to streamablehttp transport w. port 8080
 	// 3 for each (path, operation) in the document, add one tool to the server w. http invoke
-	res := &mcpfile.MCPFile{
+	server := &mcpfile.MCPFile{
 		FileVersion: mcpfile.MCPFileVersion,
 		Runtime: &mcpfile.ServerRuntime{
 			TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
@@ -193,7 +193,7 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 		title = model.Info.Title
 	}
 
-	res.Name = title
+	server.Name = title
 
 	baseUrl := ""
 	if len(model.Servers) > 0 {
@@ -275,13 +275,13 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 
 			}
 
-			res.Tools = append(res.Tools, tool)
+			server.Tools = append(server.Tools, tool)
 		}
 	}
 
 	// the only errors we should see at this point are from the tools themselves - let's validate them and filter out invalid tools
-	validTools := make([]*mcpfile.Tool, 0, len(res.Tools))
-	for _, t := range res.Tools {
+	validTools := make([]*mcpfile.Tool, 0, len(server.Tools))
+	for _, t := range server.Tools {
 		toolErr := t.Validate(invocation.InvocationValidator)
 		if toolErr != nil {
 			err = errors.Join(err, fmt.Errorf("skipping tool %s: %w", t.Name, toolErr))
@@ -290,9 +290,9 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 		}
 	}
 
-	res.Tools = validTools
+	server.Tools = validTools
 
-	return res, err
+	return server, err
 }
 
 func convertSchema(proxy *highbase.SchemaProxy, visited map[*highbase.SchemaProxy]*jsonschema.Schema) *jsonschema.Schema {

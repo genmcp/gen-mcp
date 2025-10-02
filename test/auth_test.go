@@ -64,7 +64,6 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				// Convert MCPFile to MCPServer for RunServer
 				mcpServer := &mcpfile.MCPServer{
 					Name:    mcpConfig.Name,
 					Version: mcpConfig.Version,

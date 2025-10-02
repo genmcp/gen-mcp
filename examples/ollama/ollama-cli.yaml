@@ -8,8 +8,7 @@ runtime:
 tools:
 - name: start_ollama
   title: Start Ollama
-  description: Start ollama. Only run this if Ollama has not already started (use
-    check_ollama_running).
+  description: Start ollama. Only run this if Ollama has not already started (use check_ollama_running).
   inputSchema:
     type: object
   invocation:

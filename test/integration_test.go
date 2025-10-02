@@ -40,7 +40,6 @@ var _ = Describe("Basic Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				// Convert MCPFile to MCPServer for RunServer
 				mcpServer := &mcpfile.MCPServer{
 					Name:    mcpConfig.Name,
 					Version: mcpConfig.Version,
@@ -171,7 +170,6 @@ var _ = Describe("Basic Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				// Convert MCPFile to MCPServer for RunServer
 				mcpServer := &mcpfile.MCPServer{
 					Name:    mcpConfig.Name,
 					Version: mcpConfig.Version,

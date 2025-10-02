@@ -60,7 +60,6 @@ func RunServers(ctx context.Context, mcpFilePath string) error {
 		return fmt.Errorf("mcp file is invalid: %w", err)
 	}
 
-	// Convert MCPFile to MCPServer for internal use
 	mcpServer := &mcpfile.MCPServer{
 		Name:    mcpConfig.Name,
 		Version: mcpConfig.Version,

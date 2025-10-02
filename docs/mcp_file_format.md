@@ -234,7 +234,7 @@ runtime:
       jwksUri: https://auth.example.com/.well-known/jwks.json
 ```
 
-## 8. Complete Example
+## 8. Complete Example for a CLI
 
 ```yaml
 mcpFileVersion: "0.1.0"
@@ -273,4 +273,32 @@ tools:
             property: "verbose"
             format: "--verbose"
             omitIfFalse: true
+```
+
+## 9. Complete Example for an HTTP Server
+
+```yaml
+mcpFileVersion: "0.0.1"
+name: user-service
+version: "2.1.0"
+runtime:
+transportProtocol: streamablehttp
+streamableHttpConfig:
+  port: 3000
+tools:
+- name: get_user
+title: "Get User"
+description: "Retrieves a user by their ID."
+inputSchema:
+  type: object
+  properties:
+    userId:
+      type: string
+      description: "The ID of the user to retrieve."
+  required:
+  - userId
+invocation:
+  http:
+    method: GET
+    url: http://localhost:8080/users/{userId}
 ```

@@ -40,8 +40,7 @@ tools:
   title: Add new feature
   requiredScopes:
   - feature:create
-- description: Returns the feature with the most upvotes. Always call get_features-id
-    after, to give the user the full details of this feature.
+- description: Returns the feature with the most upvotes. Always call get_features-id after, to give the user the full details of this feature.
   inputSchema:
     type: object
   invocation:
