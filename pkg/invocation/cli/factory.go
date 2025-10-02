@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/genmcp/gen-mcp/pkg/invocation"
+	"github.com/genmcp/gen-mcp/pkg/invocation/utils"
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
@@ -46,7 +47,7 @@ type DummyFormatter struct {
 }
 
 func NewDummyFormatter(paramName string, schema *jsonschema.Schema) (*DummyFormatter, error) {
-	formatString, err := formatStringForParam(paramName, schema)
+	formatString, err := utils.FormatStringForParam(paramName, schema)
 	if err != nil {
 		return nil, err
 	}

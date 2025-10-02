@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/genmcp/gen-mcp/pkg/invocation"
+	"github.com/genmcp/gen-mcp/pkg/invocation/utils"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/google/jsonschema-go/jsonschema"
 )
@@ -134,7 +135,7 @@ func parseTemplateVariable(data json.RawMessage, primitive primitiveAdapter) (*T
 
 	paramName := tmp.Format[varStart+1 : varEnd]
 
-	formatString, err := formatStringForParam(paramName, primitive.InputSchema)
+	formatString, err := utils.FormatStringForParam(paramName, primitive.InputSchema)
 	if err != nil {
 		return nil, err
 	}
@@ -143,41 +144,4 @@ func parseTemplateVariable(data json.RawMessage, primitive primitiveAdapter) (*T
 	tv.Template = tmp.Format[:varStart] + formatString + tmp.Format[varEnd+1:]
 
 	return tv, nil
-}
-
-func formatStringForParam(paramName string, schema *jsonschema.Schema) (string, error) {
-	schema, err := lookupParam(paramName, schema)
-	if err != nil {
-		return "", err
-	}
-
-	switch schema.Type {
-	case invocation.JsonSchemaTypeArray, invocation.JsonSchemaTypeNull, invocation.JsonSchemaTypeObject:
-		return "%v", nil
-	case invocation.JsonSchemaTypeBoolean:
-		return "%b", nil
-	case invocation.JsonSchemaTypeInteger:
-		return "%d", nil
-	case invocation.JsonSchemaTypeNumber:
-		return "%f", nil
-	case invocation.JsonSchemaTypeString:
-		return "%s", nil
-	default:
-		return "", fmt.Errorf("unknown json schema for type: '%s'", schema.Type)
-	}
-}
-
-func lookupParam(paramName string, schema *jsonschema.Schema) (*jsonschema.Schema, error) {
-	path := strings.Split(paramName, ".")
-	currentSchema := schema
-	var ok bool
-
-	for _, p := range path {
-		currentSchema, ok = currentSchema.Properties[p]
-		if !ok {
-			return nil, fmt.Errorf("cli invocation has %s command parameter, but there is no corresponding property defined on the input schema", paramName)
-		}
-	}
-
-	return currentSchema, nil
 }

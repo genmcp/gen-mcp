@@ -249,16 +249,6 @@ func (hi *HttpInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReque
 		return utils.McpPromptTextError("http request failed with status %d", response.StatusCode), fmt.Errorf("http request failed with status %d", response.StatusCode)
 	}
 
-	// Try to parse as JSON first
-	contentType := response.Header.Get("Content-Type")
-	if strings.Contains(contentType, "application/json") {
-		var result mcp.GetPromptResult
-		if err := json.Unmarshal(body, &result); err == nil {
-			return &result, nil
-		}
-	}
-
-	// Fallback to treating as plain text
 	result := &mcp.GetPromptResult{
 		Messages: []*mcp.PromptMessage{
 			{
