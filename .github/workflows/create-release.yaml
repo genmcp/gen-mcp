@@ -125,6 +125,8 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           VERSION_TAG: ${{ needs.determine-version.outputs.prerelease_version }}
         run: |
+          make build-cli-platform GOOS=${GOOS} GOARCH=${GOARCH} VERSION_TAG=${VERSION_TAG}
+
           CLI_NAME="genmcp"
           if [ "${GOOS}" == "windows" ]; then
             OUTPUT_NAME="${CLI_NAME}-${GOOS}-${GOARCH}.exe"
@@ -132,13 +134,7 @@ jobs:
             OUTPUT_NAME="${CLI_NAME}-${GOOS}-${GOARCH}"
           fi
 
-          go build -o "${OUTPUT_NAME}" -ldflags="-X 'main.version=${VERSION_TAG}'" ./cmd/genmcp
-
-          if [ "${GOOS}" == "windows" ]; then
-            zip "${CLI_NAME}-${GOOS}-${GOARCH}.zip" "${OUTPUT_NAME}"
-          else
-            zip "${CLI_NAME}-${GOOS}-${GOARCH}.zip" "${OUTPUT_NAME}"
-          fi
+          zip "${CLI_NAME}-${GOOS}-${GOARCH}.zip" "${OUTPUT_NAME}"
 
       - name: Upload assets to release
         run: |
