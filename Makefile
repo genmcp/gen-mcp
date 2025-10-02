@@ -4,7 +4,7 @@ BUILD_DIR = pkg/builder/binaries
 SERVER_CMD = ./cmd/genmcp-server/
 
 .PHONY: all
-all: build-all
+all: build
 
 .PHONY: clean
 clean:
@@ -54,5 +54,5 @@ build-cli-platform: build-server-binaries
 		GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o "$$OUTPUT_NAME" ./cmd/genmcp; \
 	fi
 
-.PHONY: build-all
-build-all: build-server-binaries build-cli
+.PHONY: build
+build: build-server-binaries build-cli
