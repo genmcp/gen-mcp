@@ -25,14 +25,16 @@ func TestParseMcpFile(t *testing.T) {
 			testFileName: "one-server-no-tools.yaml",
 			expected: &MCPFile{
 				FileVersion: MCPFileVersion,
-				Name:        "test-server",
-				Version:     "1.0.0",
-				Runtime: &ServerRuntime{
-					TransportProtocol: TransportProtocolStreamableHttp,
-					StreamableHTTPConfig: &StreamableHTTPConfig{
-						Port:      3000,
-						BasePath:  DefaultBasePath,
-						Stateless: true,
+				MCPServer: MCPServer{
+					Name:    "test-server",
+					Version: "1.0.0",
+					Runtime: &ServerRuntime{
+						TransportProtocol: TransportProtocolStreamableHttp,
+						StreamableHTTPConfig: &StreamableHTTPConfig{
+							Port:      3000,
+							BasePath:  DefaultBasePath,
+							Stateless: true,
+						},
 					},
 				},
 			},
@@ -41,7 +43,8 @@ func TestParseMcpFile(t *testing.T) {
 			testFileName: "one-server-tools.yaml",
 			expected: &MCPFile{
 				FileVersion: MCPFileVersion,
-				Name:    "test-server",
+				MCPServer: MCPServer{
+					Name:    "test-server",
 					Version: "1.0.0",
 					Runtime: &ServerRuntime{
 						TransportProtocol: TransportProtocolStreamableHttp,
@@ -70,14 +73,15 @@ func TestParseMcpFile(t *testing.T) {
 							InvocationType: "http",
 						},
 					},
-
+				},
 			},
 		},
 		"with tools and http params": {
 			testFileName: "one-server-tools-http-params.yaml",
 			expected: &MCPFile{
 				FileVersion: MCPFileVersion,
-				Name:    "test-server",
+				MCPServer: MCPServer{
+					Name:    "test-server",
 					Version: "1.0.0",
 					Runtime: &ServerRuntime{
 						TransportProtocol: TransportProtocolStreamableHttp,
@@ -106,14 +110,15 @@ func TestParseMcpFile(t *testing.T) {
 							InvocationType: "http",
 						},
 					},
-
+				},
 			},
 		},
 		"cli invocation": {
 			testFileName: "one-server-cli-tools.yaml",
 			expected: &MCPFile{
 				FileVersion: MCPFileVersion,
-				Name:    "test-server",
+				MCPServer: MCPServer{
+					Name:    "test-server",
 					Version: "1.0.0",
 					Runtime: &ServerRuntime{
 						TransportProtocol: TransportProtocolStreamableHttp,
@@ -150,14 +155,15 @@ func TestParseMcpFile(t *testing.T) {
 							InvocationType: "cli",
 						},
 					},
-
+				},
 			},
 		},
 		"stateful": {
 			testFileName: "one-server-stateful.yaml",
 			expected: &MCPFile{
 				FileVersion: MCPFileVersion,
-				Name:    "test-server",
+				MCPServer: MCPServer{
+					Name:    "test-server",
 					Version: "1.0.0",
 					Runtime: &ServerRuntime{
 						TransportProtocol: TransportProtocolStreamableHttp,
@@ -194,14 +200,15 @@ func TestParseMcpFile(t *testing.T) {
 							InvocationType: "cli",
 						},
 					},
-
+				},
 			},
 		},
 		"server runtime stdio": {
 			testFileName: "server-runtime-stdio.yaml",
 			expected: &MCPFile{
 				FileVersion: MCPFileVersion,
-				Name:    "test-server",
+				MCPServer: MCPServer{
+					Name:    "test-server",
 					Version: "1.0.0",
 					Runtime: &ServerRuntime{
 						TransportProtocol: TransportProtocolStdio,
@@ -233,14 +240,15 @@ func TestParseMcpFile(t *testing.T) {
 							InvocationType: "cli",
 						},
 					},
-
+				},
 			},
 		},
 		"full demo": {
 			testFileName: "full-demo.yaml",
 			expected: &MCPFile{
 				FileVersion: MCPFileVersion,
-				Name:    "git-github-example",
+				MCPServer: MCPServer{
+					Name:    "git-github-example",
 					Version: "1.0.0",
 					Runtime: &ServerRuntime{
 						TransportProtocol: TransportProtocolStreamableHttp,
@@ -322,14 +330,15 @@ func TestParseMcpFile(t *testing.T) {
 							InvocationType: "http",
 						},
 					},
-
+				},
 			},
 		},
 		"with tls": {
 			testFileName: "one-server-tls.yaml",
 			expected: &MCPFile{
 				FileVersion: MCPFileVersion,
-				Name:    "test-server",
+				MCPServer: MCPServer{
+					Name:    "test-server",
 					Version: "1.0.0",
 					Runtime: &ServerRuntime{
 						TransportProtocol: TransportProtocolStreamableHttp,
@@ -361,7 +370,7 @@ func TestParseMcpFile(t *testing.T) {
 							InvocationType: "http",
 						},
 					},
-
+				},
 			},
 		},
 	}

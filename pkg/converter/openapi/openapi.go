@@ -49,14 +49,16 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 	// 3 for each (path, operation) in the document, add one tool to the server w. http invoke
 	res := &mcpfile.MCPFile{
 		FileVersion: mcpfile.MCPFileVersion,
-		Runtime: &mcpfile.ServerRuntime{
-			TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
-			StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
-				Port: 8080,
+		MCPServer: mcpfile.MCPServer{
+			Runtime: &mcpfile.ServerRuntime{
+				TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
+				StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
+					Port: 8080,
+				},
 			},
+			Tools:   []*mcpfile.Tool{},
+			Version: "0.0.1",
 		},
-		Tools:   []*mcpfile.Tool{},
-		Version: "0.0.1",
 	}
 
 	title := "mcpfile-generated"
@@ -178,14 +180,16 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 	// 3 for each (path, operation) in the document, add one tool to the server w. http invoke
 	server := &mcpfile.MCPFile{
 		FileVersion: mcpfile.MCPFileVersion,
-		Runtime: &mcpfile.ServerRuntime{
-			TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
-			StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
-				Port: 8080,
+		MCPServer: mcpfile.MCPServer{
+			Runtime: &mcpfile.ServerRuntime{
+				TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
+				StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
+					Port: 8080,
+				},
 			},
+			Tools:   []*mcpfile.Tool{},
+			Version: "0.0.1",
 		},
-		Tools:   []*mcpfile.Tool{},
-		Version: "0.0.1",
 	}
 
 	title := "mcpfile-generated"

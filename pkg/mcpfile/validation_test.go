@@ -15,12 +15,14 @@ func TestMCPFileValidate(t *testing.T) {
 	t.Run("missing name should fail validation", func(t *testing.T) {
 		mcpFile := &MCPFile{
 			FileVersion: MCPFileVersion,
-			Version:     "1.0.0",
-			Runtime: &ServerRuntime{
-				TransportProtocol: TransportProtocolStreamableHttp,
-				StreamableHTTPConfig: &StreamableHTTPConfig{
-					Port:     3000,
-					BasePath: DefaultBasePath,
+			MCPServer: MCPServer{
+				Version: "1.0.0",
+				Runtime: &ServerRuntime{
+					TransportProtocol: TransportProtocolStreamableHttp,
+					StreamableHTTPConfig: &StreamableHTTPConfig{
+						Port:     3000,
+						BasePath: DefaultBasePath,
+					},
 				},
 			},
 		}
@@ -32,12 +34,14 @@ func TestMCPFileValidate(t *testing.T) {
 	t.Run("missing version should fail validation", func(t *testing.T) {
 		mcpFile := &MCPFile{
 			FileVersion: MCPFileVersion,
-			Name:        "test-server",
-			Runtime: &ServerRuntime{
-				TransportProtocol: TransportProtocolStreamableHttp,
-				StreamableHTTPConfig: &StreamableHTTPConfig{
-					Port:     3000,
-					BasePath: DefaultBasePath,
+			MCPServer: MCPServer{
+				Name: "test-server",
+				Runtime: &ServerRuntime{
+					TransportProtocol: TransportProtocolStreamableHttp,
+					StreamableHTTPConfig: &StreamableHTTPConfig{
+						Port:     3000,
+						BasePath: DefaultBasePath,
+					},
 				},
 			},
 		}
@@ -49,13 +53,15 @@ func TestMCPFileValidate(t *testing.T) {
 	t.Run("valid server should pass validation", func(t *testing.T) {
 		mcpFile := &MCPFile{
 			FileVersion: MCPFileVersion,
-			Name:        "test-server",
-			Version:     "1.0.0",
-			Runtime: &ServerRuntime{
-				TransportProtocol: TransportProtocolStreamableHttp,
-				StreamableHTTPConfig: &StreamableHTTPConfig{
-					Port:     3000,
-					BasePath: DefaultBasePath,
+			MCPServer: MCPServer{
+				Name:    "test-server",
+				Version: "1.0.0",
+				Runtime: &ServerRuntime{
+					TransportProtocol: TransportProtocolStreamableHttp,
+					StreamableHTTPConfig: &StreamableHTTPConfig{
+						Port:     3000,
+						BasePath: DefaultBasePath,
+					},
 				},
 			},
 		}

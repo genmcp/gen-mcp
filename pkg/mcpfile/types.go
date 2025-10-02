@@ -62,9 +62,6 @@ type MCPServer struct {
 }
 
 type MCPFile struct {
-	FileVersion string         `json:"mcpFileVersion"`
-	Name        string         `json:"name"`              // name of the server
-	Version     string         `json:"version"`           // version of the server
-	Runtime     *ServerRuntime `json:"runtime,omitempty"` // runtime settings for the server
-	Tools       []*Tool        `json:"tools,omitempty"`   // set of tools available to the server
+	FileVersion string `json:"mcpFileVersion"`
+	MCPServer   `json:",inline"`
 }

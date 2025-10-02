@@ -37,37 +37,22 @@ func ParseMCPFile(path string) (*MCPFile, error) {
 }
 
 func (m *MCPFile) UnmarshalJSON(data []byte) error {
-	type Doppleganger MCPFile
-
-	tmp := struct {
-		*Doppleganger
-	}{
-		Doppleganger: (*Doppleganger)(m),
-	}
-
-	err := json.Unmarshal(data, &tmp)
-	if err != nil {
+	// First unmarshal into a temporary struct to get all fields
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
 
-	// Only set default runtime if we have a server defined (name or version present)
-	if m.Runtime == nil && (m.Name != "" || m.Version != "") {
-		m.Runtime = &ServerRuntime{
-			TransportProtocol: TransportProtocolStreamableHttp,
-			StreamableHTTPConfig: &StreamableHTTPConfig{
-				Port:      3000,
-				BasePath:  DefaultBasePath,
-				Stateless: true,
-			},
+	// Unmarshal FileVersion separately
+	if fv, ok := raw["mcpFileVersion"]; ok {
+		if err := json.Unmarshal(fv, &m.FileVersion); err != nil {
+			return err
 		}
 	}
 
-	if m.Runtime != nil && m.Runtime.TransportProtocol == TransportProtocolStreamableHttp && m.Runtime.StreamableHTTPConfig == nil {
-		m.Runtime.StreamableHTTPConfig = &StreamableHTTPConfig{
-			Port:      3000,
-			BasePath:  DefaultBasePath,
-			Stateless: true,
-		}
+	// Unmarshal the rest into MCPServer
+	if err := json.Unmarshal(data, &m.MCPServer); err != nil {
+		return err
 	}
 
 	return nil
@@ -85,6 +70,11 @@ func (s *MCPServer) UnmarshalJSON(data []byte) error {
 	err := json.Unmarshal(data, &tmp)
 	if err != nil {
 		return err
+	}
+
+	// Only set defaults if we have a server defined (name or version present)
+	if s.Name == "" && s.Version == "" {
+		return nil
 	}
 
 	if s.Runtime == nil {
