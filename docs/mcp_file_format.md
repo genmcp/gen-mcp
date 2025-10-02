@@ -278,7 +278,7 @@ tools:
 ## 9. Complete Example for an HTTP Server
 
 ```yaml
-mcpFileVersion: "0.0.1"
+mcpFileVersion: "0.1.0"
 name: user-service
 version: "2.1.0"
 runtime:
