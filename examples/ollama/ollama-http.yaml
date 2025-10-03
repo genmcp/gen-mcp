@@ -1,135 +1,134 @@
-mcpFileVersion: "0.0.1"
-servers:
-- name: ollama
-  version: "1.0.0"
-  runtime:
-    transportProtocol: streamablehttp
-    streamableHttpConfig:
-      port: 8009
-  tools:
-  - name: generate
-    title: "Generate a response"
-    description: "Generates a response for a given prompt."
-    inputSchema:
-      type: object
-      properties:
-        model:
-          type: string
-          description: "The name of the model to use."
-        prompt:
-          type: string
-          description: "The prompt to generate a response for."
-        system:
-          type: string
-          description: "A system message to override the model's default behavior."
-        template:
-          type: string
-          description: "The prompt template to use."
-        context:
-          type: string
-          description: "The context from a previous response to maintain conversational memory."
-        stream:
-          type: boolean
-          description: "Whether to stream the response back or not. Must be false." # this is a hack until we support default values
-        keep_alive:
-          type: string
-          description: "How long to keep the model loaded in memory."
-      required:
-      - model
-      - prompt
-      - stream
-    invocation:
-      http:
-        method: POST
-        url: http://localhost:11434/api/generate
-  - name: chat
-    title: "Generate a chat response"
-    description: "Generates a response for a chat-based conversation."
-    inputSchema:
-      type: object
-      properties:
-        model:
-          type: string
-          description: "The name of the model to use."
-        messages:
-          type: array
-          items:
-            type: object
-            properties:
-              role:
-                type: string
-                description: "The role of the message, either 'user' or 'assistant'."
-              content:
-                type: string
-                description: "The content of the message."
-            required:
-            - role
-            - content
-        stream:
-          type: boolean
-          description: "Whether to stream the response back or not. Must be false."
-        keep_alive:
-          type: string
-          description: "How long to keep the model loaded in memory."
-      required:
-      - model
-      - messages
-      - stream
-    invocation:
-      http:
-        method: POST
-        url: http://localhost:11434/api/chat
-  - name: tags
-    title: "List downloaded models"
-    description: "Lists all downloaded models."
-    inputSchema:
-      type: object
-      properties: {}
-    invocation:
-      http:
-        method: GET
-        url: http://localhost:11434/api/tags
-  - name: show
-    title: "Show model information"
-    description: "Returns information about a model, including its Modelfile, template, and parameters."
-    inputSchema:
-      type: object
-      properties:
-        model:
-          type: string
-          description: "The name of the model to show."
-      required:
-      - model
-    invocation:
-      http:
-        method: POST
-        url: http://localhost:11434/api/show
-  - name: pull_model
-    title: "Pull model"
-    description: "Download a model from the ollama library."
-    inputSchema:
-      type: object
-      properties:
-        model:
-          type: string
-          description: "The name of the model to pull."
-        stream:
-          type: boolean
-          description: "whether the response will be returned as a single response object. Must be false"
-      required:
-      - model
-      - stream
-    invocation:
-      http:
-        method: POST
-        url: http://localhost:11434/api/pull
-  - name: running_models
-    title: "Get running models"
-    description: "List models that are currently loaded into memory"
-    inputSchema:
-      type: object
-      properties:
-    invocation:
-      http:
-        method: GET
-        url: http://localhost:11434/api/ps
+mcpFileVersion: "0.1.0"
+name: ollama
+version: "1.0.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8009
+tools:
+- name: generate
+  title: "Generate a response"
+  description: "Generates a response for a given prompt."
+  inputSchema:
+    type: object
+    properties:
+      model:
+        type: string
+        description: "The name of the model to use."
+      prompt:
+        type: string
+        description: "The prompt to generate a response for."
+      system:
+        type: string
+        description: "A system message to override the model's default behavior."
+      template:
+        type: string
+        description: "The prompt template to use."
+      context:
+        type: string
+        description: "The context from a previous response to maintain conversational memory."
+      stream:
+        type: boolean
+        description: "Whether to stream the response back or not. Must be false." # this is a hack until we support default values
+      keep_alive:
+        type: string
+        description: "How long to keep the model loaded in memory."
+    required:
+    - model
+    - prompt
+    - stream
+  invocation:
+    http:
+      method: POST
+      url: http://localhost:11434/api/generate
+- name: chat
+  title: "Generate a chat response"
+  description: "Generates a response for a chat-based conversation."
+  inputSchema:
+    type: object
+    properties:
+      model:
+        type: string
+        description: "The name of the model to use."
+      messages:
+        type: array
+        items:
+          type: object
+          properties:
+            role:
+              type: string
+              description: "The role of the message, either 'user' or 'assistant'."
+            content:
+              type: string
+              description: "The content of the message."
+          required:
+          - role
+          - content
+      stream:
+        type: boolean
+        description: "Whether to stream the response back or not. Must be false."
+      keep_alive:
+        type: string
+        description: "How long to keep the model loaded in memory."
+    required:
+    - model
+    - messages
+    - stream
+  invocation:
+    http:
+      method: POST
+      url: http://localhost:11434/api/chat
+- name: tags
+  title: "List downloaded models"
+  description: "Lists all downloaded models."
+  inputSchema:
+    type: object
+    properties: {}
+  invocation:
+    http:
+      method: GET
+      url: http://localhost:11434/api/tags
+- name: show
+  title: "Show model information"
+  description: "Returns information about a model, including its Modelfile, template, and parameters."
+  inputSchema:
+    type: object
+    properties:
+      model:
+        type: string
+        description: "The name of the model to show."
+    required:
+    - model
+  invocation:
+    http:
+      method: POST
+      url: http://localhost:11434/api/show
+- name: pull_model
+  title: "Pull model"
+  description: "Download a model from the ollama library."
+  inputSchema:
+    type: object
+    properties:
+      model:
+        type: string
+        description: "The name of the model to pull."
+      stream:
+        type: boolean
+        description: "whether the response will be returned as a single response object. Must be false"
+    required:
+    - model
+    - stream
+  invocation:
+    http:
+      method: POST
+      url: http://localhost:11434/api/pull
+- name: running_models
+  title: "Get running models"
+  description: "List models that are currently loaded into memory"
+  inputSchema:
+    type: object
+    properties:
+  invocation:
+    http:
+      method: GET
+      url: http://localhost:11434/api/ps

@@ -64,7 +64,13 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				err := mcpserver.RunServer(ctx, mcpConfig.Servers[0])
+				mcpServer := &mcpfile.MCPServer{
+					Name:    mcpConfig.Name,
+					Version: mcpConfig.Version,
+					Runtime: mcpConfig.Runtime,
+					Tools:   mcpConfig.Tools,
+				}
+				err := mcpserver.RunServer(ctx, mcpServer)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}
@@ -485,55 +491,54 @@ func createTestMCPConfig(backendURL string, port int) *mcpfile.MCPFile {
 	By("creating test MCP configuration")
 
 	mcpYAML := fmt.Sprintf(`
-mcpFileVersion: 0.0.1
-servers:
-  - name: test-oauth-server-full-flow
-    version: "1.0"
-    runtime:
-      streamableHttpConfig:
-        port: %d
-        basePath: "/mcp"
-        auth:
-          authorizationServers:
-            - %s/realms/%s
-          jwksUri: "%s/realms/%s/protocol/openid-connect/certs"
-      transportProtocol: streamablehttp
-    tools:
-      - name: get_status
-        description: "Get server status"
-        inputSchema:
-          type: object
-          properties: {}
-        outputSchema:
-          type: object
-          properties:
-            status:
-              type: string
-        invocation:
-          http:
-            url: "%s/status"
-            method: "GET"
-      - name: get_user
-        description: "Get user by ID"
-        inputSchema:
-          type: object
-          properties:
-            userId:
-              type: string
-          required:
-            - userId
-        outputSchema:
-          type: object
-          properties:
-            status:
-              type: string
-        invocation:
-          http:
-            url: "%s/users/{userId}"
-            method: "GET"
-        requiredScopes:
-          - "read"
-          - "user:read"
+mcpFileVersion: 0.1.0
+name: test-oauth-server-full-flow
+version: "1.0"
+runtime:
+  streamableHttpConfig:
+    port: %d
+    basePath: "/mcp"
+    auth:
+      authorizationServers:
+        - %s/realms/%s
+      jwksUri: "%s/realms/%s/protocol/openid-connect/certs"
+  transportProtocol: streamablehttp
+tools:
+  - name: get_status
+    description: "Get server status"
+    inputSchema:
+      type: object
+      properties: {}
+    outputSchema:
+      type: object
+      properties:
+        status:
+          type: string
+    invocation:
+      http:
+        url: "%s/status"
+        method: "GET"
+  - name: get_user
+    description: "Get user by ID"
+    inputSchema:
+      type: object
+      properties:
+        userId:
+          type: string
+      required:
+        - userId
+    outputSchema:
+      type: object
+      properties:
+        status:
+          type: string
+    invocation:
+      http:
+        url: "%s/users/{userId}"
+        method: "GET"
+    requiredScopes:
+      - "read"
+      - "user:read"
 `, port, keycloakBaseURL, masterRealm, keycloakBaseURL, masterRealm, backendURL, backendURL)
 
 	tmpfile, err := os.CreateTemp("", "mcp-oauth-*.yaml")

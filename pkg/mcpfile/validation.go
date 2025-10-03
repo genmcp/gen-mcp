@@ -9,6 +9,29 @@ import (
 
 type InvocationValidator func(invocationType string, data json.RawMessage, tool *Tool) error
 
+func (m *MCPFile) Validate(invocationValidator InvocationValidator) error {
+	var err error = nil
+	if m.Name == "" {
+		err = errors.Join(err, fmt.Errorf("invalid mcpfile: name is required"))
+	}
+
+	if m.Version == "" {
+		err = errors.Join(err, fmt.Errorf("invalid mcpfile: version is required"))
+	}
+
+	if runtimeErr := m.Runtime.Validate(); runtimeErr != nil {
+		err = errors.Join(err, fmt.Errorf("invalid mcpfile, runtime is invalid: %w", runtimeErr))
+	}
+
+	for i, t := range m.Tools {
+		if toolErr := t.Validate(invocationValidator); toolErr != nil {
+			err = errors.Join(err, fmt.Errorf("invalid mcpfile: tools[%d] is invalid: %w", i, toolErr))
+		}
+	}
+
+	return err
+}
+
 func (t *Tool) Validate(invocationValidator InvocationValidator) error {
 	var err error = nil
 	if t.Name == "" {

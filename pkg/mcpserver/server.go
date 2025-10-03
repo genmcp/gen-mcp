@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"slices"
 	"strings"
-	"sync"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -57,42 +56,18 @@ func RunServers(ctx context.Context, mcpFilePath string) error {
 		return fmt.Errorf("failed to parse mcp file: %w", err)
 	}
 
-	for _, s := range mcpConfig.Servers {
-		err = s.Validate(invocation.InvocationValidator)
-		if err != nil {
-			return fmt.Errorf("mcp file contains an invalid server: %w", err)
-		}
+	if err := mcpConfig.Validate(invocation.InvocationValidator); err != nil {
+		return fmt.Errorf("mcp file is invalid: %w", err)
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	errChn := make(chan error, 1)
-
-	var wg sync.WaitGroup
-	wg.Add(len(mcpConfig.Servers))
-
-	for _, s := range mcpConfig.Servers {
-		go func(server *mcpfile.MCPServer) {
-			defer wg.Done()
-			err := RunServer(ctx, server)
-			if err != nil {
-				select {
-				case errChn <- fmt.Errorf("error running server: %s", err.Error()):
-				default:
-				}
-			}
-		}(s)
+	mcpServer := &mcpfile.MCPServer{
+		Name:    mcpConfig.Name,
+		Version: mcpConfig.Version,
+		Runtime: mcpConfig.Runtime,
+		Tools:   mcpConfig.Tools,
 	}
 
-	var firstErr error
-	select {
-	case firstErr = <-errChn:
-		cancel()
-	case <-ctx.Done():
-	}
-
-	wg.Wait()
-	return firstErr
+	return RunServer(ctx, mcpServer)
 }
 
 func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {

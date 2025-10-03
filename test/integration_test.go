@@ -40,7 +40,13 @@ var _ = Describe("Basic Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				err := mcpserver.RunServer(ctx, mcpConfig.Servers[0])
+				mcpServer := &mcpfile.MCPServer{
+					Name:    mcpConfig.Name,
+					Version: mcpConfig.Version,
+					Runtime: mcpConfig.Runtime,
+					Tools:   mcpConfig.Tools,
+				}
+				err := mcpserver.RunServer(ctx, mcpServer)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}
@@ -164,7 +170,13 @@ var _ = Describe("Basic Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				err := mcpserver.RunServer(ctx, mcpConfig.Servers[0])
+				mcpServer := &mcpfile.MCPServer{
+					Name:    mcpConfig.Name,
+					Version: mcpConfig.Version,
+					Runtime: mcpConfig.Runtime,
+					Tools:   mcpConfig.Tools,
+				}
+				err := mcpserver.RunServer(ctx, mcpServer)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}
@@ -244,31 +256,30 @@ func createBasicTestMCPConfig(backendURL string, port int) *mcpfile.MCPFile {
 	By("creating basic test MCP configuration")
 
 	mcpYAML := fmt.Sprintf(`
-mcpFileVersion: 0.0.1
-servers:
-  - name: test-server
-    version: "1.0"
-    runtime:
-      streamableHttpConfig:
-        port: %d
-        basePath: "/mcp"
-      transportProtocol: streamablehttp
-    tools:
-      - name: get_users
-        title: Users Provider
-        description: Get list of users from a given company
-        inputSchema:
-          type: object
-          properties:
-            companyName:
-              type: string
-              description: Name of the company
-          required:
-            - companyName
-        invocation:
-          http:
-            url: "%s/{companyName}/users"
-            method: GET
+mcpFileVersion: 0.1.0
+name: test-server
+version: "1.0"
+runtime:
+  streamableHttpConfig:
+    port: %d
+    basePath: "/mcp"
+  transportProtocol: streamablehttp
+tools:
+  - name: get_users
+    title: Users Provider
+    description: Get list of users from a given company
+    inputSchema:
+      type: object
+      properties:
+        companyName:
+          type: string
+          description: Name of the company
+      required:
+        - companyName
+    invocation:
+      http:
+        url: "%s/{companyName}/users"
+        method: GET
 `, port, backendURL)
 
 	tmpfile, err := os.CreateTemp("", "mcp-basic-*.yaml")
@@ -297,30 +308,29 @@ func createCLITestMCPConfig(port int) *mcpfile.MCPFile {
 	By("creating CLI test MCP configuration")
 
 	mcpYAML := fmt.Sprintf(`
-mcpFileVersion: 0.0.1
-servers:
-  - name: test-cli-server
-    version: "1.0"
-    runtime:
-      streamableHttpConfig:
-        port: %d
-        basePath: "/mcp"
-      transportProtocol: streamablehttp
-    tools:
-      - name: list_files
-        title: List Files
-        description: List files in a directory
-        inputSchema:
-          type: object
-          properties:
-            path:
-              type: string
-              description: Path to list
-          required:
-            - path
-        invocation:
-          cli:
-            command: "ls -la {path}"
+mcpFileVersion: 0.1.0
+name: test-cli-server
+version: "1.0"
+runtime:
+  streamableHttpConfig:
+    port: %d
+    basePath: "/mcp"
+  transportProtocol: streamablehttp
+tools:
+  - name: list_files
+    title: List Files
+    description: List files in a directory
+    inputSchema:
+      type: object
+      properties:
+        path:
+          type: string
+          description: Path to list
+      required:
+        - path
+    invocation:
+      cli:
+        command: "ls -la {path}"
 `, port)
 
 	tmpfile, err := os.CreateTemp("", "mcp-cli-*.yaml")

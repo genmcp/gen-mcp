@@ -49,18 +49,16 @@ func executeRunCmd(cobraCmd *cobra.Command, args []string) {
 		return
 	}
 
-	for _, s := range mcpFile.Servers {
-		err := s.Validate(invocation.InvocationValidator)
-		if err != nil {
-			fmt.Printf("invalid mcp file: %s\n", err)
-			return
-		}
+	err = mcpFile.Validate(invocation.InvocationValidator)
+	if err != nil {
+		fmt.Printf("invalid mcp file: %s\n", err)
+		return
+	}
 
-		if s.Runtime.TransportProtocol == mcpfile.TransportProtocolStdio && detach {
-			// TODO: re-enable this logging when we figure out logging w. stdio
-			// fmt.Printf("cannot detach when running stdio transport\n")
-			detach = false
-		}
+	if mcpFile.Runtime.TransportProtocol == mcpfile.TransportProtocolStdio && detach {
+		// TODO: re-enable this logging when we figure out logging w. stdio
+		// fmt.Printf("cannot detach when running stdio transport\n")
+		detach = false
 	}
 
 	if !detach {

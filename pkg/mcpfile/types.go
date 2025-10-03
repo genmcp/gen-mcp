@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	MCPFileVersion                  = "0.0.1"
+	MCPFileVersion                  = "0.1.0"
 	InvocationTypeHttp              = "http"
 	InvocationTypeCli               = "cli"
 	TransportProtocolStreamableHttp = "streamablehttp"
@@ -62,6 +62,6 @@ type MCPServer struct {
 }
 
 type MCPFile struct {
-	FileVersion string       `json:"mcpFileVersion"`
-	Servers     []*MCPServer `json:"servers,omitempty"`
+	FileVersion string `json:"mcpFileVersion"`
+	MCPServer   `json:",inline"`
 }

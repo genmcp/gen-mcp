@@ -77,7 +77,13 @@ var _ = Describe("TLS Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				err := mcpserver.RunServer(ctx, mcpConfig.Servers[0])
+				mcpServer := &mcpfile.MCPServer{
+					Name:    mcpConfig.Name,
+					Version: mcpConfig.Version,
+					Runtime: mcpConfig.Runtime,
+					Tools:   mcpConfig.Tools,
+				}
+				err := mcpserver.RunServer(ctx, mcpServer)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}
@@ -331,33 +337,32 @@ func createTestTLSMCPConfig(backendURL string, port int, certFile, keyFile strin
 	By("creating test MCP configuration with TLS")
 
 	mcpYAML := fmt.Sprintf(`
-mcpFileVersion: 0.0.1
-servers:
-  - name: test-tls-server
-    version: "1.0"
-    runtime:
-      streamableHttpConfig:
-        port: %d
-        basePath: "/mcp"
-        tls:
-          certFile: %s
-          keyFile: %s
-      transportProtocol: streamablehttp
-    tools:
-      - name: get_status
-        description: "Get server status"
-        inputSchema:
-          type: object
-          properties: {}
-        outputSchema:
-          type: object
-          properties:
-            status:
-              type: string
-        invocation:
-          http:
-            url: "%s/status"
-            method: "GET"
+mcpFileVersion: 0.1.0
+name: test-tls-server
+version: "1.0"
+runtime:
+  streamableHttpConfig:
+    port: %d
+    basePath: "/mcp"
+    tls:
+      certFile: %s
+      keyFile: %s
+  transportProtocol: streamablehttp
+tools:
+  - name: get_status
+    description: "Get server status"
+    inputSchema:
+      type: object
+      properties: {}
+    outputSchema:
+      type: object
+      properties:
+        status:
+          type: string
+    invocation:
+      http:
+        url: "%s/status"
+        method: "GET"
 `, port, certFile, keyFile, backendURL)
 
 	tmpfile, err := os.CreateTemp("", "mcp-tls-*.yaml")

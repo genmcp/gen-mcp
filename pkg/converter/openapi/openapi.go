@@ -45,21 +45,20 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 		return nil, fmt.Errorf("no host provided in the swagger file, unable to construct valid URLs")
 	}
 	// 1. Set top level MCP file info
-	// 2. Create a server in the MCP file, default to streamablehttp transport w. port 8080
+	// 2. Create server in the MCP file, default to streamablehttp transport w. port 8080
 	// 3 for each (path, operation) in the document, add one tool to the server w. http invoke
-	res := &mcpfile.MCPFile{
+	server := &mcpfile.MCPFile{
 		FileVersion: mcpfile.MCPFileVersion,
-	}
-
-	server := &mcpfile.MCPServer{
-		Runtime: &mcpfile.ServerRuntime{
-			TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
-			StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
-				Port: 8080,
+		MCPServer: mcpfile.MCPServer{
+			Runtime: &mcpfile.ServerRuntime{
+				TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
+				StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
+					Port: 8080,
+				},
 			},
+			Tools:   []*mcpfile.Tool{},
+			Version: "0.0.1",
 		},
-		Tools:   []*mcpfile.Tool{},
-		Version: "0.0.1",
 	}
 
 	title := "mcpfile-generated"
@@ -173,27 +172,24 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 
 	server.Tools = validTools
 
-	res.Servers = []*mcpfile.MCPServer{server}
-
-	return res, err
+	return server, err
 }
 func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MCPFile, error) {
 	// 1. Set top level MCP file info
-	// 2. Create a server in the MCP file, default to streamablehttp transport w. port 8080
+	// 2. Create server in the MCP file, default to streamablehttp transport w. port 8080
 	// 3 for each (path, operation) in the document, add one tool to the server w. http invoke
-	res := &mcpfile.MCPFile{
+	server := &mcpfile.MCPFile{
 		FileVersion: mcpfile.MCPFileVersion,
-	}
-
-	server := &mcpfile.MCPServer{
-		Runtime: &mcpfile.ServerRuntime{
-			TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
-			StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
-				Port: 8080,
+		MCPServer: mcpfile.MCPServer{
+			Runtime: &mcpfile.ServerRuntime{
+				TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
+				StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
+					Port: 8080,
+				},
 			},
+			Tools:   []*mcpfile.Tool{},
+			Version: "0.0.1",
 		},
-		Tools:   []*mcpfile.Tool{},
-		Version: "0.0.1",
 	}
 
 	title := "mcpfile-generated"
@@ -300,9 +296,7 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 
 	server.Tools = validTools
 
-	res.Servers = []*mcpfile.MCPServer{server}
-
-	return res, err
+	return server, err
 }
 
 func convertSchema(proxy *highbase.SchemaProxy, visited map[*highbase.SchemaProxy]*jsonschema.Schema) *jsonschema.Schema {
