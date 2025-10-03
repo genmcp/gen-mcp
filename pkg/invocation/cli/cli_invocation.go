@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -107,26 +106,19 @@ func (ci *CliInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReques
 		extraArgs:       make(map[string]any),
 	}
 
-	dj := &invocation.DynamicJson{
-		Builders: []invocation.Builder{cb},
+	promptArgs := req.Params.Arguments
+	if promptArgs == nil {
+		promptArgs = make(map[string]string)
 	}
 
-	args := req.Params.Arguments
-	if args == nil {
-		args = make(map[string]string)
+	// Convert to map[string]any for validation and populate command builder
+	argsForValidation := make(map[string]any, len(promptArgs))
+	for argName, argValue := range promptArgs {
+		cb.SetField(argName, argValue)
+		argsForValidation[argName] = argValue
 	}
 
-	argsBytes, err := json.Marshal(args)
-	if err != nil {
-		return utils.McpPromptTextError("failed to marshal prompt request arguments: %s", err.Error()), err
-	}
-
-	parsed, err := dj.ParseJson(argsBytes, ci.InputSchema.Schema())
-	if err != nil {
-		return utils.McpPromptTextError("failed to parse prompt request arguments: %s", err.Error()), err
-	}
-
-	if err := ci.InputSchema.Validate(parsed); err != nil {
+	if err := ci.InputSchema.Validate(argsForValidation); err != nil {
 		return utils.McpPromptTextError("failed to validate prompt request arguments: %s", err.Error()), err
 	}
 

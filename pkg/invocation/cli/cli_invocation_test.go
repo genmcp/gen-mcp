@@ -281,6 +281,97 @@ func TestCliPromptInvocation(t *testing.T) {
 			},
 		},
 		{
+			name: "prompt with nil arguments",
+			cliInvoker: CliInvoker{
+				CommandTemplate:    "echo 'Prompt with no args'",
+				ArgumentIndices:    make(map[string]int),
+				ArgumentFormatters: make(map[string]Formatter),
+				InputSchema:        resolvedEmpty,
+			},
+			request: &mcp.GetPromptRequest{
+				Params: &mcp.GetPromptParams{
+					Name:      "no-args",
+					Arguments: nil,
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.GetPromptResult) {
+				assert.Len(t, result.Messages, 1)
+				assert.Equal(t, mcp.Role("assistant"), result.Messages[0].Role)
+				textContent := result.Messages[0].Content.(*mcp.TextContent)
+				assert.Equal(t, "Prompt with no args\n", textContent.Text)
+			},
+		},
+		{
+			name: "prompt with validation error - missing required field",
+			cliInvoker: CliInvoker{
+				CommandTemplate: "echo 'Analysis: %s'",
+				ArgumentIndices: map[string]int{
+					"path": 0,
+				},
+				ArgumentFormatters: map[string]Formatter{
+					"path": stringFormatter{},
+				},
+				InputSchema: func() *jsonschema.Resolved {
+					schema := &jsonschema.Schema{
+						Type: invocation.JsonSchemaTypeObject,
+						Properties: map[string]*jsonschema.Schema{
+							"path": {Type: invocation.JsonSchemaTypeString},
+						},
+						Required: []string{"path"}, // path is required
+					}
+					resolved, _ := schema.Resolve(nil)
+					return resolved
+				}(),
+			},
+			request: &mcp.GetPromptRequest{
+				Params: &mcp.GetPromptParams{
+					Name:      "missing-field",
+					Arguments: map[string]string{}, // Empty - missing required "path"
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "prompt with multiple string arguments",
+			cliInvoker: CliInvoker{
+				CommandTemplate: "echo 'User: %s, Topic: %s'",
+				ArgumentIndices: map[string]int{
+					"user":  0,
+					"topic": 1,
+				},
+				ArgumentFormatters: map[string]Formatter{
+					"user":  stringFormatter{},
+					"topic": stringFormatter{},
+				},
+				InputSchema: func() *jsonschema.Resolved {
+					schema := &jsonschema.Schema{
+						Type: invocation.JsonSchemaTypeObject,
+						Properties: map[string]*jsonschema.Schema{
+							"user":  {Type: invocation.JsonSchemaTypeString},
+							"topic": {Type: invocation.JsonSchemaTypeString},
+						},
+					}
+					resolved, _ := schema.Resolve(nil)
+					return resolved
+				}(),
+			},
+			request: &mcp.GetPromptRequest{
+				Params: &mcp.GetPromptParams{
+					Name: "multi-arg",
+					Arguments: map[string]string{
+						"user":  "mcp",
+						"topic": "coding",
+					},
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.GetPromptResult) {
+				assert.Len(t, result.Messages, 1)
+				assert.Equal(t, mcp.Role("assistant"), result.Messages[0].Role)
+				textContent := result.Messages[0].Content.(*mcp.TextContent)
+				assert.Equal(t, "User: mcp, Topic: coding\n", textContent.Text)
+			},
+		},
+		{
 			name: "invalid command should fail",
 			cliInvoker: CliInvoker{
 				CommandTemplate:    "nonexistentcommand54321",
