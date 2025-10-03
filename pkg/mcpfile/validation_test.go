@@ -8,7 +8,7 @@ import (
 )
 
 func TestMCPFileValidate(t *testing.T) {
-	mockValidator := func(invocationType string, data json.RawMessage, tool *Tool) error {
+	mockValidator := func(invocationType string, data json.RawMessage, primitive Primitive) error {
 		return nil
 	}
 

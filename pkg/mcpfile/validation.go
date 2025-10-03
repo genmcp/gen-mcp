@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type InvocationValidator func(invocationType string, data json.RawMessage, tool *Tool) error
+type InvocationValidator func(invocationType string, data json.RawMessage, primitive Primitive) error
 
 func (m *MCPFile) Validate(invocationValidator InvocationValidator) error {
 	var err error = nil
@@ -66,6 +66,37 @@ func (t *Tool) Validate(invocationValidator InvocationValidator) error {
 	return err
 }
 
+func (p *Prompt) Validate(invocationValidator InvocationValidator) error {
+	var err error = nil
+	if p.Name == "" {
+		err = errors.Join(err, fmt.Errorf("invalid prompt: name is required"))
+	}
+	if p.Description == "" {
+		err = errors.Join(err, fmt.Errorf("invalid prompt: description is required"))
+	}
+
+	if p.InputSchema == nil {
+		err = errors.Join(err, fmt.Errorf("invalid prompt: inputSchema is required"))
+	} else {
+		resolved, schemaErr := p.InputSchema.Resolve(nil)
+		if schemaErr != nil {
+			err = errors.Join(err, fmt.Errorf("invalid prompt: inputSchema is not valid: %w", schemaErr))
+		} else {
+			p.ResolvedInputSchema = resolved
+		}
+	}
+
+	if p.InputSchema != nil && strings.ToLower(p.InputSchema.Type) != "object" {
+		err = errors.Join(err, fmt.Errorf("invalid prompt: inputScheme must be type object at the root"))
+	}
+	if p.InvocationData == nil {
+		err = errors.Join(err, fmt.Errorf("invalid prompt: invocation is not set for the prompt"))
+	} else if invocationErr := invocationValidator(p.InvocationType, p.InvocationData, p); invocationErr != nil {
+		err = errors.Join(err, fmt.Errorf("invalid prompt: invocation is not valid: %w", invocationErr))
+	}
+	return err
+}
+
 func (s *MCPServer) Validate(invocationValidator InvocationValidator) error {
 	var err error = nil
 	if s.Name == "" {
@@ -83,6 +114,12 @@ func (s *MCPServer) Validate(invocationValidator InvocationValidator) error {
 	for i, t := range s.Tools {
 		if toolErr := t.Validate(invocationValidator); toolErr != nil {
 			err = errors.Join(err, fmt.Errorf("invalid server: tools[%d] is invalid: %w", i, toolErr))
+		}
+	}
+
+	for i, p := range s.Prompts {
+		if promptErr := p.Validate(invocationValidator); promptErr != nil {
+			err = errors.Join(err, fmt.Errorf("invalid server: prompts[%d] is invalid: %w", i, promptErr))
 		}
 	}
 

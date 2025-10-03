@@ -24,6 +24,7 @@ The API will be available at `http://localhost:9090` with endpoints:
 - `POST /features/complete` - Mark a feature request as completed
 - `DELETE /features/{id}` - Delete a feature request
 - `GET /openapi.json` - Get OpenAPI specification
+- `POST /prompts/feature-analysis` - Generate feature analysis prompt
 
 ### 2. Generate Initial MCP Configuration
 

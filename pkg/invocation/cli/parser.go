@@ -6,13 +6,26 @@ import (
 	"strings"
 
 	"github.com/genmcp/gen-mcp/pkg/invocation"
+	"github.com/genmcp/gen-mcp/pkg/invocation/utils"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
 type Parser struct{}
 
+type primitiveAdapter struct {
+	InputSchema *jsonschema.Schema
+}
+
 func (p *Parser) Parse(data json.RawMessage, tool *mcpfile.Tool) (invocation.InvocationConfig, error) {
+	return p.parsePrimitive(data, primitiveAdapter{InputSchema: tool.InputSchema})
+}
+
+func (p *Parser) ParsePrompt(data json.RawMessage, prompt *mcpfile.Prompt) (invocation.InvocationConfig, error) {
+	return p.parsePrimitive(data, primitiveAdapter{InputSchema: prompt.InputSchema})
+}
+
+func (p *Parser) parsePrimitive(data json.RawMessage, primitive primitiveAdapter) (invocation.InvocationConfig, error) {
 	type Doppleganger CliInvocationConfig
 
 	config := &CliInvocationConfig{}
@@ -32,7 +45,7 @@ func (p *Parser) Parse(data json.RawMessage, tool *mcpfile.Tool) (invocation.Inv
 
 	templateVariables := make(map[string]*TemplateVariable)
 	for tvName, tvRaw := range tmp.TemplateVariables {
-		tv, err := parseTemplateVariable(tvRaw, tool)
+		tv, err := parseTemplateVariable(tvRaw, primitive)
 		if err != nil {
 			return nil, err
 		}
@@ -78,7 +91,7 @@ func (p *Parser) Parse(data json.RawMessage, tool *mcpfile.Tool) (invocation.Inv
 	return config, nil
 }
 
-func parseTemplateVariable(data json.RawMessage, tool *mcpfile.Tool) (*TemplateVariable, error) {
+func parseTemplateVariable(data json.RawMessage, primitive primitiveAdapter) (*TemplateVariable, error) {
 	type Doppleganger TemplateVariable
 
 	tv := &TemplateVariable{}
@@ -122,7 +135,7 @@ func parseTemplateVariable(data json.RawMessage, tool *mcpfile.Tool) (*TemplateV
 
 	paramName := tmp.Format[varStart+1 : varEnd]
 
-	formatString, err := formatStringForParam(paramName, tool.InputSchema)
+	formatString, err := utils.FormatStringForParam(paramName, primitive.InputSchema)
 	if err != nil {
 		return nil, err
 	}
@@ -131,41 +144,4 @@ func parseTemplateVariable(data json.RawMessage, tool *mcpfile.Tool) (*TemplateV
 	tv.Template = tmp.Format[:varStart] + formatString + tmp.Format[varEnd+1:]
 
 	return tv, nil
-}
-
-func formatStringForParam(paramName string, schema *jsonschema.Schema) (string, error) {
-	schema, err := lookupParam(paramName, schema)
-	if err != nil {
-		return "", err
-	}
-
-	switch schema.Type {
-	case invocation.JsonSchemaTypeArray, invocation.JsonSchemaTypeNull, invocation.JsonSchemaTypeObject:
-		return "%v", nil
-	case invocation.JsonSchemaTypeBoolean:
-		return "%b", nil
-	case invocation.JsonSchemaTypeInteger:
-		return "%d", nil
-	case invocation.JsonSchemaTypeNumber:
-		return "%f", nil
-	case invocation.JsonSchemaTypeString:
-		return "%s", nil
-	default:
-		return "", fmt.Errorf("unknown json schema for type: '%s'", schema.Type)
-	}
-}
-
-func lookupParam(paramName string, schema *jsonschema.Schema) (*jsonschema.Schema, error) {
-	path := strings.Split(paramName, ".")
-	currentSchema := schema
-	var ok bool
-
-	for _, p := range path {
-		currentSchema, ok = currentSchema.Properties[p]
-		if !ok {
-			return nil, fmt.Errorf("cli invocation has %s command parameter, but there is no corresponding property defined on the input schema", paramName)
-		}
-	}
-
-	return currentSchema, nil
 }

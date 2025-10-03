@@ -140,8 +140,8 @@ func runStdioServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) err
 	return s.Run(ctx, &mcp.StdioTransport{})
 }
 
-// checkToolAuthorization verifies if user has required scopes for a tool
-func checkToolAuthorization(ctx context.Context, requiredScopes []string) error {
+// checkPrimitiveAuthorization verifies if user has required scopes for a primitive (tool or prompt)
+func checkPrimitiveAuthorization(ctx context.Context, requiredScopes []string) error {
 	if len(requiredScopes) == 0 {
 		return nil // No scopes required
 	}
@@ -173,11 +173,27 @@ func createAuthorizedToolHandler(tool *mcpfile.Tool) (mcp.ToolHandler, error) {
 
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		// Check if user has required scopes for this tool
-		if err := checkToolAuthorization(ctx, tool.RequiredScopes); err != nil {
-			return utils.McpTextError("forbidden: %s fpr tool '%s'", err.Error(), tool.Name), fmt.Errorf("forbidden: %s for tool '%s'", err.Error(), tool.Name)
+		if err := checkPrimitiveAuthorization(ctx, tool.RequiredScopes); err != nil {
+			return utils.McpTextError("forbidden: %s for tool '%s'", err.Error(), tool.Name), fmt.Errorf("forbidden: %s for tool '%s'", err.Error(), tool.Name)
 		}
 
 		return invoker.Invoke(ctx, req)
+	}, nil
+}
+
+func createAuthorizedPromptHandler(prompt *mcpfile.Prompt) (mcp.PromptHandler, error) {
+	invoker, err := invocation.CreatePromptInvoker(prompt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create invoker for prompt %s: %w", prompt.Name, err)
+	}
+
+	return func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		// Check if user has required scopes for this prompt
+		if err := checkPrimitiveAuthorization(ctx, prompt.RequiredScopes); err != nil {
+			return utils.McpPromptTextError("forbidden: %s for prompt '%s'", err.Error(), prompt.Name), fmt.Errorf("forbidden: %s for prompt '%s'", err.Error(), prompt.Name)
+		}
+
+		return invoker.InvokePrompt(ctx, req)
 	}, nil
 }
 
@@ -191,11 +207,11 @@ func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*
 		HasTools: len(mcpServer.Tools) > 0,
 	})
 
-	var toolErr error
+	var serverErr error
 	for _, t := range tools {
 		handler, err := createAuthorizedToolHandler(t)
 		if err != nil {
-			toolErr = errors.Join(toolErr, err)
+			serverErr = errors.Join(serverErr, err)
 			continue
 		}
 
@@ -214,5 +230,21 @@ func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*
 		s.AddTool(tool, handler)
 	}
 
-	return s, toolErr
+	for _, p := range mcpServer.Prompts {
+		handler, err := createAuthorizedPromptHandler(p)
+		if err != nil {
+			serverErr = errors.Join(serverErr, err)
+			continue
+		}
+
+		s.AddPrompt(
+			&mcp.Prompt{
+				Name:        p.Name,
+				Description: p.Description,
+			},
+			handler,
+		)
+	}
+
+	return s, serverErr
 }

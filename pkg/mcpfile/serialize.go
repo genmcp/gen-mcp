@@ -19,3 +19,19 @@ func (t *Tool) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal(tmp)
 }
+
+func (p *Prompt) MarshalJSON() ([]byte, error) {
+	type Doppleganger Prompt
+
+	tmp := &struct {
+		Invocation map[string]json.RawMessage `json:"invocation"`
+		*Doppleganger
+	}{
+		Invocation:   make(map[string]json.RawMessage),
+		Doppleganger: (*Doppleganger)(p),
+	}
+
+	tmp.Invocation[p.InvocationType] = p.InvocationData
+
+	return json.Marshal(tmp)
+}

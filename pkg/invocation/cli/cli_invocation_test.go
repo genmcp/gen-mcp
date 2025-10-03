@@ -42,6 +42,10 @@ var (
 			"file":  {Type: invocation.JsonSchemaTypeString},
 		},
 	}).Resolve(nil)
+	resolvedWithAdditional, _ = (&jsonschema.Schema{
+		Type:                 invocation.JsonSchemaTypeObject,
+		AdditionalProperties: &jsonschema.Schema{Type: invocation.JsonSchemaTypeString},
+	}).Resolve(nil)
 )
 
 func TestCliInvocation(t *testing.T) {
@@ -167,6 +171,233 @@ func TestCliInvocation(t *testing.T) {
 				assert.Error(t, err, "cli invocation should have an error")
 			} else {
 				assert.NoError(t, err, "cli invocation should not have an error")
+				if tc.expectedResult != nil {
+					tc.expectedResult(t, res)
+				}
+			}
+		})
+	}
+}
+
+func TestCliPromptInvocation(t *testing.T) {
+	tt := []struct {
+		name           string
+		cliInvoker     CliInvoker
+		request        *mcp.GetPromptRequest
+		expectedResult func(t *testing.T, result *mcp.GetPromptResult)
+		expectError    bool
+	}{
+		{
+			name: "simple echo prompt",
+			cliInvoker: CliInvoker{
+				CommandTemplate:    "echo 'Generate analysis for prompt'",
+				ArgumentIndices:    make(map[string]int),
+				ArgumentFormatters: make(map[string]Formatter),
+				InputSchema:        resolvedEmpty,
+			},
+			request: &mcp.GetPromptRequest{
+				Params: &mcp.GetPromptParams{
+					Name:      "analysis",
+					Arguments: map[string]string{},
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.GetPromptResult) {
+				assert.Len(t, result.Messages, 1)
+				assert.Equal(t, mcp.Role("assistant"), result.Messages[0].Role)
+				textContent := result.Messages[0].Content.(*mcp.TextContent)
+				assert.Equal(t, "Generate analysis for prompt\n", textContent.Text)
+			},
+		},
+		{
+			name: "prompt with arguments",
+			cliInvoker: CliInvoker{
+				CommandTemplate: "echo 'Analyzing path: %s'",
+				ArgumentIndices: map[string]int{
+					"path": 0,
+				},
+				ArgumentFormatters: map[string]Formatter{
+					"path": stringFormatter{},
+				},
+				InputSchema: resolvedWithPath,
+			},
+			request: &mcp.GetPromptRequest{
+				Params: &mcp.GetPromptParams{
+					Name: "path-analysis",
+					Arguments: map[string]string{
+						"path": "/tmp",
+					},
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.GetPromptResult) {
+				assert.Len(t, result.Messages, 1)
+				assert.Equal(t, mcp.Role("assistant"), result.Messages[0].Role)
+				textContent := result.Messages[0].Content.(*mcp.TextContent)
+				assert.Equal(t, "Analyzing path: /tmp\n", textContent.Text)
+			},
+		},
+		{
+			name: "prompt with extra arguments",
+			cliInvoker: CliInvoker{
+				CommandTemplate:    "echo 'Base prompt'",
+				ArgumentIndices:    make(map[string]int),
+				ArgumentFormatters: make(map[string]Formatter),
+				InputSchema:        resolvedWithAdditional,
+			},
+			request: &mcp.GetPromptRequest{
+				Params: &mcp.GetPromptParams{
+					Name: "detailed-prompt",
+					Arguments: map[string]string{
+						"verbose": "true",
+					},
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.GetPromptResult) {
+				assert.Len(t, result.Messages, 1)
+				assert.Equal(t, mcp.Role("assistant"), result.Messages[0].Role)
+				textContent := result.Messages[0].Content.(*mcp.TextContent)
+				assert.Contains(t, textContent.Text, "Base prompt")
+				assert.Contains(t, textContent.Text, "--verbose=true")
+			},
+		},
+		{
+			name: "prompt with date command",
+			cliInvoker: CliInvoker{
+				CommandTemplate:    "date '+Current time: %Y-%m-%d %H:%M:%S'",
+				ArgumentIndices:    make(map[string]int),
+				ArgumentFormatters: make(map[string]Formatter),
+				InputSchema:        resolvedEmpty,
+			},
+			request: &mcp.GetPromptRequest{
+				Params: &mcp.GetPromptParams{
+					Name:      "timestamp",
+					Arguments: map[string]string{},
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.GetPromptResult) {
+				assert.Len(t, result.Messages, 1)
+				assert.Equal(t, mcp.Role("assistant"), result.Messages[0].Role)
+				textContent := result.Messages[0].Content.(*mcp.TextContent)
+				assert.Contains(t, textContent.Text, "Current time:")
+			},
+		},
+		{
+			name: "prompt with nil arguments",
+			cliInvoker: CliInvoker{
+				CommandTemplate:    "echo 'Prompt with no args'",
+				ArgumentIndices:    make(map[string]int),
+				ArgumentFormatters: make(map[string]Formatter),
+				InputSchema:        resolvedEmpty,
+			},
+			request: &mcp.GetPromptRequest{
+				Params: &mcp.GetPromptParams{
+					Name:      "no-args",
+					Arguments: nil,
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.GetPromptResult) {
+				assert.Len(t, result.Messages, 1)
+				assert.Equal(t, mcp.Role("assistant"), result.Messages[0].Role)
+				textContent := result.Messages[0].Content.(*mcp.TextContent)
+				assert.Equal(t, "Prompt with no args\n", textContent.Text)
+			},
+		},
+		{
+			name: "prompt with validation error - missing required field",
+			cliInvoker: CliInvoker{
+				CommandTemplate: "echo 'Analysis: %s'",
+				ArgumentIndices: map[string]int{
+					"path": 0,
+				},
+				ArgumentFormatters: map[string]Formatter{
+					"path": stringFormatter{},
+				},
+				InputSchema: func() *jsonschema.Resolved {
+					schema := &jsonschema.Schema{
+						Type: invocation.JsonSchemaTypeObject,
+						Properties: map[string]*jsonschema.Schema{
+							"path": {Type: invocation.JsonSchemaTypeString},
+						},
+						Required: []string{"path"}, // path is required
+					}
+					resolved, _ := schema.Resolve(nil)
+					return resolved
+				}(),
+			},
+			request: &mcp.GetPromptRequest{
+				Params: &mcp.GetPromptParams{
+					Name:      "missing-field",
+					Arguments: map[string]string{}, // Empty - missing required "path"
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "prompt with multiple string arguments",
+			cliInvoker: CliInvoker{
+				CommandTemplate: "echo 'User: %s, Topic: %s'",
+				ArgumentIndices: map[string]int{
+					"user":  0,
+					"topic": 1,
+				},
+				ArgumentFormatters: map[string]Formatter{
+					"user":  stringFormatter{},
+					"topic": stringFormatter{},
+				},
+				InputSchema: func() *jsonschema.Resolved {
+					schema := &jsonschema.Schema{
+						Type: invocation.JsonSchemaTypeObject,
+						Properties: map[string]*jsonschema.Schema{
+							"user":  {Type: invocation.JsonSchemaTypeString},
+							"topic": {Type: invocation.JsonSchemaTypeString},
+						},
+					}
+					resolved, _ := schema.Resolve(nil)
+					return resolved
+				}(),
+			},
+			request: &mcp.GetPromptRequest{
+				Params: &mcp.GetPromptParams{
+					Name: "multi-arg",
+					Arguments: map[string]string{
+						"user":  "mcp",
+						"topic": "coding",
+					},
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.GetPromptResult) {
+				assert.Len(t, result.Messages, 1)
+				assert.Equal(t, mcp.Role("assistant"), result.Messages[0].Role)
+				textContent := result.Messages[0].Content.(*mcp.TextContent)
+				assert.Equal(t, "User: mcp, Topic: coding\n", textContent.Text)
+			},
+		},
+		{
+			name: "invalid command should fail",
+			cliInvoker: CliInvoker{
+				CommandTemplate:    "nonexistentcommand54321",
+				ArgumentIndices:    make(map[string]int),
+				ArgumentFormatters: make(map[string]Formatter),
+				InputSchema:        resolvedEmpty,
+			},
+			request: &mcp.GetPromptRequest{
+				Params: &mcp.GetPromptParams{
+					Name:      "invalid",
+					Arguments: map[string]string{},
+				},
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			res, err := tc.cliInvoker.InvokePrompt(context.Background(), tc.request)
+			if tc.expectError {
+				assert.Error(t, err, "cli prompt invocation should have an error")
+			} else {
+				assert.NoError(t, err, "cli prompt invocation should not have an error")
 				if tc.expectedResult != nil {
 					tc.expectedResult(t, res)
 				}

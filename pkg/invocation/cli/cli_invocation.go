@@ -96,3 +96,50 @@ func (cb *commandBuilder) GetResult() (any, error) {
 
 	return strings.Join(formattedParts, " "), nil
 }
+
+func (ci *CliInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+	cb := &commandBuilder{
+		commandTemplate: ci.CommandTemplate,
+		argIndices:      ci.ArgumentIndices,
+		argFormatters:   ci.ArgumentFormatters,
+		argValues:       make([]any, len(ci.ArgumentIndices)),
+		extraArgs:       make(map[string]any),
+	}
+
+	promptArgs := req.Params.Arguments
+	if promptArgs == nil {
+		promptArgs = make(map[string]string)
+	}
+
+	// Convert to map[string]any for validation and populate command builder
+	argsForValidation := make(map[string]any, len(promptArgs))
+	for argName, argValue := range promptArgs {
+		cb.SetField(argName, argValue)
+		argsForValidation[argName] = argValue
+	}
+
+	if err := ci.InputSchema.Validate(argsForValidation); err != nil {
+		return utils.McpPromptTextError("failed to validate prompt request arguments: %s", err.Error()), err
+	}
+
+	command, err := cb.GetResult()
+	if err != nil {
+		return utils.McpPromptTextError("failed to build command: %s", err.Error()), err
+	}
+
+	cmd := exec.Command("bash", "-c", command.(string))
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return utils.McpPromptTextError("encountered error while calling command: %s. output was: %s.", err.Error(), string(output)), err
+	}
+
+	return &mcp.GetPromptResult{
+		Messages: []*mcp.PromptMessage{
+			{
+				Role:    "assistant",
+				Content: &mcp.TextContent{Text: string(output)},
+			},
+		},
+	}, nil
+}
