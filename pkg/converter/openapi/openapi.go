@@ -381,7 +381,7 @@ func convertSchema(proxy *highbase.SchemaProxy, visited map[*highbase.SchemaProx
 			}
 		}
 		// Add required fields for object schemas
-		if schema.Required != nil && len(schema.Required) > 0 {
+		if len(schema.Required) > 0 {
 			s.Required = schema.Required
 		}
 	}
