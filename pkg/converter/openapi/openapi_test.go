@@ -124,4 +124,3 @@ func TestOpenAPIV2BodyParameterWithPathParameters(t *testing.T) {
 	assert.Contains(t, tool.InputSchema.Required, "title", "title should be required (from body schema)")
 	assert.Contains(t, tool.InputSchema.Required, "content", "content should be required (from body schema)")
 }
-
