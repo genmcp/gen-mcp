@@ -1,0 +1,51 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Feature Vote API",
+    "version": "1.0.0"
+  },
+  "host": "api.example.com",
+  "basePath": "/v1",
+  "schemes": ["https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "paths": {
+    "/features/vote": {
+      "post": {
+        "summary": "Vote for feature",
+        "description": "Increment the upvote count for a specific feature",
+        "operationId": "voteForFeature",
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Request to vote for a feature.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/featuresVoteFeatureRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vote recorded successfully"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "featuresVoteFeatureRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int32",
+          "description": "ID of the feature to vote for",
+          "title": "Feature ID"
+        }
+      },
+      "description": "Request to vote for a feature."
+    }
+  }
+}
