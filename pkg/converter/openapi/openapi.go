@@ -124,20 +124,52 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 			numPathParams := 0
 			visited := make(map[*highbase.SchemaProxy]*jsonschema.Schema)
 			for _, param := range operation.Parameters {
-				tool.InputSchema.Properties[param.Name] = convertV2Parameter(param, visited)
+				// In OpenAPI 2.0, body parameters are special - the name is ignored
+				// and the schema properties should be merged directly into the input schema
+				if strings.ToLower(param.In) == "body" && param.Schema != nil {
+					bodySchema := convertSchema(param.Schema, visited)
+					if bodySchema.Type == invocation.JsonSchemaTypeObject {
+						// Merge properties from body schema
+						maps.Copy(tool.InputSchema.Properties, bodySchema.Properties)
+						// Merge required fields
+						tool.InputSchema.Required = append(tool.InputSchema.Required, bodySchema.Required...)
+						// Preserve additional properties if set
+						if bodySchema.AdditionalProperties != nil {
+							tool.InputSchema.AdditionalProperties = bodySchema.AdditionalProperties
+						}
+					}
+				} else {
+					tool.InputSchema.Properties[param.Name] = convertV2Parameter(param, visited)
 
-				if (param.Required != nil && *param.Required) || strings.ToLower(param.In) == "path" {
-					tool.InputSchema.Required = append(tool.InputSchema.Required, param.Name)
-					numPathParams++
+					if (param.Required != nil && *param.Required) || strings.ToLower(param.In) == "path" {
+						tool.InputSchema.Required = append(tool.InputSchema.Required, param.Name)
+						numPathParams++
+					}
 				}
 			}
 
 			for _, param := range pathItem.Parameters {
-				tool.InputSchema.Properties[param.Name] = convertV2Parameter(param, visited)
+				// In OpenAPI 2.0, body parameters are special - the name is ignored
+				// and the schema properties should be merged directly into the input schema
+				if strings.ToLower(param.In) == "body" && param.Schema != nil {
+					bodySchema := convertSchema(param.Schema, visited)
+					if bodySchema.Type == invocation.JsonSchemaTypeObject {
+						// Merge properties from body schema
+						maps.Copy(tool.InputSchema.Properties, bodySchema.Properties)
+						// Merge required fields
+						tool.InputSchema.Required = append(tool.InputSchema.Required, bodySchema.Required...)
+						// Preserve additional properties if set
+						if bodySchema.AdditionalProperties != nil {
+							tool.InputSchema.AdditionalProperties = bodySchema.AdditionalProperties
+						}
+					}
+				} else {
+					tool.InputSchema.Properties[param.Name] = convertV2Parameter(param, visited)
 
-				if (param.Required != nil && *param.Required) || strings.ToLower(param.In) == "path" {
-					tool.InputSchema.Required = append(tool.InputSchema.Required, param.Name)
-					numPathParams++
+					if (param.Required != nil && *param.Required) || strings.ToLower(param.In) == "path" {
+						tool.InputSchema.Required = append(tool.InputSchema.Required, param.Name)
+						numPathParams++
+					}
 				}
 			}
 
@@ -347,6 +379,10 @@ func convertSchema(proxy *highbase.SchemaProxy, visited map[*highbase.SchemaProx
 			for k, v := range schema.Properties.FromOldest() {
 				s.Properties[k] = convertSchema(v, visited)
 			}
+		}
+		// Add required fields for object schemas
+		if schema.Required != nil && len(schema.Required) > 0 {
+			s.Required = schema.Required
 		}
 	}
 

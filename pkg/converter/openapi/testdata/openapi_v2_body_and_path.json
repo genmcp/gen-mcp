@@ -1,0 +1,68 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Complex API",
+    "version": "1.0.0"
+  },
+  "host": "api.example.com",
+  "basePath": "/v1",
+  "schemes": ["https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "paths": {
+    "/users/{userId}/posts": {
+      "post": {
+        "summary": "Create a post for a user",
+        "description": "Create a new post for a specific user",
+        "operationId": "createPost",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "ID of the user",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "name": "body",
+            "description": "Post data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PostRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Post created successfully"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "PostRequest": {
+      "type": "object",
+      "required": ["title", "content"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Title of the post"
+        },
+        "content": {
+          "type": "string",
+          "description": "Content of the post"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional tags for the post"
+        }
+      },
+      "description": "Request body for creating a post"
+    }
+  }
+}

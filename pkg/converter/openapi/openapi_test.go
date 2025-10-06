@@ -76,3 +76,52 @@ func TestAllToolsInvalidStillReturnsEmptyMcpFile(t *testing.T) {
 	assert.Contains(t, err.Error(), "get_no-description-1", "error should mention first skipped tool")
 	assert.Contains(t, err.Error(), "post_no-description-2", "error should mention second skipped tool")
 }
+
+func TestOpenAPIV2BodyParameterHandling(t *testing.T) {
+	docBytes, _ := os.ReadFile("testdata/openapi_v2_body_param.json")
+
+	mcpfile, err := DocumentToMcpFile(docBytes, "")
+	assert.NoError(t, err, "conversion should not produce errors")
+	assert.NotNil(t, mcpfile, "MCP file should be generated")
+
+	assert.Len(t, mcpfile.Tools, 1, "should have exactly 1 tool")
+
+	tool := mcpfile.Tools[0]
+	assert.Equal(t, "post_features-vote", tool.Name)
+	assert.Equal(t, "Vote for feature", tool.Title)
+
+	// The body parameter name should be ignored, and properties should be merged directly
+	assert.NotNil(t, tool.InputSchema.Properties, "input schema should have properties")
+	assert.NotContains(t, tool.InputSchema.Properties, "body", "should not have 'body' wrapper property")
+	assert.Contains(t, tool.InputSchema.Properties, "id", "should have 'id' property from body schema")
+
+	// Verify the id property is correctly typed
+	idProp := tool.InputSchema.Properties["id"]
+	assert.Equal(t, "integer", idProp.Type)
+	assert.Equal(t, "ID of the feature to vote for", idProp.Description)
+}
+
+func TestOpenAPIV2BodyParameterWithPathParameters(t *testing.T) {
+	docBytes, _ := os.ReadFile("testdata/openapi_v2_body_and_path.json")
+
+	mcpfile, err := DocumentToMcpFile(docBytes, "")
+	assert.NoError(t, err, "conversion should not produce errors")
+	assert.NotNil(t, mcpfile, "MCP file should be generated")
+
+	assert.Len(t, mcpfile.Tools, 1, "should have exactly 1 tool")
+
+	tool := mcpfile.Tools[0]
+	assert.Equal(t, "post_users-userId-posts", tool.Name)
+
+	// Should have both path parameter and body schema properties
+	assert.Contains(t, tool.InputSchema.Properties, "userId", "should have path parameter")
+	assert.Contains(t, tool.InputSchema.Properties, "title", "should have body property 'title'")
+	assert.Contains(t, tool.InputSchema.Properties, "content", "should have body property 'content'")
+	assert.Contains(t, tool.InputSchema.Properties, "tags", "should have body property 'tags'")
+
+	// Verify required fields from both path parameter and body schema
+	assert.Contains(t, tool.InputSchema.Required, "userId", "userId should be required (path param)")
+	assert.Contains(t, tool.InputSchema.Required, "title", "title should be required (from body schema)")
+	assert.Contains(t, tool.InputSchema.Required, "content", "content should be required (from body schema)")
+}
+
