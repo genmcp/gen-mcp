@@ -33,7 +33,7 @@ func TestDefaultPort8080InOpenAPIV3Conversion(t *testing.T) {
 }
 
 func TestInvalidToolsAreSkippedButValidOnesIncluded(t *testing.T) {
-	docBytes, _ := os.ReadFile("testdata/openapi_with_invalid_tools.json")
+	docBytes, _ := os.ReadFile("testdata/openapi_v3_with_invalid_tools.json")
 
 	mcpfile, err := DocumentToMcpFile(docBytes, "")
 
@@ -62,7 +62,7 @@ func TestInvalidToolsAreSkippedButValidOnesIncluded(t *testing.T) {
 }
 
 func TestAllToolsInvalidStillReturnsEmptyMcpFile(t *testing.T) {
-	docBytes, _ := os.ReadFile("testdata/openapi_all_invalid_tools.json")
+	docBytes, _ := os.ReadFile("testdata/openapi_v3_all_invalid_tools.json")
 
 	mcpfile, err := DocumentToMcpFile(docBytes, "")
 
