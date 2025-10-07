@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-# exit on error
 set -e
+set -o pipefail
 
-source "$(dirname "$(realpath "${BASH_SOURCE[0]}")")"/library.sh
+source "$(dirname "$0")/lib/common.sh"
 
-header "Running mcpfile schema generator"
-pushd "$ROOT_DIR/hack/jsonschemagen" > /dev/null
+header_text "Running mcpfile schema generator"
+pushd "$REPO_ROOT/hack/jsonschemagen" > /dev/null
 go run main.go
 popd > /dev/null
 
-header "Finished generating code"
+header_text "Finished generating code"
