@@ -1,0 +1,477 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/genmcp/gen-mcp/pkg/mcpfile/mcp-file",
+  "$ref": "#/$defs/MCPFile",
+  "$defs": {
+    "AuthConfig": {
+      "properties": {
+        "authorizationServers": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "List of authorization server URLs for token validation."
+        },
+        "jwksUri": {
+          "type": "string",
+          "description": "URI for the JSON Web Key Set (JWKS) used for token verification."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "AuthConfig defines OAuth 2.0 authorization settings."
+    },
+    "MCPFile": {
+      "properties": {
+        "mcpFileVersion": {
+          "type": "string",
+          "description": "Version of the MCP file format."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the MCP server."
+        },
+        "version": {
+          "type": "string",
+          "description": "Semantic version of the MCP server."
+        },
+        "runtime": {
+          "$ref": "#/$defs/ServerRuntime",
+          "description": "Runtime configuration for the MCP server."
+        },
+        "tools": {
+          "items": {
+            "$ref": "#/$defs/Tool"
+          },
+          "type": "array",
+          "description": "List of tools provided by the server."
+        },
+        "prompts": {
+          "items": {
+            "$ref": "#/$defs/Prompt"
+          },
+          "type": "array",
+          "description": "List of prompts provided by the server."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "mcpFileVersion",
+        "name",
+        "version"
+      ],
+      "description": "MCPFile is the root structure of an MCP configuration file."
+    },
+    "Prompt": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique identifier for the prompt."
+        },
+        "title": {
+          "type": "string",
+          "description": "Human-readable title for display purposes."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of what the prompt does."
+        },
+        "arguments": {
+          "items": {
+            "$ref": "#/$defs/PromptArgument"
+          },
+          "type": "array",
+          "description": "List of template arguments for the prompt."
+        },
+        "inputSchema": {
+          "$ref": "#/$defs/Schema",
+          "description": "Schema describing input parameters."
+        },
+        "outputSchema": {
+          "$ref": "#/$defs/Schema",
+          "description": "Optional schema describing prompt output."
+        },
+        "invocation": {
+          "description": "Object describing how to invoke the prompt."
+        },
+        "requiredScopes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "OAuth scopes required to invoke this prompt."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name",
+        "description",
+        "inputSchema",
+        "invocation"
+      ],
+      "description": "Prompt represents a natural-language or LLM-style function invocation."
+    },
+    "PromptArgument": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique identifier for the argument."
+        },
+        "title": {
+          "type": "string",
+          "description": "Human-readable title for display."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed explanation of the argument."
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Indicates if the argument is mandatory."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "description": "PromptArgument defines a variable that can be substituted into a prompt template."
+    },
+    "Schema": {
+      "properties": {
+        "$id": {
+          "type": "string"
+        },
+        "$schema": {
+          "type": "string"
+        },
+        "$ref": {
+          "type": "string"
+        },
+        "$comment": {
+          "type": "string"
+        },
+        "$defs": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "object"
+        },
+        "definitions": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "object"
+        },
+        "$anchor": {
+          "type": "string"
+        },
+        "$dynamicAnchor": {
+          "type": "string"
+        },
+        "$dynamicRef": {
+          "type": "string"
+        },
+        "$vocabulary": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "type": "object"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "default": true,
+        "deprecated": {
+          "type": "boolean"
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "writeOnly": {
+          "type": "boolean"
+        },
+        "examples": {
+          "items": true,
+          "type": "array"
+        },
+        "enum": {
+          "items": true,
+          "type": "array"
+        },
+        "const": true,
+        "multipleOf": {
+          "type": "number"
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "exclusiveMinimum": {
+          "type": "number"
+        },
+        "exclusiveMaximum": {
+          "type": "number"
+        },
+        "minLength": {
+          "type": "integer"
+        },
+        "maxLength": {
+          "type": "integer"
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "prefixItems": {
+          "items": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "array"
+        },
+        "items": {
+          "$ref": "#/$defs/Schema"
+        },
+        "minItems": {
+          "type": "integer"
+        },
+        "maxItems": {
+          "type": "integer"
+        },
+        "additionalItems": {
+          "$ref": "#/$defs/Schema"
+        },
+        "uniqueItems": {
+          "type": "boolean"
+        },
+        "contains": {
+          "$ref": "#/$defs/Schema"
+        },
+        "minContains": {
+          "type": "integer"
+        },
+        "maxContains": {
+          "type": "integer"
+        },
+        "unevaluatedItems": {
+          "$ref": "#/$defs/Schema"
+        },
+        "minProperties": {
+          "type": "integer"
+        },
+        "maxProperties": {
+          "type": "integer"
+        },
+        "required": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "dependentRequired": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": "object"
+        },
+        "properties": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "object"
+        },
+        "patternProperties": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "object"
+        },
+        "additionalProperties": {
+          "$ref": "#/$defs/Schema"
+        },
+        "propertyNames": {
+          "$ref": "#/$defs/Schema"
+        },
+        "unevaluatedProperties": {
+          "$ref": "#/$defs/Schema"
+        },
+        "allOf": {
+          "items": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "array"
+        },
+        "anyOf": {
+          "items": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "array"
+        },
+        "oneOf": {
+          "items": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "array"
+        },
+        "not": {
+          "$ref": "#/$defs/Schema"
+        },
+        "if": {
+          "$ref": "#/$defs/Schema"
+        },
+        "then": {
+          "$ref": "#/$defs/Schema"
+        },
+        "else": {
+          "$ref": "#/$defs/Schema"
+        },
+        "dependentSchemas": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "object"
+        },
+        "contentEncoding": {
+          "type": "string"
+        },
+        "contentMediaType": {
+          "type": "string"
+        },
+        "contentSchema": {
+          "$ref": "#/$defs/Schema"
+        },
+        "format": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "ServerRuntime": {
+      "properties": {
+        "transportProtocol": {
+          "type": "string",
+          "description": "Transport protocol to use (streamablehttp or stdio)."
+        },
+        "streamableHttpConfig": {
+          "$ref": "#/$defs/StreamableHTTPConfig",
+          "description": "Configuration for streamable HTTP transport protocol."
+        },
+        "stdioConfig": {
+          "$ref": "#/$defs/StdioConfig",
+          "description": "Configuration for stdio transport protocol."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "transportProtocol"
+      ],
+      "description": "ServerRuntime defines transport protocol and associated configuration."
+    },
+    "StdioConfig": {
+      "properties": {},
+      "additionalProperties": false,
+      "type": "object",
+      "description": "StdioConfig defines configuration for stdio transport protocol."
+    },
+    "StreamableHTTPConfig": {
+      "properties": {
+        "port": {
+          "type": "integer",
+          "description": "Port number to listen on."
+        },
+        "basePath": {
+          "type": "string",
+          "description": "Base path for the MCP server (default: /mcp)."
+        },
+        "stateless": {
+          "type": "boolean",
+          "description": "Indicates whether the server is stateless."
+        },
+        "auth": {
+          "$ref": "#/$defs/AuthConfig",
+          "description": "OAuth 2.0 configuration for protected resources."
+        },
+        "tls": {
+          "$ref": "#/$defs/TLSConfig",
+          "description": "TLS configuration for HTTPS."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "port",
+        "stateless"
+      ],
+      "description": "StreamableHTTPConfig defines configuration for the HTTP-based runtime."
+    },
+    "TLSConfig": {
+      "properties": {
+        "certFile": {
+          "type": "string",
+          "description": "Absolute path to the server's public certificate."
+        },
+        "keyFile": {
+          "type": "string",
+          "description": "Absolute path to the server's private key."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "TLSConfig defines paths to TLS certificate and private key files."
+    },
+    "Tool": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique identifier for the tool."
+        },
+        "title": {
+          "type": "string",
+          "description": "Human-readable title for display purposes."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the tool's purpose."
+        },
+        "inputSchema": {
+          "$ref": "#/$defs/Schema",
+          "description": "JSON Schema describing input parameters."
+        },
+        "outputSchema": {
+          "$ref": "#/$defs/Schema",
+          "description": "Optional JSON Schema describing output."
+        },
+        "invocation": {
+          "description": "Object describing how to execute the tool."
+        },
+        "requiredScopes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "OAuth scopes required to invoke this tool."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name",
+        "description",
+        "inputSchema",
+        "invocation"
+      ],
+      "description": "Tool represents an executable capability of the MCP server."
+    }
+  }
+}

@@ -148,7 +148,7 @@ To improve the development experience and prevent configuration errors, this pro
 To make use of the schema, add a `yaml-language-server` comment at the top of your `mcpfile.yaml`:
 
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/mcpfile-schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/mcpfile-schema.json
 mcpFileVersion: 0.1.0
 name: ...
 ```
