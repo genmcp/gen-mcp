@@ -141,6 +141,24 @@ genmcp stop
 genmcp stop -f /path/to/mcpfile.yaml
 ```
 
+## 💡 Authoring `mcpfile.yaml` with auto complete
+
+To improve the development experience and prevent configuration errors, this project includes a **JSON schema** for the `mcpfile.yaml` format. This schema enables validation, autocompletion, and inline documentation in compatible code editors like Visual Studio Code, helping you write valid configuration files faster.
+
+To make use of the schema, add a `yaml-language-server` comment at the top of your `mcpfile.yaml`:
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/mcpfile-schema.json
+mcpFileVersion: 0.1.0
+name: ...
+```
+
+Intellij IDEs [support](https://www.jetbrains.com/help/idea/json.html#ws_json_schema_add_custom) JSON schema validation natively.
+
+VS Code requires the installation of the [YAML extension by Red Hat](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml).
+
+![Schema Autocomplete Screenshot](./hack/jsonschemagen/mcpfile-autocomplete-screenshot.png)
+
 ## 📚 Examples & Tutorials
 
 ### 🤖 Ollama Integration
