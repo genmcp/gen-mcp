@@ -172,6 +172,23 @@ genmcp run
 - 📊 Schema validation and type safety
 - 🎯 Selective endpoint exposure
 
+### 🔌 gRPC Service Integration
+**[View Demo Repository](https://github.com/genmcp/grpc-demo/)**
+
+Expose existing gRPC services to LLMs without modifying service code:
+
+**Architecture:**
+- Uses [gRPC-Gateway](https://github.com/grpc-ecosystem/grpc-gateway) to create an HTTP/JSON proxy
+- Exposes the HTTP proxy as MCP tools via gen-mcp
+- Works with any gRPC service using only `.proto` definitions
+
+**Perfect for:**
+- 🏢 Integrating legacy gRPC services with AI workflows
+- 🔄 Bridging binary gRPC with JSON-based LLM interfaces
+- 🚀 Getting started before native gRPC support arrives
+
+**Note:** This is a workaround pattern until gen-mcp adds native gRPC support.
+
 ---
 
 ## 🤝 Contributing
@@ -197,6 +214,7 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 - **[Model Context Protocol](https://modelcontextprotocol.io/)** - Official MCP documentation
 - **[MCP File Format](./docs/mcp_file_format.md)** - gen-mcp configuration reference
 - **[Examples](./examples/)** - Real-world integration examples
+- **[gRPC Integration Demo](https://github.com/genmcp/grpc-demo/)** - Pattern for exposing gRPC services via HTTP proxy
 
 ---
 
