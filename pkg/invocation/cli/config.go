@@ -11,6 +11,7 @@ type CliInvocationConfig struct {
 	Command           string                       `json:"command"`
 	TemplateVariables map[string]*TemplateVariable `json:"templateVariables,omitempty"`
 	ParameterIndices  map[string]int               `json:"-"`
+	URITemplate       string                       `json:"-"` // MCP URI template (for resource templates only)
 }
 
 var _ invocation.InvocationConfig = &CliInvocationConfig{}

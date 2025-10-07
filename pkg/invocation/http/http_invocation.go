@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/yosida95/uritemplate/v3"
 
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/genmcp/gen-mcp/pkg/invocation/utils"
@@ -26,6 +27,7 @@ type HttpInvoker struct {
 	PathIndeces  map[string]int       // map to where each path parameter should go in the path
 	Method       string               // Http request method
 	InputSchema  *jsonschema.Resolved // InputSchema for the tool
+	URITemplate  string               // MCP URI template (for resource templates only)
 }
 
 var _ invocation.Invoker = &HttpInvoker{}
@@ -259,4 +261,132 @@ func (hi *HttpInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReque
 	}
 
 	return result, nil
+}
+
+func (hi *HttpInvoker) InvokeResource(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+	ub := &urlBuilder{
+		pathTemplate: hi.PathTemplate,
+		pathIndeces:  hi.PathIndeces,
+		pathValues:   make([]any, len(hi.PathIndeces)),
+	}
+
+	ub.queryParams = neturl.Values{}
+	ub.buildQuery = len(hi.PathIndeces) > 0
+
+	url, _ := ub.GetResult()
+
+	var reqBody io.Reader = nil
+	httpReq, err := nethttp.NewRequestWithContext(ctx, hi.Method, url.(string), reqBody)
+	if err != nil {
+		return utils.McpResourceTextError("failed to create http request: %s", err.Error()), err
+	}
+
+	client := &nethttp.Client{}
+
+	response, err := client.Do(httpReq)
+	if err != nil {
+		return utils.McpResourceTextError("failed to execute http request: %s", err.Error()), err
+	}
+	defer func() {
+		_ = response.Body.Close()
+	}()
+
+	body, _ := io.ReadAll(response.Body)
+
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return utils.McpResourceTextError("http request failed with status %d", response.StatusCode), fmt.Errorf("http request failed with status %d", response.StatusCode)
+	}
+
+	result := &mcp.ReadResourceResult{
+		Contents: []*mcp.ResourceContents{
+			{
+				URI:      req.Params.URI,
+				MIMEType: response.Header.Get(contentTypeHeader),
+				Text:     string(body),
+			},
+		},
+	}
+
+	return result, nil
+}
+
+func (hi *HttpInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+	ub := &urlBuilder{
+		pathTemplate: hi.PathTemplate,
+		pathIndeces:  hi.PathIndeces,
+		pathValues:   make([]any, len(hi.PathIndeces)),
+	}
+
+	ub.queryParams = neturl.Values{}
+	ub.buildQuery = true
+
+	// Parse URI template and extract arguments from the incoming URI
+	argsMap := make(map[string]any)
+	uriTmpl, err := uritemplate.New(hi.URITemplate)
+	if err != nil {
+		return utils.McpResourceTextError("invalid URI template: %s", err.Error()), err
+	}
+
+	// Match the incoming URI against the template to extract argument values
+	matches := uriTmpl.Match(req.Params.URI)
+	if matches == nil {
+		return utils.McpResourceTextError("URI does not match template"), fmt.Errorf("URI '%s' does not match template '%s'", req.Params.URI, hi.URITemplate)
+	}
+
+	// Convert uritemplate.Values to map[string]any
+	for _, paramName := range uriTmpl.Varnames() {
+		if val := matches.Get(paramName); val.Valid() {
+			argsMap[paramName] = val.String()
+		} else {
+			return utils.McpResourceTextError("missing required parameter: %s", paramName), fmt.Errorf("missing required parameter: %s", paramName)
+		}
+	}
+
+	argsBytes, err := json.Marshal(argsMap)
+	if err != nil {
+		return utils.McpResourceTextError("failed to marshal arguments: %s", err.Error()), err
+	}
+
+	dj := &invocation.DynamicJson{
+		Builders: []invocation.Builder{ub},
+	}
+
+	parsed, err := dj.ParseJson(argsBytes, hi.InputSchema.Schema())
+	if err != nil {
+		return utils.McpResourceTextError("failed to parse resource template request: %s", err.Error()), err
+	}
+
+	if err := hi.InputSchema.Validate(parsed); err != nil {
+		return utils.McpResourceTextError("failed to validate resource template request: %s", err.Error()), err
+	}
+
+	url, _ := ub.GetResult()
+
+	httpReq, err := nethttp.NewRequestWithContext(ctx, hi.Method, url.(string), nil)
+	if err != nil {
+		return utils.McpResourceTextError("failed to create http request: %s", err.Error()), err
+	}
+
+	client := &nethttp.Client{}
+	response, err := client.Do(httpReq)
+	if err != nil {
+		return utils.McpResourceTextError("failed to execute http request: %s", err.Error()), err
+	}
+	defer response.Body.Close()
+
+	body, _ := io.ReadAll(response.Body)
+
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return utils.McpResourceTextError("http request failed with status %d", response.StatusCode), fmt.Errorf("http request failed with status %d", response.StatusCode)
+	}
+
+	return &mcp.ReadResourceResult{
+		Contents: []*mcp.ResourceContents{
+			{
+				URI:      req.Params.URI,
+				MIMEType: response.Header.Get(contentTypeHeader),
+				Text:     string(body),
+			},
+		},
+	}, nil
 }

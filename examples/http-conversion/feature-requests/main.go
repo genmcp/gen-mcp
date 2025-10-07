@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -85,18 +86,20 @@ func main() {
 	mux.HandleFunc("GET /features", getAllFeatures)
 	mux.HandleFunc("GET /openapi.json", getOpenAPISpec)
 	mux.HandleFunc("POST /prompts/feature-analysis", featureAnalysisPrompt)
+	mux.HandleFunc("GET /features/progress-report", getFeatureProgressReport)
 
 	fmt.Println("Feature request server starting on :9090")
 	fmt.Println("Endpoints:")
-	fmt.Println("  GET    /features/top      - Get most voted feature (summary)")
-	fmt.Println("  GET    /features/{id}     - Get feature details")
-	fmt.Println("  POST   /features          - Add new feature")
-	fmt.Println("  POST   /features/vote     - Vote for a feature")
-	fmt.Println("  POST   /features/complete - Mark feature as completed")
-	fmt.Println("  DELETE /features/{id}     - Delete a feature")
-	fmt.Println("  GET    /features          - Get all features (summaries)")
-	fmt.Println("  GET    /openapi.json      - Get OpenAPI specification")
-	fmt.Println("  POST   /prompts/feature-analysis - Generate feature analysis prompt")
+	fmt.Println("  GET    /features/top      	 	  - Get most voted feature (summary)")
+	fmt.Println("  GET    /features/{id}     	 	  - Get feature details")
+	fmt.Println("  POST   /features          	 	  - Add new feature")
+	fmt.Println("  POST   /features/vote     	 	  - Vote for a feature")
+	fmt.Println("  POST   /features/complete 	 	  - Mark feature as completed")
+	fmt.Println("  DELETE /features/{id}     	 	  - Delete a feature")
+	fmt.Println("  GET    /features          	 	  - Get all features (summaries)")
+	fmt.Println("  GET    /openapi.json      	 	  - Get OpenAPI specification")
+	fmt.Println("  POST   /prompts/feature-analysis        - Generate feature analysis prompt")
+	fmt.Println("  GET    /features/progress-report        - Get feature progress report")
 
 	err := http.ListenAndServe(":9090", mux)
 	fmt.Printf("error: %s\n", err.Error())
@@ -502,4 +505,36 @@ func generateFeatureAnalysisPrompt(features []*Feature, context, focus string) s
 	prompt += "\nProvide actionable recommendations based on the data above."
 
 	return prompt
+}
+
+func getFeatureProgressReport(w http.ResponseWriter, r *http.Request) {
+	mu.RLock()
+	defer mu.RUnlock()
+
+	featureList := make([]*Feature, 0, len(features))
+	for _, feature := range features {
+		featureList = append(featureList, feature)
+	}
+
+	sort.Slice(featureList, func(i, j int) bool {
+		return featureList[i].Upvotes > featureList[j].Upvotes
+	})
+
+	var report strings.Builder
+	report.WriteString("# Feature Request Report\n\n")
+
+	for _, feature := range featureList {
+		status := "🔄 In Progress"
+		if feature.Completed {
+			status = "✅ Completed"
+		}
+		report.WriteString(fmt.Sprintf("## %s\n\n", feature.Title))
+		report.WriteString(fmt.Sprintf("**Status:** %s | **Upvotes:** %d\n\n", status, feature.Upvotes))
+		report.WriteString(fmt.Sprintf("%s\n\n", feature.Description))
+		report.WriteString(fmt.Sprintf("### Details\n\n%s\n\n---\n\n", feature.Details))
+	}
+
+	w.Header().Set("Content-Type", "text/markdown")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(report.String()))
 }

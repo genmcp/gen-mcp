@@ -25,6 +25,24 @@ func (p *Parser) ParsePrompt(data json.RawMessage, prompt *mcpfile.Prompt) (invo
 	return p.parsePrimitive(data, primitiveAdapter{InputSchema: prompt.InputSchema})
 }
 
+func (p *Parser) ParseResource(data json.RawMessage, resource *mcpfile.Resource) (invocation.InvocationConfig, error) {
+	return p.parsePrimitive(data, primitiveAdapter{InputSchema: resource.InputSchema})
+}
+
+func (p *Parser) ParseResourceTemplate(data json.RawMessage, resourceTemplate *mcpfile.ResourceTemplate) (invocation.InvocationConfig, error) {
+	config, err := p.parsePrimitive(data, primitiveAdapter{InputSchema: resourceTemplate.InputSchema})
+	if err != nil {
+		return nil, err
+	}
+
+	// Set the URI template for resource templates
+	if cic, ok := config.(*CliInvocationConfig); ok {
+		cic.URITemplate = resourceTemplate.URITemplate
+	}
+
+	return config, nil
+}
+
 func (p *Parser) parsePrimitive(data json.RawMessage, primitive primitiveAdapter) (invocation.InvocationConfig, error) {
 	type Doppleganger CliInvocationConfig
 

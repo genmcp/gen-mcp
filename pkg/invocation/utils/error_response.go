@@ -26,3 +26,11 @@ func McpPromptTextError(format string, args ...any) *mcp.GetPromptResult {
 		},
 	}
 }
+
+func McpResourceTextError(format string, args ...any) *mcp.ReadResourceResult {
+	return &mcp.ReadResourceResult{
+		Contents: []*mcp.ResourceContents{
+			{Text: fmt.Sprintf(format, args...)},
+		},
+	}
+}

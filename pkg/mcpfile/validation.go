@@ -97,6 +97,44 @@ func (p *Prompt) Validate(invocationValidator InvocationValidator) error {
 	return err
 }
 
+func (r *Resource) Validate(invocationValidator InvocationValidator) error {
+	var err error = nil
+	if r.Name == "" {
+		err = errors.Join(err, fmt.Errorf("invalid resource: name is required"))
+	}
+	if r.Description == "" {
+		err = errors.Join(err, fmt.Errorf("invalid resource: description is required"))
+	}
+	if r.URI == "" {
+		err = errors.Join(err, fmt.Errorf("invalid resource: uri is required"))
+	}
+	if r.InvocationData == nil {
+		err = errors.Join(err, fmt.Errorf("invalid resource: invocation is not set for the resource"))
+	} else if invocationErr := invocationValidator(r.InvocationType, r.InvocationData, r); invocationErr != nil {
+		err = errors.Join(err, fmt.Errorf("invalid resource: invocation is not valid: %w", invocationErr))
+	}
+	return err
+}
+
+func (rt *ResourceTemplate) Validate(invocationValidator InvocationValidator) error {
+	var err error = nil
+	if rt.Name == "" {
+		err = errors.Join(err, fmt.Errorf("invalid resource template: name is required"))
+	}
+	if rt.Description == "" {
+		err = errors.Join(err, fmt.Errorf("invalid resource template: description is required"))
+	}
+	if rt.URITemplate == "" {
+		err = errors.Join(err, fmt.Errorf("invalid resource template: uriTemplate is required"))
+	}
+	if rt.InvocationData == nil {
+		err = errors.Join(err, fmt.Errorf("invalid resource template: invocation is not set for the resource template"))
+	} else if invocationErr := invocationValidator(rt.InvocationType, rt.InvocationData, rt); invocationErr != nil {
+		err = errors.Join(err, fmt.Errorf("invalid resource template: invocation is not valid: %w", invocationErr))
+	}
+	return err
+}
+
 func (s *MCPServer) Validate(invocationValidator InvocationValidator) error {
 	var err error = nil
 	if s.Name == "" {

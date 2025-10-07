@@ -22,6 +22,8 @@ const (
 type Invoker interface {
 	Invoke(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error)
 	InvokePrompt(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error)
+	InvokeResource(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error)
+	InvokeResourceTemplate(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error)
 }
 
 type InvocationConfig interface {
@@ -31,6 +33,8 @@ type InvocationConfig interface {
 type InvocationConfigParser interface {
 	Parse(data json.RawMessage, tool *mcpfile.Tool) (InvocationConfig, error)
 	ParsePrompt(data json.RawMessage, prompt *mcpfile.Prompt) (InvocationConfig, error)
+	ParseResource(data json.RawMessage, resource *mcpfile.Resource) (InvocationConfig, error)
+	ParseResourceTemplate(data json.RawMessage, resourceTemplate *mcpfile.ResourceTemplate) (InvocationConfig, error)
 }
 
 type InvokerFactory interface {

@@ -22,6 +22,7 @@ type HttpInvocationConfig struct {
 	PathTemplate string         `json:"url"`
 	PathIndices  map[string]int `json:"-"`
 	Method       string         `json:"method"`
+	URITemplate  string         `json:"-"` // MCP URI template (for resource templates only)
 }
 
 var _ invocation.InvocationConfig = &HttpInvocationConfig{}

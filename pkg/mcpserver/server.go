@@ -61,10 +61,13 @@ func RunServers(ctx context.Context, mcpFilePath string) error {
 	}
 
 	mcpServer := &mcpfile.MCPServer{
-		Name:    mcpConfig.Name,
-		Version: mcpConfig.Version,
-		Runtime: mcpConfig.Runtime,
-		Tools:   mcpConfig.Tools,
+		Name:              mcpConfig.Name,
+		Version:           mcpConfig.Version,
+		Runtime:           mcpConfig.Runtime,
+		Tools:             mcpConfig.Tools,
+		Prompts:           mcpConfig.Prompts,
+		Resources:         mcpConfig.Resources,
+		ResourceTemplates: mcpConfig.ResourceTemplates,
 	}
 
 	return RunServer(ctx, mcpServer)
@@ -101,7 +104,6 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpfile.MCPSe
 		Addr:    fmt.Sprintf(":%d", mcpServerConfig.Runtime.StreamableHTTPConfig.Port),
 		Handler: mux,
 	}
-
 	fmt.Printf("starting listen on :%d\n", mcpServerConfig.Runtime.StreamableHTTPConfig.Port)
 
 	// Channel to capture server errors
@@ -197,6 +199,37 @@ func createAuthorizedPromptHandler(prompt *mcpfile.Prompt) (mcp.PromptHandler, e
 	}, nil
 }
 
+func createAuthorizedResourceHandler(resource *mcpfile.Resource) (mcp.ResourceHandler, error) {
+	invoker, err := invocation.CreateResourceInvoker(resource)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create invoker for prompt %s: %w", resource.Name, err)
+	}
+
+	return func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		// Check if user has required scopes for this resource
+		if err := checkPrimitiveAuthorization(ctx, resource.RequiredScopes); err != nil {
+			return utils.McpResourceTextError("forbidden: %s for resource '%s'", err.Error(), resource.Name), fmt.Errorf("forbidden: %s for resource '%s'", err.Error(), resource.Name)
+		}
+
+		return invoker.InvokeResource(ctx, req)
+	}, nil
+}
+
+func createAuthorizedResourceTemplateHandler(resourceTemplate *mcpfile.ResourceTemplate) (mcp.ResourceHandler, error) {
+	invoker, err := invocation.CreateResourceTemplateInvoker(resourceTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create invoker for resource template %s: %w", resourceTemplate.Name, err)
+	}
+	return func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		// Check if user has required scopes for this resource
+		if err := checkPrimitiveAuthorization(ctx, resourceTemplate.RequiredScopes); err != nil {
+			return utils.McpResourceTextError("forbidden: %s for resource template '%s'", err.Error(), resourceTemplate.Name), fmt.Errorf("forbidden: %s for resource template '%s'", err.Error(), resourceTemplate.Name)
+		}
+
+		return invoker.InvokeResource(ctx, req)
+	}, nil
+}
+
 // makeServerWithTools makes a server using the server metadata in mcpServer but with the tools specified in tools
 // this is useful for creating servers with filtered tool lists
 func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*mcp.Server, error) {
@@ -241,6 +274,43 @@ func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*
 			&mcp.Prompt{
 				Name:        p.Name,
 				Description: p.Description,
+			},
+			handler,
+		)
+	}
+
+	for _, r := range mcpServer.Resources {
+		handler, err := createAuthorizedResourceHandler(r)
+		if err != nil {
+			serverErr = errors.Join(serverErr, err)
+			continue
+		}
+
+		s.AddResource(
+			&mcp.Resource{
+				Name:        r.Name,
+				Description: r.Description,
+				URI:         r.URI,
+				MIMEType:    r.MIMEType,
+				Size:        r.Size,
+			},
+			handler,
+		)
+	}
+
+	for _, rt := range mcpServer.ResourceTemplates {
+		handler, err := createAuthorizedResourceTemplateHandler(rt)
+		if err != nil {
+			serverErr = errors.Join(serverErr, err)
+			continue
+		}
+
+		s.AddResourceTemplate(
+			&mcp.ResourceTemplate{
+				Name:        rt.Name,
+				Description: rt.Description,
+				URITemplate: rt.URITemplate,
+				MIMEType:    rt.MIMEType,
 			},
 			handler,
 		)

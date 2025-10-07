@@ -85,4 +85,14 @@ prompts:
     http:
       method: POST
       url: http://localhost:9090/prompts/feature-analysis
+resources:
+- name: "feature-progress-report"
+  title: "Feature Progress Report"
+  description: "Complete feature request progress report in markdown format"
+  uri: http://localhost:9090/features/progress-report
+  mimeType: "text/markdown"
+  invocation:
+    http:
+      method: GET
+      url: http://localhost:9090/features/progress-report
 version: 0.0.1

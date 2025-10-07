@@ -173,6 +173,70 @@ func (p *Prompt) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (p *Resource) UnmarshalJSON(data []byte) error {
+	type Doppleganger Resource
+
+	tmp := struct {
+		Invocation map[string]json.RawMessage `json:"invocation"`
+		*Doppleganger
+	}{
+		Doppleganger: (*Doppleganger)(p),
+	}
+
+	err := json.Unmarshal(data, &tmp)
+	if err != nil {
+		return err
+	}
+
+	if p.InputSchema != nil && p.InputSchema.Properties == nil {
+		// set the properties to be not nil so that it serializes as {} (required for some clients to properly parse the tool)
+		p.InputSchema.Properties = make(map[string]*jsonschema.Schema)
+	}
+
+	if len(tmp.Invocation) != 1 {
+		return fmt.Errorf("only one invocation handler should be defined per prompt")
+	}
+
+	for k, v := range tmp.Invocation {
+		p.InvocationType = strings.ToLower(k)
+		p.InvocationData = v
+	}
+
+	return nil
+}
+
+func (p *ResourceTemplate) UnmarshalJSON(data []byte) error {
+	type Doppleganger ResourceTemplate
+
+	tmp := struct {
+		Invocation map[string]json.RawMessage `json:"invocation"`
+		*Doppleganger
+	}{
+		Doppleganger: (*Doppleganger)(p),
+	}
+
+	err := json.Unmarshal(data, &tmp)
+	if err != nil {
+		return err
+	}
+
+	if p.InputSchema != nil && p.InputSchema.Properties == nil {
+		// set the properties to be not nil so that it serializes as {} (required for some clients to properly parse the tool)
+		p.InputSchema.Properties = make(map[string]*jsonschema.Schema)
+	}
+
+	if len(tmp.Invocation) != 1 {
+		return fmt.Errorf("only one invocation handler should be defined per prompt")
+	}
+
+	for k, v := range tmp.Invocation {
+		p.InvocationType = strings.ToLower(k)
+		p.InvocationData = v
+	}
+
+	return nil
+}
+
 func (s *StreamableHTTPConfig) UnmarshalJSON(data []byte) error {
 	type Doppleganger StreamableHTTPConfig
 

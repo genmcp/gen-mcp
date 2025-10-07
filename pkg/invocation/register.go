@@ -43,6 +43,24 @@ func ParsePromptInvocation(invocationType string, data json.RawMessage, prompt *
 	return parser.ParsePrompt(data, prompt)
 }
 
+func ParseResourceInvocation(invocationType string, data json.RawMessage, resource *mcpfile.Resource) (InvocationConfig, error) {
+	parser, exists := globalRegistry.parsers[invocationType]
+	if !exists {
+		return nil, fmt.Errorf("unknown invocation type: '%s'", invocationType)
+	}
+
+	return parser.ParseResource(data, resource)
+}
+
+func ParseResourceTemplateInvocation(invocationType string, data json.RawMessage, resourceTemplate *mcpfile.ResourceTemplate) (InvocationConfig, error) {
+	parser, exists := globalRegistry.parsers[invocationType]
+	if !exists {
+		return nil, fmt.Errorf("unknown invocation type: '%s'", invocationType)
+	}
+
+	return parser.ParseResourceTemplate(data, resourceTemplate)
+}
+
 func InvocationValidator(invocationType string, data json.RawMessage, primitive mcpfile.Primitive) error {
 	switch p := primitive.(type) {
 	case *mcpfile.Tool:

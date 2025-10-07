@@ -405,3 +405,276 @@ func TestCliPromptInvocation(t *testing.T) {
 		})
 	}
 }
+
+func TestCliResourceInvocation(t *testing.T) {
+	tt := []struct {
+		name           string
+		cliInvoker     CliInvoker
+		request        *mcp.ReadResourceRequest
+		expectedResult func(t *testing.T, result *mcp.ReadResourceResult)
+		expectError    bool
+	}{
+		{
+			name: "simple cat command",
+			cliInvoker: CliInvoker{
+				CommandTemplate:    "echo 'Resource content from command'",
+				ArgumentIndices:    make(map[string]int),
+				ArgumentFormatters: make(map[string]Formatter),
+				InputSchema:        resolvedEmpty,
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "file://test.txt",
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.ReadResourceResult) {
+				assert.NotNil(t, result)
+				assert.Len(t, result.Contents, 1)
+				assert.Equal(t, "file://test.txt", result.Contents[0].URI)
+				assert.Equal(t, "Resource content from command\n", result.Contents[0].Text)
+			},
+		},
+		{
+			name: "date command as resource",
+			cliInvoker: CliInvoker{
+				CommandTemplate:    "date '+%Y-%m-%d'",
+				ArgumentIndices:    make(map[string]int),
+				ArgumentFormatters: make(map[string]Formatter),
+				InputSchema:        resolvedEmpty,
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "system://date",
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.ReadResourceResult) {
+				assert.NotNil(t, result)
+				assert.Len(t, result.Contents, 1)
+				assert.Equal(t, "system://date", result.Contents[0].URI)
+				assert.NotEmpty(t, result.Contents[0].Text)
+			},
+		},
+		{
+			name: "invalid command should fail",
+			cliInvoker: CliInvoker{
+				CommandTemplate:    "nonexistentresourcecmd98765",
+				ArgumentIndices:    make(map[string]int),
+				ArgumentFormatters: make(map[string]Formatter),
+				InputSchema:        resolvedEmpty,
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "file://missing.txt",
+				},
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			res, err := tc.cliInvoker.InvokeResource(context.Background(), tc.request)
+			if tc.expectError {
+				assert.Error(t, err, "cli resource invocation should have an error")
+			} else {
+				assert.NoError(t, err, "cli resource invocation should not have an error")
+				if tc.expectedResult != nil {
+					tc.expectedResult(t, res)
+				}
+			}
+		})
+	}
+}
+
+func TestCliResourceTemplateInvocation(t *testing.T) {
+	resolvedWithCityDate, _ := (&jsonschema.Schema{
+		Type: invocation.JsonSchemaTypeObject,
+		Properties: map[string]*jsonschema.Schema{
+			"city": {Type: invocation.JsonSchemaTypeString},
+			"date": {Type: invocation.JsonSchemaTypeString},
+		},
+		Required: []string{"city", "date"},
+	}).Resolve(nil)
+
+	resolvedWithUserFile, _ := (&jsonschema.Schema{
+		Type: invocation.JsonSchemaTypeObject,
+		Properties: map[string]*jsonschema.Schema{
+			"user": {Type: invocation.JsonSchemaTypeString},
+			"file": {Type: invocation.JsonSchemaTypeString},
+		},
+		Required: []string{"user", "file"},
+	}).Resolve(nil)
+
+	tt := []struct {
+		name           string
+		cliInvoker     CliInvoker
+		request        *mcp.ReadResourceRequest
+		expectedResult func(t *testing.T, result *mcp.ReadResourceResult)
+		expectError    bool
+		errorMsg       string
+	}{
+		{
+			name: "resource template with URI params",
+			cliInvoker: CliInvoker{
+				CommandTemplate: "echo 'Weather for %s on %s'",
+				ArgumentIndices: map[string]int{
+					"city": 0,
+					"date": 1,
+				},
+				ArgumentFormatters: map[string]Formatter{
+					"city": stringFormatter{},
+					"date": stringFormatter{},
+				},
+				InputSchema: resolvedWithCityDate,
+				URITemplate: "weather://forecast/{city}/{date}",
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "weather://forecast/London/2025-10-07",
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.ReadResourceResult) {
+				assert.NotNil(t, result)
+				assert.Len(t, result.Contents, 1)
+				assert.Equal(t, "weather://forecast/London/2025-10-07", result.Contents[0].URI)
+				assert.Equal(t, "Weather for London on 2025-10-07\n", result.Contents[0].Text)
+			},
+		},
+		{
+			name: "resource template with extra args",
+			cliInvoker: CliInvoker{
+				CommandTemplate: "echo 'Base command'",
+				ArgumentIndices: make(map[string]int),
+				ArgumentFormatters: map[string]Formatter{
+					"user": stringFormatter{},
+					"file": stringFormatter{},
+				},
+				InputSchema: resolvedWithUserFile,
+				URITemplate: "app://users/{user}/files/{file}",
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "app://users/alice/files/doc.txt",
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.ReadResourceResult) {
+				assert.NotNil(t, result)
+				assert.Len(t, result.Contents, 1)
+				assert.Equal(t, "app://users/alice/files/doc.txt", result.Contents[0].URI)
+				assert.Contains(t, result.Contents[0].Text, "Base command")
+				assert.Contains(t, result.Contents[0].Text, "--user=alice")
+				assert.Contains(t, result.Contents[0].Text, "--file=doc.txt")
+			},
+		},
+		{
+			name: "resource template with invalid URI",
+			cliInvoker: CliInvoker{
+				CommandTemplate: "echo 'Weather data'",
+				ArgumentIndices: make(map[string]int),
+				ArgumentFormatters: map[string]Formatter{
+					"city": stringFormatter{},
+					"date": stringFormatter{},
+				},
+				InputSchema: resolvedWithCityDate,
+				URITemplate: "weather://forecast/{city}/{date}",
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "weather://other/path",
+				},
+			},
+			expectError: true,
+			errorMsg:    "does not match template",
+		},
+		{
+			name: "resource template with missing required param",
+			cliInvoker: CliInvoker{
+				CommandTemplate: "echo 'Weather data'",
+				ArgumentIndices: make(map[string]int),
+				ArgumentFormatters: map[string]Formatter{
+					"city": stringFormatter{},
+					"date": stringFormatter{},
+				},
+				InputSchema: resolvedWithCityDate,
+				URITemplate: "weather://forecast/{city}/{date}",
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "weather://forecast/London",
+				},
+			},
+			expectError: true,
+			errorMsg:    "does not match template",
+		},
+		{
+			name: "resource template with empty URI template",
+			cliInvoker: CliInvoker{
+				CommandTemplate: "echo 'Data'",
+				ArgumentIndices: make(map[string]int),
+				ArgumentFormatters: map[string]Formatter{
+					"city": stringFormatter{},
+				},
+				InputSchema: resolvedWithCityDate,
+				URITemplate: "",
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "app://data",
+				},
+			},
+			expectError: true,
+			errorMsg:    "URI template not configured",
+		},
+		{
+			name: "resource template with command failure",
+			cliInvoker: CliInvoker{
+				CommandTemplate: "nonexistentcmdforresource456 %s",
+				ArgumentIndices: map[string]int{
+					"city": 0,
+				},
+				ArgumentFormatters: map[string]Formatter{
+					"city": stringFormatter{},
+				},
+				InputSchema: func() *jsonschema.Resolved {
+					schema := &jsonschema.Schema{
+						Type: invocation.JsonSchemaTypeObject,
+						Properties: map[string]*jsonschema.Schema{
+							"city": {Type: invocation.JsonSchemaTypeString},
+						},
+						Required: []string{"city"},
+					}
+					resolved, _ := schema.Resolve(nil)
+					return resolved
+				}(),
+				URITemplate: "weather://city/{city}",
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "weather://city/Paris",
+				},
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			res, err := tc.cliInvoker.InvokeResourceTemplate(context.Background(), tc.request)
+			if tc.expectError {
+				assert.Error(t, err, "cli resource template invocation should have an error")
+				if tc.errorMsg != "" {
+					assert.Contains(t, err.Error(), tc.errorMsg, "error message should contain expected text")
+				}
+			} else {
+				assert.NoError(t, err, "cli resource template invocation should not have an error")
+				if tc.expectedResult != nil {
+					tc.expectedResult(t, res)
+				}
+			}
+		})
+	}
+}
