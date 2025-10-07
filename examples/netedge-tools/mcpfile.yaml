@@ -1,0 +1,183 @@
+mcpFileVersion: 0.0.1
+servers:
+- name: NETEDGE Network Diagnosis Tools
+  version: 0.0.1
+  runtime:
+    streamableHttpConfig:
+      port: 8080
+    transportProtocol: streamablehttp
+  tools:
+
+  - name: inspect_route
+    title: Inspect Route (detailed)
+    description: |
+      Retrieve the Route resource and attempt to inspect the associated Service and Endpoints.
+      This tool will try to extract the service name from the Route and then fetch the
+      Service and Endpoints objects. Requires `oc` CLI and either `jq` or `python3` available
+      on the gen-mcp host.
+    inputSchema:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Route name
+        namespace:
+          type: string
+          description: Route namespace
+      required:
+      - name
+      - namespace
+    invocation:
+      cli:
+        command: |
+          ns="{namespace}"
+          name="{name}"
+          tmpf=$(mktemp)
+          oc get route "$name" -n "$ns" -o json > "$tmpf" || exit 1
+          echo "=== ROUTE ==="
+          cat "$tmpf"
+          svc=""
+          if command -v jq >/dev/null 2>&1; then
+            svc=$(jq -r '.spec.to.name // ""' "$tmpf")
+          fi
+          if [ -n "$svc" ]; then
+            echo "=== SERVICE: $svc ==="
+            oc get svc "$svc" -n "$ns" -o json || true
+            echo "=== ENDPOINTS: $svc ==="
+            oc get endpoints "$svc" -n "$ns" -o json || true
+          else
+            echo "Could not extract service name from route. Service-specific inspection skipped."
+          fi
+  - name: get_service_endpoints
+    title: Get Service Endpoints
+    description: Return Endpoints object for a Service
+    inputSchema:
+      type: object
+      properties:
+        service:
+          type: string
+          description: Service name
+        namespace:
+          type: string
+          description: Namespace of the service
+      required:
+      - service
+      - namespace
+    invocation:
+      cli:
+        command: "oc get endpoints {service} -n {namespace} -o json"
+
+  - name: query_prometheus
+    title: Query Prometheus (range)
+    description: Run a Prometheus `query_range` query and return JSON. Requires `curl` on the gen-mcp host.
+    inputSchema:
+      type: object
+      properties:
+        prometheus_url:
+          type: string
+          description: Base URL for Prometheus (e.g. http://prometheus:9090)
+        query:
+          type: string
+          description: PromQL expression
+        start:
+          type: string
+          description: RFC3339 or unix timestamp for start
+        end:
+          type: string
+          description: RFC3339 or unix timestamp for end
+        step:
+          type: string
+          description: Step duration (e.g. 30s)
+      required:
+      - prometheus_url
+      - query
+      - start
+      - end
+      - step
+    invocation:
+      cli:
+        command: |
+          curl -sG "{prometheus_url}/api/v1/query_range" \
+            --data-urlencode "query={query}" \
+            --data-urlencode "start={start}" \
+            --data-urlencode "end={end}" \
+            --data-urlencode "step={step}"
+
+  - name: get_coredns_config
+    title: Get CoreDNS ConfigMap
+    description: Retrieve a CoreDNS ConfigMap (or any ConfigMap) by name and namespace.
+    inputSchema:
+      type: object
+      properties:
+        configmap:
+          type: string
+          description: ConfigMap name
+        namespace:
+          type: string
+          description: Namespace
+      required:
+      - configmap
+      - namespace
+    invocation:
+      cli:
+        command: "oc get configmap {configmap} -n {namespace} -o yaml"
+
+  - name: probe_dns_local
+    title: Probe DNS from gen-mcp host
+    description: Run a DNS query using local `dig` or `nslookup` on the gen-mcp host.
+    inputSchema:
+      type: object
+      properties:
+        server:
+          type: string
+          description: DNS server (IP or host)
+        name:
+          type: string
+          description: DNS name to query
+        type:
+          type: string
+          description: DNS record type (A, AAAA, TXT, etc.)
+      required:
+      - server
+      - name
+      - type
+    invocation:
+      cli:
+        command: |
+          s="{server}"
+          n="{name}"
+          t="{type}"
+          if command -v dig >/dev/null 2>&1; then
+            dig @$s $n $t +noall +answer || true
+          else
+            nslookup -type=$t $n $s || echo "dig/nslookup not available"
+          fi
+
+  - name: exec_dns_in_pod
+    title: Exec DNS probe in ephemeral pod
+    description: Run a short-lived pod that performs a DNS query using an image containing DNS tools.
+      The cluster must allow the image to be pulled from the container registry.
+    inputSchema:
+      type: object
+      properties:
+        namespace:
+          type: string
+          description: Namespace to run the ephemeral pod in
+        server:
+          type: string
+          description: DNS server to query
+        name:
+          type: string
+          description: DNS name to query
+        type:
+          type: string
+          description: DNS record type
+      required:
+      - namespace
+      - server
+      - name
+      - type
+    invocation:
+      cli:
+        command: |
+          oc run dnsquery --rm -i --restart=Never -n {namespace} --image=infoblox/dnstools --command -- sh -c "dig @{server} {name} {type}"
