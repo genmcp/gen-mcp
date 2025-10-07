@@ -40,3 +40,4 @@ go.work.sum
 .vscode/
 
 hack/keycloak-certs
+/genmcp
