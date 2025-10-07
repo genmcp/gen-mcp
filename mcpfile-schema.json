@@ -1,0 +1,430 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/genmcp/gen-mcp/pkg/mcpfile/mcp-file",
+  "$ref": "#/$defs/MCPFile",
+  "$defs": {
+    "AuthConfig": {
+      "properties": {
+        "authorizationServers": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "jwksUri": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "MCPFile": {
+      "properties": {
+        "mcpFileVersion": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "runtime": {
+          "$ref": "#/$defs/ServerRuntime"
+        },
+        "tools": {
+          "items": {
+            "$ref": "#/$defs/Tool"
+          },
+          "type": "array"
+        },
+        "prompts": {
+          "items": {
+            "$ref": "#/$defs/Prompt"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "mcpFileVersion",
+        "name",
+        "version"
+      ]
+    },
+    "Prompt": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "arguments": {
+          "items": {
+            "$ref": "#/$defs/PromptArgument"
+          },
+          "type": "array"
+        },
+        "inputSchema": {
+          "$ref": "#/$defs/Schema"
+        },
+        "outputSchema": {
+          "$ref": "#/$defs/Schema"
+        },
+        "invocation": true,
+        "requiredScopes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name",
+        "description",
+        "inputSchema",
+        "invocation"
+      ]
+    },
+    "PromptArgument": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name"
+      ]
+    },
+    "Schema": {
+      "properties": {
+        "$id": {
+          "type": "string"
+        },
+        "$schema": {
+          "type": "string"
+        },
+        "$ref": {
+          "type": "string"
+        },
+        "$comment": {
+          "type": "string"
+        },
+        "$defs": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "object"
+        },
+        "definitions": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "object"
+        },
+        "$anchor": {
+          "type": "string"
+        },
+        "$dynamicAnchor": {
+          "type": "string"
+        },
+        "$dynamicRef": {
+          "type": "string"
+        },
+        "$vocabulary": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "type": "object"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "default": true,
+        "deprecated": {
+          "type": "boolean"
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "writeOnly": {
+          "type": "boolean"
+        },
+        "examples": {
+          "items": true,
+          "type": "array"
+        },
+        "enum": {
+          "items": true,
+          "type": "array"
+        },
+        "const": true,
+        "multipleOf": {
+          "type": "number"
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "exclusiveMinimum": {
+          "type": "number"
+        },
+        "exclusiveMaximum": {
+          "type": "number"
+        },
+        "minLength": {
+          "type": "integer"
+        },
+        "maxLength": {
+          "type": "integer"
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "prefixItems": {
+          "items": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "array"
+        },
+        "items": {
+          "$ref": "#/$defs/Schema"
+        },
+        "minItems": {
+          "type": "integer"
+        },
+        "maxItems": {
+          "type": "integer"
+        },
+        "additionalItems": {
+          "$ref": "#/$defs/Schema"
+        },
+        "uniqueItems": {
+          "type": "boolean"
+        },
+        "contains": {
+          "$ref": "#/$defs/Schema"
+        },
+        "minContains": {
+          "type": "integer"
+        },
+        "maxContains": {
+          "type": "integer"
+        },
+        "unevaluatedItems": {
+          "$ref": "#/$defs/Schema"
+        },
+        "minProperties": {
+          "type": "integer"
+        },
+        "maxProperties": {
+          "type": "integer"
+        },
+        "required": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "dependentRequired": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": "object"
+        },
+        "properties": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "object"
+        },
+        "patternProperties": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "object"
+        },
+        "additionalProperties": {
+          "$ref": "#/$defs/Schema"
+        },
+        "propertyNames": {
+          "$ref": "#/$defs/Schema"
+        },
+        "unevaluatedProperties": {
+          "$ref": "#/$defs/Schema"
+        },
+        "allOf": {
+          "items": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "array"
+        },
+        "anyOf": {
+          "items": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "array"
+        },
+        "oneOf": {
+          "items": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "array"
+        },
+        "not": {
+          "$ref": "#/$defs/Schema"
+        },
+        "if": {
+          "$ref": "#/$defs/Schema"
+        },
+        "then": {
+          "$ref": "#/$defs/Schema"
+        },
+        "else": {
+          "$ref": "#/$defs/Schema"
+        },
+        "dependentSchemas": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Schema"
+          },
+          "type": "object"
+        },
+        "contentEncoding": {
+          "type": "string"
+        },
+        "contentMediaType": {
+          "type": "string"
+        },
+        "contentSchema": {
+          "$ref": "#/$defs/Schema"
+        },
+        "format": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "ServerRuntime": {
+      "properties": {
+        "transportProtocol": {
+          "type": "string"
+        },
+        "streamableHttpConfig": {
+          "$ref": "#/$defs/StreamableHTTPConfig"
+        },
+        "stdioConfig": {
+          "$ref": "#/$defs/StdioConfig"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "transportProtocol"
+      ]
+    },
+    "StdioConfig": {
+      "properties": {},
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "StreamableHTTPConfig": {
+      "properties": {
+        "port": {
+          "type": "integer"
+        },
+        "basePath": {
+          "type": "string"
+        },
+        "stateless": {
+          "type": "boolean"
+        },
+        "auth": {
+          "$ref": "#/$defs/AuthConfig"
+        },
+        "tls": {
+          "$ref": "#/$defs/TLSConfig"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "port",
+        "basePath",
+        "stateless"
+      ]
+    },
+    "TLSConfig": {
+      "properties": {
+        "certFile": {
+          "type": "string"
+        },
+        "keyFile": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Tool": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "inputSchema": {
+          "$ref": "#/$defs/Schema"
+        },
+        "outputSchema": {
+          "$ref": "#/$defs/Schema"
+        },
+        "invocation": true,
+        "requiredScopes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name",
+        "description",
+        "inputSchema",
+        "invocation"
+      ]
+    }
+  }
+}
