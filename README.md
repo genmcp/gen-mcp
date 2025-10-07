@@ -187,7 +187,7 @@ Expose existing gRPC services to LLMs without modifying service code:
 - 🔄 Bridging binary gRPC with JSON-based LLM interfaces
 - 🚀 Getting started before native gRPC support arrives
 
-**Note:** This is a production-ready workaround pattern until gen-mcp adds native gRPC support.
+**Note:** This is a workaround pattern until gen-mcp adds native gRPC support.
 
 ---
 
