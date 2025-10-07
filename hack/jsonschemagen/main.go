@@ -13,6 +13,10 @@ import (
 
 func main() {
 	reflector := new(jsonschema.Reflector)
+	if err := reflector.AddGoComments("github.com/genmcp/gen-mcp/pkg/mcpfile", "./../../pkg/mcpfile"); err != nil {
+		log.Fatalf("Failed to add Go comments: %v", err)
+	}
+
 	schema := reflector.Reflect(&mcpfile.MCPFile{})
 
 	schemaJSON, err := json.MarshalIndent(schema, "", "  ")
