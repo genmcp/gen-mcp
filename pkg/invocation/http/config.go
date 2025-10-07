@@ -18,10 +18,25 @@ var validHttpMethods = map[string]struct{}{
 	nethttp.MethodDelete: {},
 }
 
+// The structure for HTTP invocation configuration.
+// It is used to parse the raw JSON data that specifies how to make an HTTP request.
+type HttpInvocationData struct {
+	// Detailed HTTP invocation configuration.
+	Http HttpInvocationConfig `json:"http" jsonschema:"required"`
+}
+
+// The configuration for making an HTTP request.
 type HttpInvocationConfig struct {
-	PathTemplate string         `json:"url"`
-	PathIndices  map[string]int `json:"-"`
-	Method       string         `json:"method"`
+	// The URL template for the HTTP request. It can contain placeholders in the form of '%' which correspond to parameters from the input schema.
+	PathTemplate string `json:"url" jsonschema:"required"`
+
+	// PathIndices maps parameter names to their positional index in the PathTemplate.
+	// This field is for internal use and is not part of the JSON schema.
+	PathIndices map[string]int `json:"-"`
+
+	// The HTTP method to be used for the request (e.g., "GET", "POST").
+	Method string `json:"method" jsonschema:"required,enum=GET,enum=POST,enum=PUT,enum=PATCH,enum=DELETE,enum=HEAD"`
+
 	URITemplate  string         `json:"-"` // MCP URI template (for resource templates only)
 }
 

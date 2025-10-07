@@ -9,16 +9,62 @@ import (
 
 	"github.com/invopop/jsonschema"
 
+	"github.com/genmcp/gen-mcp/pkg/invocation/cli"
+	"github.com/genmcp/gen-mcp/pkg/invocation/http"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 )
 
+// schemaType holds the type information and its corresponding Go comment location.
+type schemaType struct {
+	Type interface{}
+	Base string
+	Path string
+}
+
 func main() {
-	reflector := new(jsonschema.Reflector)
-	if err := reflector.AddGoComments("github.com/genmcp/gen-mcp/pkg/mcpfile", "./../../pkg/mcpfile"); err != nil {
-		log.Fatalf("Failed to add Go comments: %v", err)
+	// Use a slice to guarantee the processing order.
+	// mcpfile.MCPFile will be processed first.
+	types := []schemaType{
+		{
+			Type: &mcpfile.MCPFile{},
+			Base: "github.com/genmcp/gen-mcp/pkg/mcpfile",
+			Path: "../../pkg/mcpfile",
+		},
+		{
+			Type: &http.HttpInvocationData{},
+			Base: "github.com/genmcp/gen-mcp/pkg/invocation",
+			Path: "../../pkg/invocation",
+		},
+		{
+			Type: &cli.CliInvocationData{},
+			Base: "github.com/genmcp/gen-mcp/pkg/invocation",
+			Path: "../../pkg/invocation",
+		},
 	}
 
-	schema := reflector.Reflect(&mcpfile.MCPFile{})
+	var schema *jsonschema.Schema
+
+	for _, item := range types {
+		reflector := new(jsonschema.Reflector)
+		if err := reflector.AddGoComments(item.Base, item.Path); err != nil {
+			log.Fatalf("Failed to add Go comments: %v", err)
+		}
+		currentSchema := reflector.Reflect(item.Type)
+
+		if schema == nil {
+			schema = currentSchema
+		} else {
+			for k, v := range currentSchema.Definitions {
+				// Avoid overwriting existing definitions
+				if _, exists := schema.Definitions[k]; exists {
+					fmt.Printf("Skipping existing definition: %s\n", k)
+					continue
+				}
+				fmt.Printf("Adding definition: %s\n", k)
+				schema.Definitions[k] = v
+			}
+		}
+	}
 
 	schemaJSON, err := json.MarshalIndent(schema, "", "  ")
 	if err != nil {

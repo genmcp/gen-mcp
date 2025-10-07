@@ -49,7 +49,7 @@ type Tool struct {
 	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
 
 	// Object describing how to execute the tool.
-	InvocationData json.RawMessage `json:"invocation" jsonschema:"required"`
+	InvocationData json.RawMessage `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationData;#/$defs/CliInvocationData"`
 
 	// Invocation type ("http" or "cli"). Populated internally.
 	InvocationType string `json:"-"`
@@ -92,7 +92,7 @@ type Prompt struct {
 	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
 
 	// Object describing how to invoke the prompt.
-	InvocationData json.RawMessage `json:"invocation" jsonschema:"required"`
+	InvocationData json.RawMessage `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationData;#/$defs/CliInvocationData"`
 
 	// Invocation type ("http" or "cli"). Determined dynamically.
 	InvocationType string `json:"-"`

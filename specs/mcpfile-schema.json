@@ -21,6 +21,82 @@
       "type": "object",
       "description": "AuthConfig defines OAuth 2.0 authorization settings."
     },
+    "CliInvocationConfig": {
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "The command-line string to be executed. It can contain placeholders in the form of '%' which correspond to parameters defined in the input schema."
+        },
+        "templateVariables": {
+          "additionalProperties": {
+            "$ref": "#/$defs/TemplateVariable"
+          },
+          "type": "object",
+          "description": "Defines how input parameters are formatted into the command string.\nThe map key corresponds to the parameter name from the input schema."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "command"
+      ],
+      "description": "Configuration for executing a command-line tool."
+    },
+    "CliInvocationData": {
+      "properties": {
+        "cli": {
+          "$ref": "#/$defs/CliInvocationConfig",
+          "description": "Detailed CLI invocation configuration."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "cli"
+      ],
+      "description": "The structure for CLI invocation configuration."
+    },
+    "HttpInvocationConfig": {
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "The URL template for the HTTP request. It can contain placeholders in the form of '%' which correspond to parameters from the input schema."
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "HEAD"
+          ],
+          "description": "The HTTP method to be used for the request (e.g., \"GET\", \"POST\")."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "url",
+        "method"
+      ],
+      "description": "The configuration for making an HTTP request."
+    },
+    "HttpInvocationData": {
+      "properties": {
+        "http": {
+          "$ref": "#/$defs/HttpInvocationConfig",
+          "description": "Detailed HTTP invocation configuration."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "http"
+      ],
+      "description": "The structure for HTTP invocation configuration."
+    },
     "MCPFile": {
       "properties": {
         "mcpFileVersion": {
@@ -93,6 +169,14 @@
           "description": "Optional schema describing prompt output."
         },
         "invocation": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/HttpInvocationData"
+            },
+            {
+              "$ref": "#/$defs/CliInvocationData"
+            }
+          ],
           "description": "Object describing how to invoke the prompt."
         },
         "requiredScopes": {
@@ -430,6 +514,24 @@
       "type": "object",
       "description": "TLSConfig defines paths to TLS certificate and private key files."
     },
+    "TemplateVariable": {
+      "properties": {
+        "format": {
+          "type": "string",
+          "description": "Template is the format string for the variable. It can be a simple string or a Go format string containing a verb like '%s', '%d', etc.\nFor example, \"--user=%s\" or \"--verbose\"."
+        },
+        "omitIfFalse": {
+          "type": "boolean",
+          "description": "OmitIfFalse, if true, causes the template to be omitted entirely if the input\nvalue is a boolean `false`. This is useful for optional flags like \"--force\"."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "format"
+      ],
+      "description": "The formatting for a single parameter in the command template"
+    },
     "Tool": {
       "properties": {
         "name": {
@@ -453,6 +555,14 @@
           "description": "Optional JSON Schema describing output."
         },
         "invocation": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/HttpInvocationData"
+            },
+            {
+              "$ref": "#/$defs/CliInvocationData"
+            }
+          ],
           "description": "Object describing how to execute the tool."
         },
         "requiredScopes": {
