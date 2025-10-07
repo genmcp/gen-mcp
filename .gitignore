@@ -23,6 +23,10 @@ profile.cov
 # Built server binaries
 */**/binaries/
 
+# Built CLI binary
+genmcp
+genmcp-server
+
 # Go workspace file
 go.work
 go.work.sum
