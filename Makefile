@@ -22,8 +22,14 @@ build-server-binaries: clean $(BUILD_DIR)
 	GOOS=windows GOARCH=amd64 go build -o $(BUILD_DIR)/genmcp-server-windows-amd64.exe $(SERVER_CMD)
 	@echo "Server binaries built successfully"
 
+.PHONY: update-codegen
+update-codegen:
+	@echo "Running code generation script..."
+	@./hack/update-codegen.sh
+	@echo "Code generation completed successfully."
+
 .PHONY: build-cli
-build-cli: build-server-binaries
+build-cli: update-codegen build-server-binaries
 	go build -o $(CLI_BINARY_NAME) ./cmd/genmcp
 
 .PHONY: test
