@@ -202,7 +202,7 @@ func createAuthorizedPromptHandler(prompt *mcpfile.Prompt) (mcp.PromptHandler, e
 func createAuthorizedResourceHandler(resource *mcpfile.Resource) (mcp.ResourceHandler, error) {
 	invoker, err := invocation.CreateResourceInvoker(resource)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create invoker for prompt %s: %w", resource.Name, err)
+		return nil, fmt.Errorf("failed to create invoker for resource %s: %w", resource.Name, err)
 	}
 
 	return func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
@@ -226,7 +226,7 @@ func createAuthorizedResourceTemplateHandler(resourceTemplate *mcpfile.ResourceT
 			return utils.McpResourceTextError("forbidden: %s for resource template '%s'", err.Error(), resourceTemplate.Name), fmt.Errorf("forbidden: %s for resource template '%s'", err.Error(), resourceTemplate.Name)
 		}
 
-		return invoker.InvokeResource(ctx, req)
+		return invoker.InvokeResourceTemplate(ctx, req)
 	}, nil
 }
 

@@ -74,7 +74,18 @@ func InvocationValidator(invocationType string, data json.RawMessage, primitive 
 		if err != nil {
 			return fmt.Errorf("failed to parse invocation: %w", err)
 		}
-
+		return config.Validate()
+	case *mcpfile.Resource:
+		config, err := ParseResourceInvocation(invocationType, data, p)
+		if err != nil {
+			return fmt.Errorf("failed to parse invocation: %w", err)
+		}
+		return config.Validate()
+	case *mcpfile.ResourceTemplate:
+		config, err := ParseResourceTemplateInvocation(invocationType, data, p)
+		if err != nil {
+			return fmt.Errorf("failed to parse invocation: %w", err)
+		}
 		return config.Validate()
 	default:
 		return fmt.Errorf("unsupported primitive type %T", primitive)

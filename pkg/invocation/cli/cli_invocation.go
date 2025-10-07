@@ -221,8 +221,9 @@ func (ci *CliInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.ReadR
 	return &mcp.ReadResourceResult{
 		Contents: []*mcp.ResourceContents{
 			{
-				URI:  req.Params.URI,
-				Text: string(output),
+				URI:      req.Params.URI,
+				MIMEType: "text/plain",
+				Text:     string(output),
 			},
 		},
 	}, nil

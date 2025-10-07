@@ -194,7 +194,7 @@ func (p *Resource) UnmarshalJSON(data []byte) error {
 	}
 
 	if len(tmp.Invocation) != 1 {
-		return fmt.Errorf("only one invocation handler should be defined per prompt")
+		return fmt.Errorf("only one invocation handler should be defined per resource")
 	}
 
 	for k, v := range tmp.Invocation {
@@ -226,7 +226,7 @@ func (p *ResourceTemplate) UnmarshalJSON(data []byte) error {
 	}
 
 	if len(tmp.Invocation) != 1 {
-		return fmt.Errorf("only one invocation handler should be defined per prompt")
+		return fmt.Errorf("only one invocation handler should be defined per resource template")
 	}
 
 	for k, v := range tmp.Invocation {

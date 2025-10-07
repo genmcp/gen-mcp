@@ -142,7 +142,12 @@ func (ub *urlBuilder) SetField(path string, value any) {
 
 func (ub *urlBuilder) GetResult() (any, error) {
 	if ub.buildQuery {
-		return fmt.Sprintf(ub.pathTemplate, ub.pathValues...) + "?" + ub.queryParams.Encode(), nil
+		base := fmt.Sprintf(ub.pathTemplate, ub.pathValues...)
+		q := ub.queryParams.Encode()
+		if q == "" {
+			return base, nil
+		}
+		return base + "?" + q, nil
 	}
 
 	return fmt.Sprintf(ub.pathTemplate, ub.pathValues...), nil
@@ -245,7 +250,10 @@ func (hi *HttpInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReque
 		_ = response.Body.Close()
 	}()
 
-	body, _ := io.ReadAll(response.Body)
+	body, readErr := io.ReadAll(response.Body)
+	if readErr != nil {
+		return utils.McpPromptTextError("failed to read http response body: %s", readErr.Error()), readErr
+	}
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return utils.McpPromptTextError("http request failed with status %d", response.StatusCode), fmt.Errorf("http request failed with status %d", response.StatusCode)
@@ -291,7 +299,10 @@ func (hi *HttpInvoker) InvokeResource(ctx context.Context, req *mcp.ReadResource
 		_ = response.Body.Close()
 	}()
 
-	body, _ := io.ReadAll(response.Body)
+	body, readErr := io.ReadAll(response.Body)
+	if readErr != nil {
+		return utils.McpResourceTextError("failed to read http response body: %s", readErr.Error()), readErr
+	}
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return utils.McpResourceTextError("http request failed with status %d", response.StatusCode), fmt.Errorf("http request failed with status %d", response.StatusCode)
@@ -372,9 +383,14 @@ func (hi *HttpInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.Read
 	if err != nil {
 		return utils.McpResourceTextError("failed to execute http request: %s", err.Error()), err
 	}
-	defer response.Body.Close()
+	defer func() {
+		_ = response.Body.Close()
+	}()
 
-	body, _ := io.ReadAll(response.Body)
+	body, readErr := io.ReadAll(response.Body)
+	if readErr != nil {
+		return utils.McpResourceTextError("failed to read http response body: %s", readErr.Error()), readErr
+	}
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return utils.McpResourceTextError("http request failed with status %d", response.StatusCode), fmt.Errorf("http request failed with status %d", response.StatusCode)
