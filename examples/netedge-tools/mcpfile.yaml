@@ -1,12 +1,11 @@
-mcpFileVersion: 0.0.1
-servers:
-- name: NETEDGE Network Diagnosis Tools
-  version: 0.0.1
-  runtime:
-    streamableHttpConfig:
-      port: 8080
-    transportProtocol: streamablehttp
-  tools:
+mcpFileVersion: 0.1.0
+name: NETEDGE Network Diagnosis Tools
+version: 0.0.1
+runtime:
+  streamableHttpConfig:
+    port: 8080
+  transportProtocol: streamablehttp
+tools:
 
   - name: inspect_route
     title: Inspect Route (detailed)
