@@ -38,6 +38,7 @@ func (f *InvokerFactory) CreateInvoker(config invocation.InvocationConfig, schem
 		ArgumentIndices:    cic.ParameterIndices,
 		ArgumentFormatters: formatters,
 		InputSchema:        schema,
+		URITemplate:        cic.URITemplate,
 	}, nil
 
 }

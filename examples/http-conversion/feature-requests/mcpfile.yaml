@@ -85,4 +85,14 @@ prompts:
     http:
       method: POST
       url: http://feature-request-demo-default.apps.rosa.ozsht-2wqkz-4rk.36d8.p3.openshiftapps.com/prompts/feature-analysis
+resources:
+- name: "feature-progress-report"
+  title: "Feature Progress Report"
+  description: "Complete feature request progress report in markdown format"
+  uri: http://feature-request-demo-default.apps.rosa.ozsht-2wqkz-4rk.36d8.p3.openshiftapps.com/features/progress-report
+  invocation:
+    http:
+      method: GET
+      url: http://feature-request-demo-default.apps.rosa.ozsht-2wqkz-4rk.36d8.p3.openshiftapps.com/features/progress-report
+  mimeType: "text/markdown"
 version: 0.0.1

@@ -287,6 +287,78 @@ func TestParseMcpFile(t *testing.T) {
 					},
 				},
 			},
+		}, "one server, resources": {
+			testFileName: "one-server-resources.yaml",
+			expected: &MCPFile{
+				FileVersion: MCPFileVersion,
+				MCPServer: MCPServer{
+					Name:    "test-server",
+					Version: "1.0.0",
+					Runtime: &ServerRuntime{
+						TransportProtocol: TransportProtocolStreamableHttp,
+						StreamableHTTPConfig: &StreamableHTTPConfig{
+							BasePath:  DefaultBasePath,
+							Port:      3000,
+							Stateless: true,
+						},
+					},
+					Resources: []*Resource{
+						{
+							Name:           "web_server_access_log",
+							Title:          "Web Server Access Log",
+							Description:    "Contains a record of all requests made to the web server",
+							MIMEType:       "text/plain",
+							Size:           1024,
+							URI:            "http://localhost:5000/access.log",
+							InvocationData: json.RawMessage(`{"method":"GET","url":"http://localhost:5000"}`),
+							InvocationType: "http",
+						},
+					},
+				},
+			},
+		},
+		"one server, resource templates": {
+			testFileName: "one-server-resource-templates.yaml",
+			expected: &MCPFile{
+				FileVersion: MCPFileVersion,
+				MCPServer: MCPServer{
+					Name:    "test-server",
+					Version: "1.0.0",
+					Runtime: &ServerRuntime{
+						TransportProtocol: TransportProtocolStreamableHttp,
+						StreamableHTTPConfig: &StreamableHTTPConfig{
+							BasePath:  DefaultBasePath,
+							Port:      3000,
+							Stateless: true,
+						},
+					},
+					ResourceTemplates: []*ResourceTemplate{
+						{
+							Name:        "weather-forecast",
+							Title:       "Weather Forecast",
+							Description: "Get weather forecast for any city and date",
+							MIMEType:    "application/json",
+							URITemplate: "weather://forecast/{city}/{date}",
+							InputSchema: &jsonschema.Schema{
+								Type: "object",
+								Properties: map[string]*jsonschema.Schema{
+									"city": {
+										Type:        "string",
+										Description: "The city to get weather for",
+									},
+									"date": {
+										Type:        "string",
+										Description: "The date to get weather for",
+									},
+								},
+								Required: []string{"city", "date"},
+							},
+							InvocationData: json.RawMessage(`{"method":"GET","url":"http://localhost:5000/forecast"}`),
+							InvocationType: "http",
+						},
+					},
+				},
+			},
 		},
 		"full demo": {
 			testFileName: "full-demo.yaml",

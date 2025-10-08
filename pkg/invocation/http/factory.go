@@ -20,6 +20,7 @@ func (f *InvokerFactory) CreateInvoker(config invocation.InvocationConfig, schem
 		PathIndeces:  hic.PathIndices,
 		Method:       hic.Method,
 		InputSchema:  schema,
+		URITemplate:  hic.URITemplate,
 	}
 
 	return invoker, nil

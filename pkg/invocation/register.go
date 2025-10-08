@@ -43,6 +43,24 @@ func ParsePromptInvocation(invocationType string, data json.RawMessage, prompt *
 	return parser.ParsePrompt(data, prompt)
 }
 
+func ParseResourceInvocation(invocationType string, data json.RawMessage, resource *mcpfile.Resource) (InvocationConfig, error) {
+	parser, exists := globalRegistry.parsers[invocationType]
+	if !exists {
+		return nil, fmt.Errorf("unknown invocation type: '%s'", invocationType)
+	}
+
+	return parser.ParseResource(data, resource)
+}
+
+func ParseResourceTemplateInvocation(invocationType string, data json.RawMessage, resourceTemplate *mcpfile.ResourceTemplate) (InvocationConfig, error) {
+	parser, exists := globalRegistry.parsers[invocationType]
+	if !exists {
+		return nil, fmt.Errorf("unknown invocation type: '%s'", invocationType)
+	}
+
+	return parser.ParseResourceTemplate(data, resourceTemplate)
+}
+
 func InvocationValidator(invocationType string, data json.RawMessage, primitive mcpfile.Primitive) error {
 	switch p := primitive.(type) {
 	case *mcpfile.Tool:
@@ -56,7 +74,18 @@ func InvocationValidator(invocationType string, data json.RawMessage, primitive 
 		if err != nil {
 			return fmt.Errorf("failed to parse invocation: %w", err)
 		}
-
+		return config.Validate()
+	case *mcpfile.Resource:
+		config, err := ParseResourceInvocation(invocationType, data, p)
+		if err != nil {
+			return fmt.Errorf("failed to parse invocation: %w", err)
+		}
+		return config.Validate()
+	case *mcpfile.ResourceTemplate:
+		config, err := ParseResourceTemplateInvocation(invocationType, data, p)
+		if err != nil {
+			return fmt.Errorf("failed to parse invocation: %w", err)
+		}
 		return config.Validate()
 	default:
 		return fmt.Errorf("unsupported primitive type %T", primitive)

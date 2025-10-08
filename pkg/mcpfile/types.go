@@ -14,6 +14,8 @@ const (
 	TransportProtocolStdio          = "stdio"
 	PrimitiveTypeTool               = "tool"
 	PrimitiveTypePrompt             = "prompt"
+	PrimitiveTypeResource           = "resource"
+	PrimitiveTypeResourceTemplate   = "resourceTemplate"
 )
 
 type Primitive interface {
@@ -82,6 +84,57 @@ type PromptArgument struct {
 	Required    bool   `json:"required,omitempty"`
 }
 
+type Resource struct {
+	Name           string             `json:"name"`                     // name of the resource
+	Title          string             `json:"title,omitempty"`          // optional human readable name of the resource, for client display
+	Description    string             `json:"description"`              // description of the resource
+	MIMEType       string             `json:"mimeType,omitempty"`       // The MIME type of this resource, if known.
+	Size           int64              `json:"size,omitempty"`           // The size of the raw resource content, in bytes (i.e., before base64 encoding or any tokenization), if known.
+	URI            string             `json:"uri"`                      // The URI of this resource.
+	InputSchema    *jsonschema.Schema `json:"inputSchema"`              // input schema to call the resource
+	OutputSchema   *jsonschema.Schema `json:"outputSchema,omitempty"`   // optional output schema of the resource
+	InvocationData json.RawMessage    `json:"invocation"`               // how the resource should be invoked
+	InvocationType string             `json:"-"`                        // which invocation type should be used
+	RequiredScopes []string           `json:"requiredScopes,omitempty"` // required OAuth scopes to be able to use the resource
+
+	ResolvedInputSchema *jsonschema.Resolved `json:"-"` // used internally after resolving the schema during validation
+}
+
+func (r Resource) GetName() string                              { return r.Name }
+func (r Resource) GetDescription() string                       { return r.Description }
+func (r Resource) PrimitiveType() string                        { return PrimitiveTypeResource }
+func (r Resource) GetInputSchema() *jsonschema.Schema           { return r.InputSchema }
+func (r Resource) GetOutputSchema() *jsonschema.Schema          { return r.OutputSchema }
+func (r Resource) GetInvocationData() json.RawMessage           { return r.InvocationData }
+func (r Resource) GetInvocationType() string                    { return r.InvocationType }
+func (r Resource) GetRequiredScopes() []string                  { return r.RequiredScopes }
+func (r Resource) GetResolvedInputSchema() *jsonschema.Resolved { return r.ResolvedInputSchema }
+
+type ResourceTemplate struct {
+	Name           string             `json:"name"`                     // name of the resource template
+	Title          string             `json:"title,omitempty"`          // optional human readable name of the resource template, for client display
+	Description    string             `json:"description"`              // description of the resource template
+	MIMEType       string             `json:"mimeType,omitempty"`       // The MIME type for all resources that match this template
+	URITemplate    string             `json:"uriTemplate"`              // A URI template (according to RFC 6570) that can be used to construct resource URI
+	InputSchema    *jsonschema.Schema `json:"inputSchema"`              // input schema to call the resource template
+	OutputSchema   *jsonschema.Schema `json:"outputSchema,omitempty"`   // optional output schema of the resource template
+	InvocationData json.RawMessage    `json:"invocation"`               // how the resource template should be invoked
+	InvocationType string             `json:"-"`                        // which invocation type should be used
+	RequiredScopes []string           `json:"requiredScopes,omitempty"` // required OAuth scopes to be able to use the resource template
+
+	ResolvedInputSchema *jsonschema.Resolved `json:"-"` // used internally after resolving the schema during validation
+}
+
+func (r ResourceTemplate) GetName() string                              { return r.Name }
+func (r ResourceTemplate) GetDescription() string                       { return r.Description }
+func (r ResourceTemplate) PrimitiveType() string                        { return PrimitiveTypeResourceTemplate }
+func (r ResourceTemplate) GetInputSchema() *jsonschema.Schema           { return r.InputSchema }
+func (r ResourceTemplate) GetOutputSchema() *jsonschema.Schema          { return r.OutputSchema }
+func (r ResourceTemplate) GetInvocationData() json.RawMessage           { return r.InvocationData }
+func (r ResourceTemplate) GetInvocationType() string                    { return r.InvocationType }
+func (r ResourceTemplate) GetRequiredScopes() []string                  { return r.RequiredScopes }
+func (r ResourceTemplate) GetResolvedInputSchema() *jsonschema.Resolved { return r.ResolvedInputSchema }
+
 type StreamableHTTPConfig struct {
 	Port      int         `json:"port"`           // the port to start listening on
 	BasePath  string      `json:"basePath"`       // the base path for the MCP server
@@ -110,11 +163,13 @@ type ServerRuntime struct {
 }
 
 type MCPServer struct {
-	Name    string         `json:"name"`              // name of the server
-	Version string         `json:"version"`           // version of the server
-	Runtime *ServerRuntime `json:"runtime,omitempty"` // runtime settings for the server
-	Tools   []*Tool        `json:"tools,omitempty"`   // set of tools available to the server
-	Prompts []*Prompt      `json:"prompts,omitempty"` // set of prompts available to the server
+	Name              string              `json:"name"`                        // name of the server
+	Version           string              `json:"version"`                     // version of the server
+	Runtime           *ServerRuntime      `json:"runtime,omitempty"`           // runtime settings for the server
+	Tools             []*Tool             `json:"tools,omitempty"`             // set of tools available to the server
+	Prompts           []*Prompt           `json:"prompts,omitempty"`           // set of prompts available to the server
+	Resources         []*Resource         `json:"resources,omitempty"`         // set of resources available to the server
+	ResourceTemplates []*ResourceTemplate `json:"resourceTemplates,omitempty"` // set of resource templates available to the server
 }
 
 type MCPFile struct {

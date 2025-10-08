@@ -449,3 +449,319 @@ func TestHttpPromptInvocationErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestHttpResourceInvocation(t *testing.T) {
+	tt := []struct {
+		name              string
+		responseCode      int
+		responseBody      func() []byte
+		contentType       string
+		httpInvoker       HttpInvoker
+		request           *mcp.ReadResourceRequest
+		expectedReqMethod string
+		expectedPath      string
+		expectError       bool
+	}{
+		{
+			name:         "simple GET resource request",
+			responseCode: 200,
+			responseBody: func() []byte {
+				return []byte("Resource content here")
+			},
+			contentType: "text/plain",
+			httpInvoker: HttpInvoker{
+				PathTemplate: "/resources/log.txt",
+				PathIndeces:  make(map[string]int),
+				Method:       "GET",
+				InputSchema:  resolvedEmpty,
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "file://log.txt",
+				},
+			},
+			expectedReqMethod: "GET",
+			expectedPath:      "/resources/log.txt",
+		},
+		{
+			name:         "GET resource with JSON content",
+			responseCode: 200,
+			responseBody: func() []byte {
+				return []byte(`{"data": "value"}`)
+			},
+			contentType: "application/json",
+			httpInvoker: HttpInvoker{
+				PathTemplate: "/resources/data.json",
+				PathIndeces:  make(map[string]int),
+				Method:       "GET",
+				InputSchema:  resolvedEmpty,
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "file://data.json",
+				},
+			},
+			expectedReqMethod: "GET",
+			expectedPath:      "/resources/data.json",
+		},
+		{
+			name:         "resource request with HTTP error",
+			responseCode: 404,
+			responseBody: func() []byte {
+				return []byte("Not found")
+			},
+			contentType: "text/plain",
+			httpInvoker: HttpInvoker{
+				PathTemplate: "/resources/missing.txt",
+				PathIndeces:  make(map[string]int),
+				Method:       "GET",
+				InputSchema:  resolvedEmpty,
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "file://missing.txt",
+				},
+			},
+			expectedReqMethod: "GET",
+			expectedPath:      "/resources/missing.txt",
+			expectError:       true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var receivedMethod string
+			var receivedPath string
+
+			s := httptest.NewServer(nethttp.HandlerFunc(func(w nethttp.ResponseWriter, r *nethttp.Request) {
+				receivedMethod = r.Method
+				receivedPath = r.URL.Path
+
+				w.Header().Set("Content-Type", tc.contentType)
+				w.WriteHeader(tc.responseCode)
+				_, err := w.Write(tc.responseBody())
+				assert.NoError(t, err, "writing response should not fail")
+			}))
+			defer s.Close()
+
+			tc.httpInvoker.PathTemplate = s.URL + tc.httpInvoker.PathTemplate
+
+			res, err := tc.httpInvoker.InvokeResource(context.Background(), tc.request)
+			if tc.expectError {
+				assert.Error(t, err, "http resource invocation should have an error")
+			} else {
+				assert.NoError(t, err, "http resource invocation should not have an error")
+				assert.NotNil(t, res, "should get a response")
+				assert.NotNil(t, res.Contents, "should have contents")
+				assert.Equal(t, 1, len(res.Contents), "should have one content item")
+				assert.Equal(t, tc.request.Params.URI, res.Contents[0].URI, "URI should match request")
+				assert.Equal(t, tc.contentType, res.Contents[0].MIMEType, "MIME type should match response header")
+				assert.Equal(t, string(tc.responseBody()), res.Contents[0].Text, "text content should match")
+			}
+
+			assert.Equal(t, tc.expectedReqMethod, receivedMethod, "http invocation should use correct request method")
+			assert.Equal(t, tc.expectedPath, receivedPath, "http path should match")
+		})
+	}
+}
+
+func TestHttpResourceTemplateInvocation(t *testing.T) {
+	resolvedWithCityDate, _ := (&jsonschema.Schema{
+		Type: invocation.JsonSchemaTypeObject,
+		Properties: map[string]*jsonschema.Schema{
+			"city": {Type: invocation.JsonSchemaTypeString},
+			"date": {Type: invocation.JsonSchemaTypeString},
+		},
+		Required: []string{"city", "date"},
+	}).Resolve(nil)
+
+	resolvedWithUserPost, _ := (&jsonschema.Schema{
+		Type: invocation.JsonSchemaTypeObject,
+		Properties: map[string]*jsonschema.Schema{
+			"username": {Type: invocation.JsonSchemaTypeString},
+			"postId":   {Type: invocation.JsonSchemaTypeString},
+		},
+		Required: []string{"username", "postId"},
+	}).Resolve(nil)
+
+	tt := []struct {
+		name              string
+		responseCode      int
+		responseBody      func() []byte
+		contentType       string
+		httpInvoker       HttpInvoker
+		request           *mcp.ReadResourceRequest
+		expectedReqMethod string
+		expectedPath      string
+		expectedQuery     neturl.Values
+		expectError       bool
+		errorMsg          string
+	}{
+		{
+			name:         "resource template with URI params as query",
+			responseCode: 200,
+			responseBody: func() []byte {
+				return []byte(`{"temperature": 72, "conditions": "sunny"}`)
+			},
+			contentType: "application/json",
+			httpInvoker: HttpInvoker{
+				PathTemplate: "/weather",
+				PathIndeces:  make(map[string]int),
+				Method:       "GET",
+				InputSchema:  resolvedWithCityDate,
+				URITemplate:  "weather://forecast/{city}/{date}",
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "weather://forecast/London/2025-10-07",
+				},
+			},
+			expectedReqMethod: "GET",
+			expectedPath:      "/weather",
+			expectedQuery: map[string][]string{
+				"city": {"London"},
+				"date": {"2025-10-07"},
+			},
+		},
+		{
+			name:         "resource template with path params in URL",
+			responseCode: 200,
+			responseBody: func() []byte {
+				return []byte(`{"user": "data"}`)
+			},
+			contentType: "application/json",
+			httpInvoker: HttpInvoker{
+				PathTemplate: "/users/%s/posts/%s",
+				PathIndeces: map[string]int{
+					"username": 0,
+					"postId":   1,
+				},
+				Method:      "GET",
+				InputSchema: resolvedWithUserPost,
+				URITemplate: "app://users/{username}/posts/{postId}",
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "app://users/alice/posts/123",
+				},
+			},
+			expectedReqMethod: "GET",
+			expectedPath:      "/users/alice/posts/123",
+			expectedQuery:     make(neturl.Values),
+		},
+		{
+			name:         "resource template with invalid URI",
+			responseCode: 200,
+			responseBody: func() []byte {
+				return []byte("")
+			},
+			contentType: "text/plain",
+			httpInvoker: HttpInvoker{
+				PathTemplate: "/weather",
+				PathIndeces:  make(map[string]int),
+				Method:       "GET",
+				InputSchema:  resolvedWithCityDate,
+				URITemplate:  "weather://forecast/{city}/{date}",
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "weather://other/path",
+				},
+			},
+			expectError: true,
+			errorMsg:    "does not match template",
+		},
+		{
+			name:         "resource template with missing required param",
+			responseCode: 200,
+			responseBody: func() []byte {
+				return []byte("")
+			},
+			contentType: "text/plain",
+			httpInvoker: HttpInvoker{
+				PathTemplate: "/weather",
+				PathIndeces:  make(map[string]int),
+				Method:       "GET",
+				InputSchema:  resolvedWithCityDate,
+				URITemplate:  "weather://forecast/{city}/{date}",
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "weather://forecast/London",
+				},
+			},
+			expectError: true,
+			errorMsg:    "does not match template",
+		},
+		{
+			name:         "resource template with HTTP error response",
+			responseCode: 500,
+			responseBody: func() []byte {
+				return []byte("Internal server error")
+			},
+			contentType: "text/plain",
+			httpInvoker: HttpInvoker{
+				PathTemplate: "/weather",
+				PathIndeces:  make(map[string]int),
+				Method:       "GET",
+				InputSchema:  resolvedWithCityDate,
+				URITemplate:  "weather://forecast/{city}/{date}",
+			},
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "weather://forecast/London/2025-10-07",
+				},
+			},
+			expectedReqMethod: "GET",
+			expectedPath:      "/weather",
+			expectError:       true,
+			errorMsg:          "http request failed with status 500",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var receivedMethod string
+			var receivedPath string
+			var receivedQuery neturl.Values
+
+			s := httptest.NewServer(nethttp.HandlerFunc(func(w nethttp.ResponseWriter, r *nethttp.Request) {
+				receivedMethod = r.Method
+				receivedPath = r.URL.Path
+				receivedQuery = r.URL.Query()
+
+				w.Header().Set("Content-Type", tc.contentType)
+				w.WriteHeader(tc.responseCode)
+				_, err := w.Write(tc.responseBody())
+				assert.NoError(t, err, "writing response should not fail")
+			}))
+			defer s.Close()
+
+			tc.httpInvoker.PathTemplate = s.URL + tc.httpInvoker.PathTemplate
+
+			res, err := tc.httpInvoker.InvokeResourceTemplate(context.Background(), tc.request)
+			if tc.expectError {
+				assert.Error(t, err, "http resource template invocation should have an error")
+				if tc.errorMsg != "" {
+					assert.Contains(t, err.Error(), tc.errorMsg, "error message should contain expected text")
+				}
+			} else {
+				assert.NoError(t, err, "http resource template invocation should not have an error")
+				assert.NotNil(t, res, "should get a response")
+				assert.NotNil(t, res.Contents, "should have contents")
+				assert.Equal(t, 1, len(res.Contents), "should have one content item")
+				assert.Equal(t, tc.request.Params.URI, res.Contents[0].URI, "URI should match request")
+				assert.Equal(t, tc.contentType, res.Contents[0].MIMEType, "MIME type should match response header")
+				assert.Equal(t, string(tc.responseBody()), res.Contents[0].Text, "text content should match")
+
+				assert.Equal(t, tc.expectedReqMethod, receivedMethod, "http invocation should use correct request method")
+				assert.Equal(t, tc.expectedPath, receivedPath, "http path should match")
+				assert.Equal(t, tc.expectedQuery, receivedQuery, "http url query should match")
+			}
+		})
+	}
+}
