@@ -128,6 +128,20 @@
           },
           "type": "array",
           "description": "List of prompts provided by the server."
+        },
+        "resources": {
+          "items": {
+            "$ref": "#/$defs/Resource"
+          },
+          "type": "array",
+          "description": "Set of resources available to the server."
+        },
+        "resourceTemplates": {
+          "items": {
+            "$ref": "#/$defs/ResourceTemplate"
+          },
+          "type": "array",
+          "description": "Set of resource templates available to the server."
         }
       },
       "additionalProperties": false,
@@ -222,6 +236,130 @@
         "name"
       ],
       "description": "PromptArgument defines a variable that can be substituted into a prompt template."
+    },
+    "Resource": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique identifier for the resource."
+        },
+        "title": {
+          "type": "string",
+          "description": "Human-readable title for display purposes."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the resource."
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "The MIME type of this resource, if known."
+        },
+        "size": {
+          "type": "integer",
+          "description": "The size of the raw resource content in bytes, if known."
+        },
+        "uri": {
+          "type": "string",
+          "description": "The URI of this resource."
+        },
+        "inputSchema": {
+          "$ref": "#/$defs/Schema",
+          "description": "Schema describing input parameters."
+        },
+        "outputSchema": {
+          "$ref": "#/$defs/Schema",
+          "description": "Optional schema describing resource output."
+        },
+        "invocation": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/HttpInvocationData"
+            },
+            {
+              "$ref": "#/$defs/CliInvocationData"
+            }
+          ],
+          "description": "Object describing how to invoke the resource."
+        },
+        "requiredScopes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "OAuth scopes required to access this resource."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name",
+        "description",
+        "uri",
+        "inputSchema",
+        "invocation"
+      ],
+      "description": "Resource represents a retrievable or executable resource."
+    },
+    "ResourceTemplate": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique identifier for the resource template."
+        },
+        "title": {
+          "type": "string",
+          "description": "Human-readable title for display purposes."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the resource template."
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "MIME type for resources matching this template."
+        },
+        "uriTemplate": {
+          "type": "string",
+          "description": "URI template (RFC 6570) used to construct resource URIs."
+        },
+        "inputSchema": {
+          "$ref": "#/$defs/Schema",
+          "description": "Schema describing input parameters."
+        },
+        "outputSchema": {
+          "$ref": "#/$defs/Schema",
+          "description": "Optional schema describing resource output."
+        },
+        "invocation": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/HttpInvocationData"
+            },
+            {
+              "$ref": "#/$defs/CliInvocationData"
+            }
+          ],
+          "description": "Object describing how to invoke the resource template."
+        },
+        "requiredScopes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "OAuth scopes required to access this resource template."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name",
+        "description",
+        "uriTemplate",
+        "inputSchema",
+        "invocation"
+      ],
+      "description": "ResourceTemplate represents a reusable URI-based template for resources."
     },
     "Schema": {
       "properties": {

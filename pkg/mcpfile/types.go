@@ -18,7 +18,7 @@ const (
 	PrimitiveTypeResourceTemplate   = "resourceTemplate"
 )
 
-// Primitive represents a tool-like entity that can be invoked (Tool or Prompt).
+// Primitive represents a tool-like entity that can be invoked (Tool, Prompt, Resource, or ResourceTemplate).
 type Primitive interface {
 	GetName() string
 	GetDescription() string
@@ -129,20 +129,43 @@ type PromptArgument struct {
 	Required bool `json:"required,omitempty" jsonschema:"optional"`
 }
 
+// Resource represents a retrievable or executable resource.
 type Resource struct {
-	Name           string             `json:"name"`                     // name of the resource
-	Title          string             `json:"title,omitempty"`          // optional human readable name of the resource, for client display
-	Description    string             `json:"description"`              // description of the resource
-	MIMEType       string             `json:"mimeType,omitempty"`       // The MIME type of this resource, if known.
-	Size           int64              `json:"size,omitempty"`           // The size of the raw resource content, in bytes (i.e., before base64 encoding or any tokenization), if known.
-	URI            string             `json:"uri"`                      // The URI of this resource.
-	InputSchema    *jsonschema.Schema `json:"inputSchema"`              // input schema to call the resource
-	OutputSchema   *jsonschema.Schema `json:"outputSchema,omitempty"`   // optional output schema of the resource
-	InvocationData json.RawMessage    `json:"invocation"`               // how the resource should be invoked
-	InvocationType string             `json:"-"`                        // which invocation type should be used
-	RequiredScopes []string           `json:"requiredScopes,omitempty"` // required OAuth scopes to be able to use the resource
+	// Unique identifier for the resource.
+	Name string `json:"name" jsonschema:"required"`
 
-	ResolvedInputSchema *jsonschema.Resolved `json:"-"` // used internally after resolving the schema during validation
+	// Human-readable title for display purposes.
+	Title string `json:"title,omitempty" jsonschema:"optional"`
+
+	// Detailed description of the resource.
+	Description string `json:"description" jsonschema:"required"`
+
+	// The MIME type of this resource, if known.
+	MIMEType string `json:"mimeType,omitempty" jsonschema:"optional"`
+
+	// The size of the raw resource content in bytes, if known.
+	Size int64 `json:"size,omitempty" jsonschema:"optional"`
+
+	// The URI of this resource.
+	URI string `json:"uri" jsonschema:"required"`
+
+	// Schema describing input parameters.
+	InputSchema *jsonschema.Schema `json:"inputSchema" jsonschema:"required"`
+
+	// Optional schema describing resource output.
+	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
+
+	// Object describing how to invoke the resource.
+	InvocationData json.RawMessage `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationData;#/$defs/CliInvocationData"`
+
+	// Invocation type ("http" or "cli"). Determined dynamically.
+	InvocationType string `json:"-"`
+
+	// OAuth scopes required to access this resource.
+	RequiredScopes []string `json:"requiredScopes,omitempty" jsonschema:"optional"`
+
+	// Resolved input schema for validation (internal use only).
+	ResolvedInputSchema *jsonschema.Resolved `json:"-"`
 }
 
 func (r Resource) GetName() string                              { return r.Name }
@@ -155,19 +178,40 @@ func (r Resource) GetInvocationType() string                    { return r.Invoc
 func (r Resource) GetRequiredScopes() []string                  { return r.RequiredScopes }
 func (r Resource) GetResolvedInputSchema() *jsonschema.Resolved { return r.ResolvedInputSchema }
 
+// ResourceTemplate represents a reusable URI-based template for resources.
 type ResourceTemplate struct {
-	Name           string             `json:"name"`                     // name of the resource template
-	Title          string             `json:"title,omitempty"`          // optional human readable name of the resource template, for client display
-	Description    string             `json:"description"`              // description of the resource template
-	MIMEType       string             `json:"mimeType,omitempty"`       // The MIME type for all resources that match this template
-	URITemplate    string             `json:"uriTemplate"`              // A URI template (according to RFC 6570) that can be used to construct resource URI
-	InputSchema    *jsonschema.Schema `json:"inputSchema"`              // input schema to call the resource template
-	OutputSchema   *jsonschema.Schema `json:"outputSchema,omitempty"`   // optional output schema of the resource template
-	InvocationData json.RawMessage    `json:"invocation"`               // how the resource template should be invoked
-	InvocationType string             `json:"-"`                        // which invocation type should be used
-	RequiredScopes []string           `json:"requiredScopes,omitempty"` // required OAuth scopes to be able to use the resource template
+	// Unique identifier for the resource template.
+	Name string `json:"name" jsonschema:"required"`
 
-	ResolvedInputSchema *jsonschema.Resolved `json:"-"` // used internally after resolving the schema during validation
+	// Human-readable title for display purposes.
+	Title string `json:"title,omitempty" jsonschema:"optional"`
+
+	// Detailed description of the resource template.
+	Description string `json:"description" jsonschema:"required"`
+
+	// MIME type for resources matching this template.
+	MIMEType string `json:"mimeType,omitempty" jsonschema:"optional"`
+
+	// URI template (RFC 6570) used to construct resource URIs.
+	URITemplate string `json:"uriTemplate" jsonschema:"required"`
+
+	// Schema describing input parameters.
+	InputSchema *jsonschema.Schema `json:"inputSchema" jsonschema:"required"`
+
+	// Optional schema describing resource output.
+	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
+
+	// Object describing how to invoke the resource template.
+	InvocationData json.RawMessage `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationData;#/$defs/CliInvocationData"`
+
+	// Invocation type ("http" or "cli"). Determined dynamically.
+	InvocationType string `json:"-"`
+
+	// OAuth scopes required to access this resource template.
+	RequiredScopes []string `json:"requiredScopes,omitempty" jsonschema:"optional"`
+
+	// Resolved input schema for validation (internal use only).
+	ResolvedInputSchema *jsonschema.Resolved `json:"-"`
 }
 
 func (r ResourceTemplate) GetName() string                              { return r.Name }
@@ -248,8 +292,11 @@ type MCPServer struct {
 	// List of prompts provided by the server.
 	Prompts []*Prompt `json:"prompts,omitempty" jsonschema:"optional"`
 
-	Resources         []*Resource         `json:"resources,omitempty"`         // set of resources available to the server
-	ResourceTemplates []*ResourceTemplate `json:"resourceTemplates,omitempty"` // set of resource templates available to the server
+	// Set of resources available to the server.
+	Resources []*Resource `json:"resources,omitempty" jsonschema:"optional"`
+
+	// Set of resource templates available to the server.
+	ResourceTemplates []*ResourceTemplate `json:"resourceTemplates,omitempty" jsonschema:"optional"`
 }
 
 // MCPFile is the root structure of an MCP configuration file.

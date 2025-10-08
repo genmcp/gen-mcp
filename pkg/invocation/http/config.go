@@ -37,7 +37,8 @@ type HttpInvocationConfig struct {
 	// The HTTP method to be used for the request (e.g., "GET", "POST").
 	Method string `json:"method" jsonschema:"required,enum=GET,enum=POST,enum=PUT,enum=PATCH,enum=DELETE,enum=HEAD"`
 
-	URITemplate  string         `json:"-"` // MCP URI template (for resource templates only)
+	// MCP URI template (for resource templates only).
+	URITemplate string `json:"-"`
 }
 
 var _ invocation.InvocationConfig = &HttpInvocationConfig{}

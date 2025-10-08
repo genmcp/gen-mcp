@@ -26,7 +26,8 @@ type CliInvocationConfig struct {
 	// This field is for internal use and is not part of the JSON schema.
 	ParameterIndices map[string]int `json:"-"`
 
-	URITemplate       string                       `json:"-"` // MCP URI template (for resource templates only)
+	// MCP URI template (for resource templates only)
+	URITemplate string `json:"-"`
 }
 
 var _ invocation.InvocationConfig = &CliInvocationConfig{}
