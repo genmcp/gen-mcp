@@ -9,6 +9,7 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/invocation/utils"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/yosida95/uritemplate/v3"
 )
 
 type Parser struct{}
@@ -28,13 +29,31 @@ func (p *Parser) ParsePrompt(data json.RawMessage, prompt *mcpfile.Prompt) (invo
 }
 
 func (p *Parser) ParseResource(data json.RawMessage, resource *mcpfile.Resource) (invocation.InvocationConfig, error) {
-	return p.parsePrimitive(data, primitiveAdapter{InputSchema: resource.InputSchema})
+	config, err := p.parsePrimitive(data, primitiveAdapter{InputSchema: resource.InputSchema})
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate that static resources don't have path parameters that would never be filled
+	if hic, ok := config.(*HttpInvocationConfig); ok {
+		if len(hic.PathIndices) > 0 {
+			return nil, fmt.Errorf("static resource URL cannot contain path parameters")
+		}
+	}
+
+	return config, nil
 }
 
 func (p *Parser) ParseResourceTemplate(data json.RawMessage, resourceTemplate *mcpfile.ResourceTemplate) (invocation.InvocationConfig, error) {
 	config, err := p.parsePrimitive(data, primitiveAdapter{InputSchema: resourceTemplate.InputSchema})
 	if err != nil {
 		return nil, err
+	}
+
+	// Validate URI template syntax early during parsing
+	_, err = uritemplate.New(resourceTemplate.URITemplate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid URI template '%s': %w", resourceTemplate.URITemplate, err)
 	}
 
 	// Set the URI template for resource templates

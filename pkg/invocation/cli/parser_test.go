@@ -147,3 +147,66 @@ func TestParser_Parse(t *testing.T) {
 		})
 	}
 }
+
+func TestParser_ParseResource(t *testing.T) {
+	tt := []struct {
+		name           string
+		inputData      json.RawMessage
+		resource       *mcpfile.Resource
+		expectedConfig *CliInvocationConfig
+		expectError    bool
+		errorContains  string
+	}{
+		{
+			name:      "valid static resource without parameters",
+			inputData: json.RawMessage(`{"command": "cat /var/log/app.log"}`),
+			resource: &mcpfile.Resource{
+				InputSchema: &jsonschema.Schema{
+					Type: invocation.JsonSchemaTypeObject,
+				},
+			},
+			expectedConfig: &CliInvocationConfig{
+				Command:          "cat /var/log/app.log",
+				ParameterIndices: map[string]int{},
+			},
+			expectError: false,
+		},
+		{
+			name:      "invalid static resource with template variables",
+			inputData: json.RawMessage(`{"command": "cat /var/log/{filename}"}`),
+			resource: &mcpfile.Resource{
+				InputSchema: &jsonschema.Schema{
+					Type: invocation.JsonSchemaTypeObject,
+					Properties: map[string]*jsonschema.Schema{
+						"filename": {Type: invocation.JsonSchemaTypeString},
+					},
+				},
+			},
+			expectedConfig: nil,
+			expectError:    true,
+			errorContains:  "static resource command cannot contain template variables",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			parser := &Parser{}
+			config, err := parser.ParseResource(tc.inputData, tc.resource)
+
+			if tc.expectError {
+				assert.Error(t, err, "parser should return an error")
+				assert.Nil(t, config, "config should be nil on error")
+				if tc.errorContains != "" {
+					assert.Contains(t, err.Error(), tc.errorContains, "error message should contain expected text")
+				}
+			} else {
+				assert.NoError(t, err, "parser should not return an error")
+				cliConfig := config.(*CliInvocationConfig)
+				assert.Equal(t, tc.expectedConfig.Command, cliConfig.Command, "command should match expected")
+				assert.Equal(t, tc.expectedConfig.ParameterIndices, cliConfig.ParameterIndices, "parameter indices should match expected")
+			}
+		})
+	}
+}

@@ -174,15 +174,8 @@ func (ci *CliInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.ReadR
 		extraArgs:       make(map[string]any),
 	}
 
-	// Parse URI template and extract arguments from the incoming URI
-	if ci.URITemplate == "" {
-		return utils.McpResourceTextError("URI template not configured"), fmt.Errorf("URI template not configured")
-	}
-
-	uriTmpl, err := uritemplate.New(ci.URITemplate)
-	if err != nil {
-		return utils.McpResourceTextError("invalid URI template: %s", err.Error()), err
-	}
+	//  URI template syntax is validated during parsing, so we can safely use it here
+	uriTmpl, _ := uritemplate.New(ci.URITemplate)
 
 	// Match the incoming URI against the template to extract argument values
 	matches := uriTmpl.Match(req.Params.URI)

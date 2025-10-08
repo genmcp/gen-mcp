@@ -609,25 +609,6 @@ func TestCliResourceTemplateInvocation(t *testing.T) {
 			errorMsg:    "does not match template",
 		},
 		{
-			name: "resource template with empty URI template",
-			cliInvoker: CliInvoker{
-				CommandTemplate: "echo 'Data'",
-				ArgumentIndices: make(map[string]int),
-				ArgumentFormatters: map[string]Formatter{
-					"city": stringFormatter{},
-				},
-				InputSchema: resolvedWithCityDate,
-				URITemplate: "",
-			},
-			request: &mcp.ReadResourceRequest{
-				Params: &mcp.ReadResourceParams{
-					URI: "app://data",
-				},
-			},
-			expectError: true,
-			errorMsg:    "URI template not configured",
-		},
-		{
 			name: "resource template with command failure",
 			cliInvoker: CliInvoker{
 				CommandTemplate: "nonexistentcmdforresource456 %s",

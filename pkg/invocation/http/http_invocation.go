@@ -308,11 +308,16 @@ func (hi *HttpInvoker) InvokeResource(ctx context.Context, req *mcp.ReadResource
 		return utils.McpResourceTextError("http request failed with status %d", response.StatusCode), fmt.Errorf("http request failed with status %d", response.StatusCode)
 	}
 
+	mimeType := response.Header.Get(contentTypeHeader)
+	if mimeType == "" {
+		mimeType = "text/plain"
+	}
+
 	result := &mcp.ReadResourceResult{
 		Contents: []*mcp.ResourceContents{
 			{
 				URI:      req.Params.URI,
-				MIMEType: response.Header.Get(contentTypeHeader),
+				MIMEType: mimeType,
 				Text:     string(body),
 			},
 		},
@@ -331,12 +336,9 @@ func (hi *HttpInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.Read
 	ub.queryParams = neturl.Values{}
 	ub.buildQuery = true
 
-	// Parse URI template and extract arguments from the incoming URI
+	// URI template syntax is validated during parsing, so we can safely use it here
 	argsMap := make(map[string]any)
-	uriTmpl, err := uritemplate.New(hi.URITemplate)
-	if err != nil {
-		return utils.McpResourceTextError("invalid URI template: %s", err.Error()), err
-	}
+	uriTmpl, _ := uritemplate.New(hi.URITemplate)
 
 	// Match the incoming URI against the template to extract argument values
 	matches := uriTmpl.Match(req.Params.URI)
