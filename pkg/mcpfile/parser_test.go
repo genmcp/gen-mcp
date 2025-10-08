@@ -11,9 +11,10 @@ import (
 
 func TestParseMcpFile(t *testing.T) {
 	tt := map[string]struct {
-		testFileName string
-		expected     *MCPFile
-		wantErr      bool
+		testFileName  string
+		expected      *MCPFile
+		wantErr       bool
+		errorContains string
 	}{
 		"no servers": {
 			testFileName: "no-servers.yaml",
@@ -490,6 +491,11 @@ func TestParseMcpFile(t *testing.T) {
 				},
 			},
 		},
+		"invalid version 0.0.1": {
+			testFileName:  "invalid-file-version.yaml",
+			wantErr:       true,
+			errorContains: "invalid mcp file version",
+		},
 	}
 
 	for testName, testCase := range tt {
@@ -498,6 +504,7 @@ func TestParseMcpFile(t *testing.T) {
 			mcpFile, err := ParseMCPFile(fmt.Sprintf("./testdata/%s", testCase.testFileName))
 			if testCase.wantErr {
 				assert.Error(t, err, "parsing mcp file should cause an error")
+				assert.ErrorContains(t, err, testCase.errorContains, "the error should contain the right message")
 			} else {
 				assert.NoError(t, err, "parsing mcp file should succeed")
 			}
