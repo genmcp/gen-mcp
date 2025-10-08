@@ -58,6 +58,9 @@ This document describes candidate **network breakage scenarios** for use in an A
 - `probe_dns_local` → show NXDOMAIN.
 - Optionally `exec_dns_in_pod` → in-cluster resolution check.
 
+### Agent input to cause it diagnose this task:
+- `On the currently connected cluster, the route's hostname never resolves in DNS even though the service and pods look healthy; diagnose the root cause and suggest the fix.`
+
 ---
 
 ## 3. NetworkPolicy Blocking Router → Service Traffic
@@ -80,6 +83,9 @@ This document describes candidate **network breakage scenarios** for use in an A
 ### Caveat for phase-0 agent
 - No built-in `get NetworkPolicy` in phase 0.
 - Could infer by symptoms (503 + healthy endpoints) and escalate.
+
+### Agent input to cause it diagnose this task:
+- `We locked down the namespace with a NetworkPolicy and now the Route times out; debug and describe the fix`
 
 ---
 
