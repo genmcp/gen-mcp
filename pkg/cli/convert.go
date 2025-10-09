@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/genmcp/gen-mcp/pkg/cli/utils"
 	"github.com/genmcp/gen-mcp/pkg/converter/openapi"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
@@ -57,6 +58,8 @@ func executeConvertCmd(cobraCmd *cobra.Command, args []string) {
 		fmt.Printf("could not marshal mcp file: %s\n", err.Error())
 		return
 	}
+
+	mcpFileBytes = utils.AppendSchemaHeader(mcpFileBytes)
 
 	err = os.WriteFile(outputPath, mcpFileBytes, 0644)
 	if err != nil {
