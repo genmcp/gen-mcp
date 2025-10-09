@@ -8,13 +8,7 @@
 //
 // At application startup, create a base logger:
 //
-//	cfg := &logging.LoggingConfig{
-//		Config: zap.Config{
-//			Level:    zap.NewAtomicLevelAt(zap.InfoLevel),
-//			Encoding: "json",
-//			OutputPaths: []string{"stdout"},
-//		},
-//	}
+//	cfg := &logging.LoggingConfig{}
 //	baseLogger, err := cfg.BuildBase()
 //	if err != nil {
 //		log.Fatal(err)
