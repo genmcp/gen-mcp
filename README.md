@@ -2,7 +2,7 @@
 
 > Transform any API into an MCP server in seconds, not hours
 
-[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org/)
+![Go Version](https://img.shields.io/github/go-mod/go-version/genmcp/gen-mcp)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
