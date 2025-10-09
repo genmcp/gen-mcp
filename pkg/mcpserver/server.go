@@ -293,8 +293,14 @@ func createAuthorizedToolHandler(tool *mcpfile.Tool) (mcp.ToolHandler, error) {
 
 		// Check if user has required scopes for this tool
 		if err := checkPrimitiveAuthorization(ctx, tool.RequiredScopes, tool.Name, "tool"); err != nil {
+			// Log detailed error server-side only
+			baseLogger := logging.BaseFromContext(ctx)
+			baseLogger.Error("Tool authorization failed",
+				zap.String("tool_name", tool.Name),
+				zap.Strings("required_scopes", tool.RequiredScopes),
+				zap.Error(err))
 			// Return generic error to client - don't reveal tool name or specific authorization failure
-			return utils.McpTextError("forbidden: insufficient permissions"), fmt.Errorf("forbidden: %s for tool '%s'", err.Error(), tool.Name)
+			return utils.McpTextError("forbidden: insufficient permissions"), nil
 		}
 
 		// Client can see their own successful tool invocations
@@ -302,10 +308,20 @@ func createAuthorizedToolHandler(tool *mcpfile.Tool) (mcp.ToolHandler, error) {
 
 		result, err := invoker.Invoke(ctx, req)
 		if err != nil {
-			clientLogger.Error("Tool invocation failed",
+			// Log detailed error server-side only
+			baseLogger := logging.BaseFromContext(ctx)
+			baseLogger.Error("Tool invocation failed",
 				zap.String("tool_name", tool.Name),
 				zap.Error(err))
-			return result, err
+			// Log generic error for client
+			clientLogger.Error("Tool invocation failed",
+				zap.String("tool_name", tool.Name),
+				zap.String("error", "invocation error"))
+			// Return result (may contain partial output) but with generic error to prevent info leakage
+			if result != nil {
+				return result, nil
+			}
+			return utils.McpTextError("tool invocation failed"), nil
 		}
 
 		clientLogger.Info("Tool invocation completed successfully", zap.String("tool_name", tool.Name))
@@ -324,8 +340,14 @@ func createAuthorizedPromptHandler(prompt *mcpfile.Prompt) (mcp.PromptHandler, e
 
 		// Check if user has required scopes for this prompt
 		if err := checkPrimitiveAuthorization(ctx, prompt.RequiredScopes, prompt.Name, "prompt"); err != nil {
+			// Log detailed error server-side only
+			baseLogger := logging.BaseFromContext(ctx)
+			baseLogger.Error("Prompt authorization failed",
+				zap.String("prompt_name", prompt.Name),
+				zap.Strings("required_scopes", prompt.RequiredScopes),
+				zap.Error(err))
 			// Return generic error to client - don't reveal prompt name or specific authorization failure
-			return utils.McpPromptTextError("forbidden: insufficient permissions"), fmt.Errorf("forbidden: %s for prompt '%s'", err.Error(), prompt.Name)
+			return utils.McpPromptTextError("forbidden: insufficient permissions"), nil
 		}
 
 		// Client can see their own successful prompt invocations
@@ -333,10 +355,20 @@ func createAuthorizedPromptHandler(prompt *mcpfile.Prompt) (mcp.PromptHandler, e
 
 		result, err := invoker.InvokePrompt(ctx, req)
 		if err != nil {
-			clientLogger.Error("Prompt invocation failed",
+			// Log detailed error server-side only
+			baseLogger := logging.BaseFromContext(ctx)
+			baseLogger.Error("Prompt invocation failed",
 				zap.String("prompt_name", prompt.Name),
 				zap.Error(err))
-			return result, err
+			// Log generic error for client
+			clientLogger.Error("Prompt invocation failed",
+				zap.String("prompt_name", prompt.Name),
+				zap.String("error", "invocation error"))
+			// Return result (may contain partial output) but with generic error to prevent info leakage
+			if result != nil {
+				return result, nil
+			}
+			return utils.McpPromptTextError("prompt invocation failed"), nil
 		}
 
 		clientLogger.Info("Prompt invocation completed successfully", zap.String("prompt_name", prompt.Name))
@@ -355,8 +387,14 @@ func createAuthorizedResourceHandler(resource *mcpfile.Resource) (mcp.ResourceHa
 
 		// Check if user has required scopes for this resource
 		if err := checkPrimitiveAuthorization(ctx, resource.RequiredScopes, resource.Name, "resource"); err != nil {
+			// Log detailed error server-side only
+			baseLogger := logging.BaseFromContext(ctx)
+			baseLogger.Error("Resource authorization failed",
+				zap.String("resource_name", resource.Name),
+				zap.Strings("required_scopes", resource.RequiredScopes),
+				zap.Error(err))
 			// Return generic error to client - don't reveal resource name or specific authorization failure
-			return utils.McpResourceTextError("forbidden: insufficient permissions"), fmt.Errorf("forbidden: %s for resource '%s'", err.Error(), resource.Name)
+			return utils.McpResourceTextError("forbidden: insufficient permissions"), nil
 		}
 
 		// Client can see their own successful resource access
@@ -364,10 +402,20 @@ func createAuthorizedResourceHandler(resource *mcpfile.Resource) (mcp.ResourceHa
 
 		result, err := invoker.InvokeResource(ctx, req)
 		if err != nil {
-			clientLogger.Error("Resource access failed",
+			// Log detailed error server-side only
+			baseLogger := logging.BaseFromContext(ctx)
+			baseLogger.Error("Resource access failed",
 				zap.String("resource_name", resource.Name),
 				zap.Error(err))
-			return result, err
+			// Log generic error for client
+			clientLogger.Error("Resource access failed",
+				zap.String("resource_name", resource.Name),
+				zap.String("error", "invocation error"))
+			// Return result (may contain partial output) but with generic error to prevent info leakage
+			if result != nil {
+				return result, nil
+			}
+			return utils.McpResourceTextError("resource access failed"), nil
 		}
 
 		clientLogger.Info("Resource access completed successfully", zap.String("resource_name", resource.Name))
@@ -385,8 +433,14 @@ func createAuthorizedResourceTemplateHandler(resourceTemplate *mcpfile.ResourceT
 
 		// Check if user has required scopes for this resource template
 		if err := checkPrimitiveAuthorization(ctx, resourceTemplate.RequiredScopes, resourceTemplate.Name, "resource_template"); err != nil {
+			// Log detailed error server-side only
+			baseLogger := logging.BaseFromContext(ctx)
+			baseLogger.Error("Resource template authorization failed",
+				zap.String("resource_template_name", resourceTemplate.Name),
+				zap.Strings("required_scopes", resourceTemplate.RequiredScopes),
+				zap.Error(err))
 			// Return generic error to client - don't reveal resource template name or specific authorization failure
-			return utils.McpResourceTextError("forbidden: insufficient permissions"), fmt.Errorf("forbidden: %s for resource template '%s'", err.Error(), resourceTemplate.Name)
+			return utils.McpResourceTextError("forbidden: insufficient permissions"), nil
 		}
 
 		// Client can see their own successful resource template access
@@ -394,10 +448,20 @@ func createAuthorizedResourceTemplateHandler(resourceTemplate *mcpfile.ResourceT
 
 		result, err := invoker.InvokeResourceTemplate(ctx, req)
 		if err != nil {
-			clientLogger.Error("Resource template access failed",
+			// Log detailed error server-side only
+			baseLogger := logging.BaseFromContext(ctx)
+			baseLogger.Error("Resource template access failed",
 				zap.String("resource_template_name", resourceTemplate.Name),
 				zap.Error(err))
-			return result, err
+			// Log generic error for client
+			clientLogger.Error("Resource template access failed",
+				zap.String("resource_template_name", resourceTemplate.Name),
+				zap.String("error", "invocation error"))
+			// Return result (may contain partial output) but with generic error to prevent info leakage
+			if result != nil {
+				return result, nil
+			}
+			return utils.McpResourceTextError("resource template access failed"), nil
 		}
 
 		clientLogger.Info("Resource template access completed successfully", zap.String("resource_template_name", resourceTemplate.Name))

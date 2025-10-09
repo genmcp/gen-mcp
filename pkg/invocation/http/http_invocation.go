@@ -59,14 +59,20 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 
 	parsed, err := dj.ParseJson(req.Params.Arguments, hi.InputSchema.Schema())
 	if err != nil {
-		logger.Error("Failed to parse HTTP tool call request", zap.Error(err))
-		return utils.McpTextError("failed to parse tool call request: %s", err.Error()), err
+		// Log detailed error server-side only
+		baseLogger.Error("Failed to parse HTTP tool call request", zap.Error(err))
+		// Log generic error for client
+		logger.Error("Tool request parsing failed", zap.String("error", "parsing error"))
+		return utils.McpTextError("failed to parse tool call request"), nil
 	}
 
 	err = hi.InputSchema.Validate(parsed)
 	if err != nil {
-		logger.Error("Failed to validate HTTP tool call request", zap.Error(err))
-		return utils.McpTextError("failed to validate parsed tool call request: %s", err.Error()), err
+		// Log detailed error server-side only
+		baseLogger.Error("Failed to validate HTTP tool call request", zap.Error(err))
+		// Log generic error for client
+		logger.Error("Tool request validation failed", zap.String("error", "validation error"))
+		return utils.McpTextError("failed to validate tool call request"), nil
 	}
 
 	url, _ := ub.GetResult()
@@ -75,8 +81,11 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 	if hasBody {
 		bodyJson, err := json.Marshal(deletePathsFromMap(parsed, slices.Collect(maps.Keys(hi.PathIndeces))))
 		if err != nil {
-			logger.Error("Failed to marshal HTTP request body", zap.Error(err))
-			return utils.McpTextError("failed to marshal http request body: %s", err.Error()), err
+			// Log detailed error server-side only
+			baseLogger.Error("Failed to marshal HTTP request body", zap.Error(err))
+			// Log generic error for client
+			logger.Error("Request body preparation failed", zap.String("error", "marshaling error"))
+			return utils.McpTextError("failed to prepare request body"), nil
 		}
 
 		reqBody = bytes.NewBuffer(bodyJson)
@@ -90,8 +99,14 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 
 	httpReq, err := nethttp.NewRequest(hi.Method, url.(string), reqBody)
 	if err != nil {
-		logger.Error("Failed to create HTTP request", zap.Error(err))
-		return utils.McpTextError("failed to create http request: %s", err.Error()), err
+		// Log detailed error server-side only
+		baseLogger.Error("Failed to create HTTP request",
+			zap.String("method", hi.Method),
+			zap.String("url", url.(string)),
+			zap.Error(err))
+		// Log generic error for client
+		logger.Error("HTTP request creation failed", zap.String("error", "request creation error"))
+		return utils.McpTextError("failed to create http request"), nil
 	}
 	if hasBody {
 		httpReq.Header.Set(contentTypeHeader, "application/json; charset=UTF-8")
@@ -100,13 +115,14 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 	client := &nethttp.Client{}
 	response, err := client.Do(httpReq)
 	if err != nil {
-		logger.Error("Failed to execute HTTP request", zap.Error(err))
 		// Server-side only logging with sensitive details
 		baseLogger.Error("HTTP request execution failed",
 			zap.String("method", hi.Method),
 			zap.String("url", url.(string)),
 			zap.Error(err))
-		return utils.McpTextError("failed to execute http request: %s", err.Error()), err
+		// Log generic error for client
+		logger.Error("HTTP request execution failed", zap.String("error", "execution error"))
+		return utils.McpTextError("failed to execute http request"), nil
 	}
 	defer func() {
 		_ = response.Body.Close()
@@ -245,19 +261,28 @@ func (hi *HttpInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReque
 
 	argsBytes, err := json.Marshal(args)
 	if err != nil {
-		logger.Error("Failed to marshal HTTP prompt request arguments", zap.Error(err))
-		return utils.McpPromptTextError("failed to marshal prompt request arguments: %s", err.Error()), err
+		// Log detailed error server-side only
+		baseLogger.Error("Failed to marshal HTTP prompt request arguments", zap.Error(err))
+		// Log generic error for client
+		logger.Error("Prompt request preparation failed", zap.String("error", "marshaling error"))
+		return utils.McpPromptTextError("failed to prepare prompt request"), nil
 	}
 
 	parsed, err := dj.ParseJson(argsBytes, hi.InputSchema.Schema())
 	if err != nil {
-		logger.Error("Failed to parse HTTP prompt request arguments", zap.Error(err))
-		return utils.McpPromptTextError("failed to parse prompt request arguments: %s", err.Error()), err
+		// Log detailed error server-side only
+		baseLogger.Error("Failed to parse HTTP prompt request arguments", zap.Error(err))
+		// Log generic error for client
+		logger.Error("Prompt request parsing failed", zap.String("error", "parsing error"))
+		return utils.McpPromptTextError("failed to parse prompt request"), nil
 	}
 
 	if err := hi.InputSchema.Validate(parsed); err != nil {
-		logger.Error("Failed to validate HTTP prompt request arguments", zap.Error(err))
-		return utils.McpPromptTextError("failed to validate prompt request arguments: %s", err.Error()), err
+		// Log detailed error server-side only
+		baseLogger.Error("Failed to validate HTTP prompt request arguments", zap.Error(err))
+		// Log generic error for client
+		logger.Error("Prompt request validation failed", zap.String("error", "validation error"))
+		return utils.McpPromptTextError("failed to validate prompt request"), nil
 	}
 
 	url, _ := ub.GetResult()
@@ -266,8 +291,11 @@ func (hi *HttpInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReque
 	if hasBody {
 		bodyJson, err := json.Marshal(deletePathsFromMap(parsed, slices.Collect(maps.Keys(hi.PathIndeces))))
 		if err != nil {
-			logger.Error("Failed to marshal HTTP prompt request body", zap.Error(err))
-			return utils.McpPromptTextError("failed to marshal http request body: %s", err.Error()), err
+			// Log detailed error server-side only
+			baseLogger.Error("Failed to marshal HTTP prompt request body", zap.Error(err))
+			// Log generic error for client
+			logger.Error("Prompt request body preparation failed", zap.String("error", "marshaling error"))
+			return utils.McpPromptTextError("failed to prepare request body"), nil
 		}
 
 		reqBody = bytes.NewBuffer(bodyJson)
@@ -281,8 +309,14 @@ func (hi *HttpInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReque
 
 	httpReq, err := nethttp.NewRequestWithContext(ctx, hi.Method, url.(string), reqBody)
 	if err != nil {
-		logger.Error("Failed to create HTTP prompt request", zap.Error(err))
-		return utils.McpPromptTextError("failed to create http request: %s", err.Error()), err
+		// Log detailed error server-side only
+		baseLogger.Error("Failed to create HTTP prompt request",
+			zap.String("method", hi.Method),
+			zap.String("url", url.(string)),
+			zap.Error(err))
+		// Log generic error for client
+		logger.Error("HTTP prompt request creation failed", zap.String("error", "request creation error"))
+		return utils.McpPromptTextError("failed to create http request"), nil
 	}
 	if hasBody {
 		httpReq.Header.Set(contentTypeHeader, "application/json; charset=UTF-8")
@@ -292,13 +326,14 @@ func (hi *HttpInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReque
 
 	response, err := client.Do(httpReq)
 	if err != nil {
-		logger.Error("Failed to execute HTTP prompt request", zap.Error(err))
 		// Server-side only logging with sensitive details
 		baseLogger.Error("HTTP prompt request execution failed",
 			zap.String("method", hi.Method),
 			zap.String("url", url.(string)),
 			zap.Error(err))
-		return utils.McpPromptTextError("failed to execute http request: %s", err.Error()), err
+		// Log generic error for client
+		logger.Error("HTTP prompt request execution failed", zap.String("error", "execution error"))
+		return utils.McpPromptTextError("failed to execute http request"), nil
 	}
 	defer func() {
 		_ = response.Body.Close()
@@ -306,8 +341,11 @@ func (hi *HttpInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReque
 
 	body, readErr := io.ReadAll(response.Body)
 	if readErr != nil {
-		logger.Error("Failed to read HTTP prompt response body", zap.Error(readErr))
-		return utils.McpPromptTextError("failed to read http response body: %s", readErr.Error()), readErr
+		// Log detailed error server-side only
+		baseLogger.Error("Failed to read HTTP prompt response body", zap.Error(readErr))
+		// Log generic error for client
+		logger.Error("HTTP prompt response reading failed", zap.String("error", "response reading error"))
+		return utils.McpPromptTextError("failed to read http response body"), nil
 	}
 
 	// Server-side only logging with sensitive HTTP details
@@ -318,8 +356,14 @@ func (hi *HttpInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReque
 		zap.Int("response_length", len(body)))
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		logger.Error("HTTP prompt request failed with error status")
-		return utils.McpPromptTextError("http request failed with status %d", response.StatusCode), fmt.Errorf("http request failed with status %d", response.StatusCode)
+		// Log detailed error server-side only
+		baseLogger.Error("HTTP prompt request failed with error status",
+			zap.String("method", hi.Method),
+			zap.String("url", url.(string)),
+			zap.Int("status_code", response.StatusCode))
+		// Log generic error for client
+		logger.Error("HTTP prompt request failed with error status", zap.String("error", "http error status"))
+		return utils.McpPromptTextError("http request failed"), nil
 	}
 
 	logger.Info("HTTP prompt invocation completed successfully")
@@ -362,22 +406,30 @@ func (hi *HttpInvoker) InvokeResource(ctx context.Context, req *mcp.ReadResource
 	var reqBody io.Reader = nil
 	httpReq, err := nethttp.NewRequestWithContext(ctx, hi.Method, url.(string), reqBody)
 	if err != nil {
-		logger.Error("Failed to create HTTP resource request", zap.Error(err))
-		return utils.McpResourceTextError("failed to create http request: %s", err.Error()), err
+		// Log detailed error server-side only
+		baseLogger.Error("Failed to create HTTP resource request",
+			zap.String("method", hi.Method),
+			zap.String("url", url.(string)),
+			zap.String("uri", req.Params.URI),
+			zap.Error(err))
+		// Log generic error for client
+		logger.Error("HTTP resource request creation failed", zap.String("error", "request creation error"))
+		return utils.McpResourceTextError("failed to create http request"), nil
 	}
 
 	client := &nethttp.Client{}
 
 	response, err := client.Do(httpReq)
 	if err != nil {
-		logger.Error("Failed to execute HTTP resource request", zap.Error(err))
 		// Server-side only logging with sensitive details
 		baseLogger.Error("HTTP resource request execution failed",
 			zap.String("method", hi.Method),
 			zap.String("url", url.(string)),
 			zap.String("uri", req.Params.URI),
 			zap.Error(err))
-		return utils.McpResourceTextError("failed to execute http request: %s", err.Error()), err
+		// Log generic error for client
+		logger.Error("HTTP resource request execution failed", zap.String("error", "execution error"))
+		return utils.McpResourceTextError("failed to execute http request"), nil
 	}
 	defer func() {
 		_ = response.Body.Close()
@@ -385,8 +437,13 @@ func (hi *HttpInvoker) InvokeResource(ctx context.Context, req *mcp.ReadResource
 
 	body, readErr := io.ReadAll(response.Body)
 	if readErr != nil {
-		logger.Error("Failed to read HTTP resource response body", zap.Error(readErr))
-		return utils.McpResourceTextError("failed to read http response body: %s", readErr.Error()), readErr
+		// Log detailed error server-side only
+		baseLogger.Error("Failed to read HTTP resource response body",
+			zap.String("uri", req.Params.URI),
+			zap.Error(readErr))
+		// Log generic error for client
+		logger.Error("HTTP resource response reading failed", zap.String("error", "response reading error"))
+		return utils.McpResourceTextError("failed to read http response body"), nil
 	}
 
 	// Server-side only logging with sensitive HTTP details
@@ -398,8 +455,15 @@ func (hi *HttpInvoker) InvokeResource(ctx context.Context, req *mcp.ReadResource
 		zap.Int("response_length", len(body)))
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		logger.Error("HTTP resource request failed with error status")
-		return utils.McpResourceTextError("http request failed with status %d", response.StatusCode), fmt.Errorf("http request failed with status %d", response.StatusCode)
+		// Log detailed error server-side only
+		baseLogger.Error("HTTP resource request failed with error status",
+			zap.String("method", hi.Method),
+			zap.String("url", url.(string)),
+			zap.String("uri", req.Params.URI),
+			zap.Int("status_code", response.StatusCode))
+		// Log generic error for client
+		logger.Error("HTTP resource request failed with error status", zap.String("error", "http error status"))
+		return utils.McpResourceTextError("http request failed"), nil
 	}
 
 	logger.Info("HTTP resource invocation completed successfully", zap.String("uri", req.Params.URI))
@@ -445,12 +509,13 @@ func (hi *HttpInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.Read
 	// Match the incoming URI against the template to extract argument values
 	matches := uriTmpl.Match(req.Params.URI)
 	if matches == nil {
-		logger.Error("URI does not match template")
 		// Server-side only logging with sensitive template details
 		baseLogger.Error("URI does not match HTTP resource template",
 			zap.String("uri", req.Params.URI),
 			zap.String("template", hi.URITemplate))
-		return utils.McpResourceTextError("URI does not match template"), fmt.Errorf("URI '%s' does not match template '%s'", req.Params.URI, hi.URITemplate)
+		// Log generic error for client
+		logger.Error("URI does not match template", zap.String("error", "template mismatch"))
+		return utils.McpResourceTextError("URI does not match template"), nil
 	}
 
 	// Convert uritemplate.Values to map[string]any
@@ -458,16 +523,26 @@ func (hi *HttpInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.Read
 		if val := matches.Get(paramName); val.Valid() {
 			argsMap[paramName] = val.String()
 		} else {
-			logger.Error("Missing required parameter in resource template",
-				zap.String("parameter", paramName))
-			return utils.McpResourceTextError("missing required parameter: %s", paramName), fmt.Errorf("missing required parameter: %s", paramName)
+			// Log detailed error server-side only
+			baseLogger.Error("Missing required parameter in resource template",
+				zap.String("parameter", paramName),
+				zap.String("uri", req.Params.URI),
+				zap.String("template", hi.URITemplate))
+			// Log generic error for client
+			logger.Error("Missing required parameter in resource template", zap.String("error", "missing parameter"))
+			return utils.McpResourceTextError("missing required parameter"), nil
 		}
 	}
 
 	argsBytes, err := json.Marshal(argsMap)
 	if err != nil {
-		logger.Error("Failed to marshal HTTP resource template arguments", zap.Error(err))
-		return utils.McpResourceTextError("failed to marshal arguments: %s", err.Error()), err
+		// Log detailed error server-side only
+		baseLogger.Error("Failed to marshal HTTP resource template arguments",
+			zap.String("uri", req.Params.URI),
+			zap.Error(err))
+		// Log generic error for client
+		logger.Error("Resource template arguments preparation failed", zap.String("error", "marshaling error"))
+		return utils.McpResourceTextError("failed to prepare arguments"), nil
 	}
 
 	dj := &invocation.DynamicJson{
@@ -476,13 +551,23 @@ func (hi *HttpInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.Read
 
 	parsed, err := dj.ParseJson(argsBytes, hi.InputSchema.Schema())
 	if err != nil {
-		logger.Error("Failed to parse HTTP resource template request", zap.Error(err))
-		return utils.McpResourceTextError("failed to parse resource template request: %s", err.Error()), err
+		// Log detailed error server-side only
+		baseLogger.Error("Failed to parse HTTP resource template request",
+			zap.String("uri", req.Params.URI),
+			zap.Error(err))
+		// Log generic error for client
+		logger.Error("Resource template request parsing failed", zap.String("error", "parsing error"))
+		return utils.McpResourceTextError("failed to parse resource template request"), nil
 	}
 
 	if err := hi.InputSchema.Validate(parsed); err != nil {
-		logger.Error("Failed to validate HTTP resource template request", zap.Error(err))
-		return utils.McpResourceTextError("failed to validate resource template request: %s", err.Error()), err
+		// Log detailed error server-side only
+		baseLogger.Error("Failed to validate HTTP resource template request",
+			zap.String("uri", req.Params.URI),
+			zap.Error(err))
+		// Log generic error for client
+		logger.Error("Resource template request validation failed", zap.String("error", "validation error"))
+		return utils.McpResourceTextError("failed to validate resource template request"), nil
 	}
 
 	url, _ := ub.GetResult()
@@ -496,21 +581,29 @@ func (hi *HttpInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.Read
 
 	httpReq, err := nethttp.NewRequestWithContext(ctx, hi.Method, url.(string), nil)
 	if err != nil {
-		logger.Error("Failed to create HTTP resource template request", zap.Error(err))
-		return utils.McpResourceTextError("failed to create http request: %s", err.Error()), err
+		// Log detailed error server-side only
+		baseLogger.Error("Failed to create HTTP resource template request",
+			zap.String("method", hi.Method),
+			zap.String("url", url.(string)),
+			zap.String("uri", req.Params.URI),
+			zap.Error(err))
+		// Log generic error for client
+		logger.Error("HTTP resource template request creation failed", zap.String("error", "request creation error"))
+		return utils.McpResourceTextError("failed to create http request"), nil
 	}
 
 	client := &nethttp.Client{}
 	response, err := client.Do(httpReq)
 	if err != nil {
-		logger.Error("Failed to execute HTTP resource template request", zap.Error(err))
 		// Server-side only logging with sensitive details
 		baseLogger.Error("HTTP resource template request execution failed",
 			zap.String("method", hi.Method),
 			zap.String("url", url.(string)),
 			zap.String("uri", req.Params.URI),
 			zap.Error(err))
-		return utils.McpResourceTextError("failed to execute http request: %s", err.Error()), err
+		// Log generic error for client
+		logger.Error("HTTP resource template request execution failed", zap.String("error", "execution error"))
+		return utils.McpResourceTextError("failed to execute http request"), nil
 	}
 	defer func() {
 		_ = response.Body.Close()
@@ -518,8 +611,13 @@ func (hi *HttpInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.Read
 
 	body, readErr := io.ReadAll(response.Body)
 	if readErr != nil {
-		logger.Error("Failed to read HTTP resource template response body", zap.Error(readErr))
-		return utils.McpResourceTextError("failed to read http response body: %s", readErr.Error()), readErr
+		// Log detailed error server-side only
+		baseLogger.Error("Failed to read HTTP resource template response body",
+			zap.String("uri", req.Params.URI),
+			zap.Error(readErr))
+		// Log generic error for client
+		logger.Error("HTTP resource template response reading failed", zap.String("error", "response reading error"))
+		return utils.McpResourceTextError("failed to read http response body"), nil
 	}
 
 	// Server-side only logging with sensitive HTTP details
@@ -531,8 +629,15 @@ func (hi *HttpInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.Read
 		zap.Int("response_length", len(body)))
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		logger.Error("HTTP resource template request failed with error status")
-		return utils.McpResourceTextError("http request failed with status %d", response.StatusCode), fmt.Errorf("http request failed with status %d", response.StatusCode)
+		// Log detailed error server-side only
+		baseLogger.Error("HTTP resource template request failed with error status",
+			zap.String("method", hi.Method),
+			zap.String("url", url.(string)),
+			zap.String("uri", req.Params.URI),
+			zap.Int("status_code", response.StatusCode))
+		// Log generic error for client
+		logger.Error("HTTP resource template request failed with error status", zap.String("error", "http error status"))
+		return utils.McpResourceTextError("http request failed"), nil
 	}
 
 	logger.Info("HTTP resource template invocation completed successfully", zap.String("uri", req.Params.URI))
