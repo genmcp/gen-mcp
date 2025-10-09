@@ -94,7 +94,7 @@ func (m *mcpLogger) Write(ent zapcore.Entry, fields []zapcore.Field) error {
 		encoderFields = make(map[string]any)
 	}
 
-	logData := make(map[string]any, len(encoderFields)+2) // +3 for ts, msg
+	logData := make(map[string]any, len(encoderFields)+2) // +2 for ts, msg
 
 	// Copy existing fields
 	maps.Copy(logData, encoderFields)
