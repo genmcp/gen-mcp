@@ -24,12 +24,9 @@ func NewRequestLogger(ctx context.Context, baseLogger *zap.Logger, ss *mcp.Serve
 		return nil, err
 	}
 
-	// AddCallerSkip(1) ensures that caller information points to the actual
-	// calling code, not the logger wrapper itself
 	return baseLogger.WithOptions(
 		zap.WrapCore(func(core zapcore.Core) zapcore.Core {
 			return zapcore.NewTee(core, mcpCore)
 		}),
-		zap.AddCallerSkip(1),
 	), nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -93,20 +94,14 @@ func (m *mcpLogger) Write(ent zapcore.Entry, fields []zapcore.Field) error {
 		encoderFields = make(map[string]any)
 	}
 
-	logData := make(map[string]any, len(encoderFields)+3) // +3 for ts, msg, caller
+	logData := make(map[string]any, len(encoderFields)+2) // +3 for ts, msg
 
 	// Copy existing fields
-	for k, v := range encoderFields {
-		logData[k] = v
-	}
+	maps.Copy(logData, encoderFields)
 
 	// Add entry-specific fields
 	logData["ts"] = ent.Time
 	logData["msg"] = ent.Message
-
-	if ent.Caller.Defined {
-		logData["caller"] = ent.Caller.String()
-	}
 
 	return m.ss.Log(m.ctx, &mcp.LoggingMessageParams{
 		Data:   logData,

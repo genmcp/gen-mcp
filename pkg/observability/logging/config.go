@@ -146,7 +146,7 @@ func (lc *LoggingConfig) BuildBase() (*zap.Logger, error) {
 		return nil, fmt.Errorf("failed to convert to zap config: %w", err)
 	}
 
-	logger, err := config.Build(zap.AddCallerSkip(1))
+	logger, err := config.Build()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build base zap logger: %w", err)
 	}
