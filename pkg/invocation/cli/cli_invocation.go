@@ -49,20 +49,14 @@ func (ci *CliInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*mc
 
 	parsed, err := dj.ParseJson(req.Params.Arguments, ci.InputSchema.Schema())
 	if err != nil {
-		// Log detailed error server-side only
-		baseLogger.Error("Failed to parse CLI tool call request", zap.Error(err))
-		// Log generic error for client
-		logger.Error("Tool request parsing failed", zap.String("error", "parsing error"))
-		return utils.McpTextError("failed to parse tool call request"), nil
+		logger.Error("Failed to parse CLI tool call request", zap.Error(err))
+		return nil, fmt.Errorf("failed to parse tool call request: %w", err)
 	}
 
 	err = ci.InputSchema.Validate(parsed)
 	if err != nil {
-		// Log detailed error server-side only
-		baseLogger.Error("Failed to validate CLI tool call request", zap.Error(err))
-		// Log generic error for client
-		logger.Error("Tool request validation failed", zap.String("error", "validation error"))
-		return utils.McpTextError("failed to validate tool call request"), nil
+		logger.Error("Failed to validate CLI tool call request", zap.Error(err))
+		return nil, fmt.Errorf("failed to validate tool call request: %w", err)
 	}
 
 	command, _ := cb.GetResult()
@@ -74,14 +68,12 @@ func (ci *CliInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*mc
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		// Server-side only logging with sensitive command details
 		baseLogger.Error("CLI command execution failed",
 			zap.String("command", command.(string)),
 			zap.String("output", string(output)),
 			zap.Error(err))
-		// Log generic error for client
-		logger.Error("CLI command execution failed", zap.String("error", "execution error"))
-		return utils.McpTextError("command execution failed"), nil
+		logger.Error("CLI command execution failed")
+		return utils.McpTextError("Command execution failed:\n%s", string(output)), nil
 	}
 
 	// Server-side only logging with sensitive command details
@@ -158,20 +150,14 @@ func (ci *CliInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReques
 	}
 
 	if err := ci.InputSchema.Validate(argsForValidation); err != nil {
-		// Log detailed error server-side only
-		baseLogger.Error("Failed to validate CLI prompt request arguments", zap.Error(err))
-		// Log generic error for client
-		logger.Error("Prompt request validation failed", zap.String("error", "validation error"))
-		return utils.McpPromptTextError("failed to validate prompt request"), nil
+		logger.Error("Failed to validate CLI prompt request arguments", zap.Error(err))
+		return nil, fmt.Errorf("failed to validate prompt request: %w", err)
 	}
 
 	command, err := cb.GetResult()
 	if err != nil {
-		// Log detailed error server-side only
-		baseLogger.Error("Failed to build CLI prompt command", zap.Error(err))
-		// Log generic error for client
-		logger.Error("Prompt command preparation failed", zap.String("error", "command building error"))
-		return utils.McpPromptTextError("failed to build command"), nil
+		logger.Error("Failed to build CLI prompt command", zap.Error(err))
+		return nil, fmt.Errorf("failed to build command: %w", err)
 	}
 
 	// Server-side only logging with sensitive command details
@@ -181,14 +167,12 @@ func (ci *CliInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReques
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		// Server-side only logging with sensitive command details
 		baseLogger.Error("CLI prompt command execution failed",
 			zap.String("command", command.(string)),
 			zap.String("output", string(output)),
 			zap.Error(err))
-		// Log generic error for client
-		logger.Error("CLI prompt command execution failed", zap.String("error", "execution error"))
-		return utils.McpPromptTextError("command execution failed"), nil
+		logger.Error("CLI prompt command execution failed")
+		return utils.McpPromptTextError("Command execution failed:\n%s", string(output)), nil
 	}
 
 	// Server-side only logging with sensitive command details
@@ -221,15 +205,13 @@ func (ci *CliInvoker) InvokeResource(ctx context.Context, req *mcp.ReadResourceR
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		// Server-side only logging with sensitive command details
 		baseLogger.Error("CLI resource command execution failed",
 			zap.String("command", ci.CommandTemplate),
 			zap.String("uri", req.Params.URI),
 			zap.String("output", string(output)),
 			zap.Error(err))
-		// Log generic error for client
-		logger.Error("CLI resource command execution failed", zap.String("error", "execution error"))
-		return utils.McpResourceTextError("command execution failed"), nil
+		logger.Error("CLI resource command execution failed", zap.String("uri", req.Params.URI))
+		return nil, mcp.ResourceNotFoundError(req.Params.URI)
 	}
 
 	// Server-side only logging with sensitive command details
@@ -271,13 +253,10 @@ func (ci *CliInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.ReadR
 	// Match the incoming URI against the template to extract argument values
 	matches := uriTmpl.Match(req.Params.URI)
 	if matches == nil {
-		// Server-side only logging with sensitive template details
-		baseLogger.Error("URI does not match CLI resource template",
+		logger.Error("URI does not match CLI resource template",
 			zap.String("uri", req.Params.URI),
 			zap.String("template", ci.URITemplate))
-		// Log generic error for client
-		logger.Error("URI does not match template", zap.String("error", "template mismatch"))
-		return utils.McpResourceTextError("URI does not match template"), nil
+		return nil, fmt.Errorf("URI does not match template")
 	}
 
 	// Extract arguments and populate command builder
@@ -288,36 +267,27 @@ func (ci *CliInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.ReadR
 			cb.SetField(paramName, argValue)
 			argsMap[paramName] = argValue
 		} else {
-			// Log detailed error server-side only
-			baseLogger.Error("Missing required parameter in resource template",
+			logger.Error("Missing required parameter in resource template",
 				zap.String("parameter", paramName),
 				zap.String("uri", req.Params.URI),
 				zap.String("template", ci.URITemplate))
-			// Log generic error for client
-			logger.Error("Missing required parameter in resource template", zap.String("error", "missing parameter"))
-			return utils.McpResourceTextError("missing required parameter"), nil
+			return nil, fmt.Errorf("missing required parameter: %s", paramName)
 		}
 	}
 
 	if err := ci.InputSchema.Validate(argsMap); err != nil {
-		// Log detailed error server-side only
-		baseLogger.Error("Failed to validate CLI resource template request",
+		logger.Error("Failed to validate CLI resource template request",
 			zap.String("uri", req.Params.URI),
 			zap.Error(err))
-		// Log generic error for client
-		logger.Error("Resource template request validation failed", zap.String("error", "validation error"))
-		return utils.McpResourceTextError("failed to validate resource template request"), nil
+		return nil, fmt.Errorf("failed to validate resource template request: %w", err)
 	}
 
 	command, err := cb.GetResult()
 	if err != nil {
-		// Log detailed error server-side only
-		baseLogger.Error("Failed to build CLI resource template command",
+		logger.Error("Failed to build CLI resource template command",
 			zap.String("uri", req.Params.URI),
 			zap.Error(err))
-		// Log generic error for client
-		logger.Error("Resource template command preparation failed", zap.String("error", "command building error"))
-		return utils.McpResourceTextError("failed to build command"), nil
+		return nil, fmt.Errorf("failed to build command: %w", err)
 	}
 
 	// Server-side only logging with sensitive command details
@@ -330,15 +300,13 @@ func (ci *CliInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.ReadR
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		// Server-side only logging with sensitive command details
 		baseLogger.Error("CLI resource template command execution failed",
 			zap.String("command", command.(string)),
 			zap.String("uri", req.Params.URI),
 			zap.String("output", string(output)),
 			zap.Error(err))
-		// Log generic error for client
-		logger.Error("CLI resource template command execution failed", zap.String("error", "execution error"))
-		return utils.McpResourceTextError("command execution failed"), nil
+		logger.Error("CLI resource template command execution failed", zap.String("uri", req.Params.URI))
+		return nil, mcp.ResourceNotFoundError(req.Params.URI)
 	}
 
 	// Server-side only logging with sensitive command details

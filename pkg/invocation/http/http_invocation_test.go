@@ -173,9 +173,13 @@ func TestHttpInvocation(t *testing.T) {
 
 			res, err := tc.httpInvoker.Invoke(context.Background(), tc.request)
 			if tc.expectError {
-				assert.Error(t, err, "http invocation should have an error")
+				// For validation/parsing errors, expect Go error
+				assert.Error(t, err, "http invocation should return Go error for validation/parsing failures")
+				assert.Nil(t, res, "should not get result when there's a Go error")
 			} else {
-				assert.NoError(t, err, "http invocation should not have an error")
+				// For successful operations and HTTP execution errors, expect MCP result
+				assert.NoError(t, err, "http invocation should not return Go error")
+				assert.NotNil(t, res, "should get a result")
 			}
 
 			assert.Equal(t, tc.expectedReqMethod, receievedMethod, "http invocation should use correct request method")
@@ -354,21 +358,21 @@ func TestHttpPromptInvocation(t *testing.T) {
 
 			res, err := tc.httpInvoker.InvokePrompt(context.Background(), tc.request)
 			if tc.expectError {
-				assert.Error(t, err, "http prompt invocation should have an error")
+				// For HTTP execution errors, expect MCP error result
+				assert.NoError(t, err, "http prompt invocation should not return Go error for HTTP execution errors")
+				assert.NotNil(t, res, "should get MCP error result")
+				assert.NotEmpty(t, res.Description, "MCP error result should have error description")
 			} else {
 				assert.NoError(t, err, "http prompt invocation should not have an error")
+				assert.NotNil(t, res, "should get a response")
+				assert.NotNil(t, res.Messages, "should have messages")
+				assert.Empty(t, res.Description, "successful result should not have error description")
 			}
 
 			assert.Equal(t, tc.expectedReqMethod, receivedMethod, "http invocation should use correct request method")
 			assert.Equal(t, tc.expectedQuery, receivedQuery, "http url query should match")
 			assert.Equal(t, tc.expectedBody, receivedBody, "http body should match")
 			assert.Equal(t, tc.expectedPath, receivedPath, "http path should match")
-
-			// Just verify we got a response (JSON parsing is tested separately)
-			if !tc.expectError {
-				assert.NotNil(t, res, "should get a response")
-				assert.NotNil(t, res.Messages, "should have messages")
-			}
 
 			// Verify Content-Type header is set for requests with body
 			hasBody := tc.httpInvoker.Method != "GET" && tc.httpInvoker.Method != "DELETE" && tc.httpInvoker.Method != "HEAD"
@@ -550,7 +554,9 @@ func TestHttpResourceInvocation(t *testing.T) {
 
 			res, err := tc.httpInvoker.InvokeResource(context.Background(), tc.request)
 			if tc.expectError {
-				assert.Error(t, err, "http resource invocation should have an error")
+				// For HTTP execution errors, expect Go error (ResourceNotFound)
+				assert.Error(t, err, "http resource invocation should return Go error for HTTP execution errors")
+				assert.Nil(t, res, "should not get result when there's a Go error")
 			} else {
 				assert.NoError(t, err, "http resource invocation should not have an error")
 				assert.NotNil(t, res, "should get a response")
@@ -716,8 +722,7 @@ func TestHttpResourceTemplateInvocation(t *testing.T) {
 			},
 			expectedReqMethod: "GET",
 			expectedPath:      "/weather",
-			expectError:       true,
-			errorMsg:          "http request failed with status 500",
+			expectError:       true, // HTTP execution errors return Go errors (ResourceNotFound)
 		},
 	}
 
@@ -745,11 +750,14 @@ func TestHttpResourceTemplateInvocation(t *testing.T) {
 
 			res, err := tc.httpInvoker.InvokeResourceTemplate(context.Background(), tc.request)
 			if tc.expectError {
-				assert.Error(t, err, "http resource template invocation should have an error")
+				// For validation/parsing errors and HTTP execution errors, expect Go error
+				assert.Error(t, err, "http resource template invocation should return Go error for failures")
+				assert.Nil(t, res, "should not get result when there's a Go error")
 				if tc.errorMsg != "" {
 					assert.Contains(t, err.Error(), tc.errorMsg, "error message should contain expected text")
 				}
 			} else {
+				// For successful operations
 				assert.NoError(t, err, "http resource template invocation should not have an error")
 				assert.NotNil(t, res, "should get a response")
 				assert.NotNil(t, res.Contents, "should have contents")
