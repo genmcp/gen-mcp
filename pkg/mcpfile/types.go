@@ -3,7 +3,9 @@ package mcpfile
 import (
 	"encoding/json"
 
+	"github.com/genmcp/gen-mcp/pkg/observability/logging"
 	"github.com/google/jsonschema-go/jsonschema"
+	"go.uber.org/zap"
 )
 
 const (
@@ -273,6 +275,37 @@ type ServerRuntime struct {
 
 	// Configuration for stdio transport protocol.
 	StdioConfig *StdioConfig `json:"stdioConfig,omitempty" jsonschema:"optional"`
+
+	// Configuration for the server logging
+	LoggingConfig *logging.LoggingConfig `json:"loggingConfig" jsonschema:"optional"`
+
+	baseLogger *zap.Logger
+}
+
+// GetBaseLogger returns the base logger for the server, defaulting to noop if either the runtime or
+// any of the logging config is nil or has errors
+func (sr *ServerRuntime) GetBaseLogger() *zap.Logger {
+	if sr == nil {
+		return zap.NewNop()
+	}
+
+	if sr.baseLogger != nil {
+		return sr.baseLogger
+	}
+
+	if sr.LoggingConfig != nil {
+		logger, err := sr.LoggingConfig.BuildBase()
+		if err != nil {
+			logger = zap.NewNop()
+		}
+
+		sr.baseLogger = logger
+		return logger
+	}
+
+	logger := zap.NewNop()
+	sr.baseLogger = logger
+	return logger
 }
 
 // MCPServer defines the metadata and capabilities of an MCP server.

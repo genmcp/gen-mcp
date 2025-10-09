@@ -16,6 +16,7 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/invocation/utils"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/genmcp/gen-mcp/pkg/oauth"
+	"github.com/genmcp/gen-mcp/pkg/observability/logging"
 )
 
 func MakeServer(mcpServer *mcpfile.MCPServer) (*mcp.Server, error) {
@@ -239,6 +240,8 @@ func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*
 	}, &mcp.ServerOptions{
 		HasTools: len(mcpServer.Tools) > 0,
 	})
+
+	s.AddReceivingMiddleware(logging.WithLoggingMiddleware(mcpServer.Runtime.GetBaseLogger()))
 
 	var serverErr error
 	for _, t := range tools {
