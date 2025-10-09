@@ -49,14 +49,9 @@ func RunServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
 	}
 }
 
-// RunServers runs all servers defined in the MCP file
-func RunServers(ctx context.Context, mcpFilePath string) error {
-	return RunServersWithConfig(ctx, mcpFilePath, "")
-}
-
-// RunServersWithConfig runs servers with separate config file support
-// If serverConfigPath is empty, it will look for runtime config in mcpFilePath for backward compatibility
-func RunServersWithConfig(ctx context.Context, mcpFilePath string, serverConfigPath string) error {
+// RunServers runs servers with separate config files
+// serverConfigPath is required and must contain the runtime configuration
+func RunServers(ctx context.Context, mcpFilePath string, serverConfigPath string) error {
 	mcpConfig, err := mcpfile.ParseMCPFile(mcpFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to parse mcp file: %w", err)
@@ -66,29 +61,16 @@ func RunServersWithConfig(ctx context.Context, mcpFilePath string, serverConfigP
 		return fmt.Errorf("mcp file is invalid: %w", err)
 	}
 
-	var runtime *mcpfile.ServerRuntime
-	var name, version string
-
-	// If a separate server config is provided, use it for runtime settings
-	if serverConfigPath != "" {
-		serverConfig, err := mcpfile.ParseMCPServerConfig(serverConfigPath)
-		if err != nil {
-			return fmt.Errorf("failed to parse server config file: %w", err)
-		}
-		runtime = serverConfig.Runtime
-		name = serverConfig.Name
-		version = serverConfig.Version
-	} else {
-		// Backward compatibility: use runtime from mcpfile if present
-		runtime = mcpConfig.Runtime
-		name = mcpConfig.Name
-		version = mcpConfig.Version
+	// Parse server config (required)
+	serverConfig, err := mcpfile.ParseMCPServerConfig(serverConfigPath)
+	if err != nil {
+		return fmt.Errorf("failed to parse server config file: %w", err)
 	}
 
 	mcpServer := &mcpfile.MCPServer{
-		Name:              name,
-		Version:           version,
-		Runtime:           runtime,
+		Name:              serverConfig.Name,
+		Version:           serverConfig.Version,
+		Runtime:           serverConfig.Runtime,
 		Tools:             mcpConfig.Tools,
 		Prompts:           mcpConfig.Prompts,
 		Resources:         mcpConfig.Resources,

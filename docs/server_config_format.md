@@ -74,8 +74,6 @@ This object is currently empty and serves as a placeholder for future configurat
 
 ## 4. Usage
 
-### Running with Separate Config Files
-
 To run an MCP server with separate configuration files:
 
 ```bash
@@ -84,15 +82,7 @@ gen-mcp run -f mcpfile.yaml -s mcpserver.yaml
 
 Where:
 - `mcpfile.yaml` contains tool/prompt/resource definitions
-- `mcpserver.yaml` contains runtime configuration
-
-### Backward Compatibility
-
-For backward compatibility, the runtime configuration can still be included directly in the `mcpfile.yaml` file. If no separate server config is provided, gen-mcp will look for the runtime configuration in the `mcpfile.yaml`:
-
-```bash
-gen-mcp run -f mcpfile.yaml
-```
+- `mcpserver.yaml` contains runtime configuration (REQUIRED)
 
 ## 5. Complete Example
 

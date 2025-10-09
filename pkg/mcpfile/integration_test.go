@@ -48,25 +48,6 @@ func TestSeparateConfigIntegration(t *testing.T) {
 	assert.Equal(t, "get_user_by_company", combinedServer.Tools[0].Name)
 }
 
-// TestBackwardCompatibilitySingleFile ensures old mcpfile.yaml format still works
-func TestBackwardCompatibilitySingleFile(t *testing.T) {
-	// This should work exactly as before
-	mcpFile, err := ParseMCPFile("./testdata/one-server-tools.yaml")
-	assert.NoError(t, err, "should successfully parse traditional mcpfile")
-
-	// Verify it has both runtime and tools in one file
-	assert.NotNil(t, mcpFile.Runtime, "traditional mcpfile should have runtime")
-	assert.Equal(t, "test-server", mcpFile.Name)
-	assert.Equal(t, "1.0.0", mcpFile.Version)
-	assert.Equal(t, 1, len(mcpFile.Tools))
-
-	// Verify default runtime settings are applied
-	assert.Equal(t, TransportProtocolStreamableHttp, mcpFile.Runtime.TransportProtocol)
-	assert.Equal(t, 3000, mcpFile.Runtime.StreamableHTTPConfig.Port)
-	assert.Equal(t, DefaultBasePath, mcpFile.Runtime.StreamableHTTPConfig.BasePath)
-	assert.True(t, mcpFile.Runtime.StreamableHTTPConfig.Stateless)
-}
-
 // TestMCPFileOnlyTools verifies mcpfile can be tools-only without name/version
 func TestMCPFileOnlyTools(t *testing.T) {
 	mcpFile, err := ParseMCPFile("./testdata/mcpfile-without-runtime.yaml")

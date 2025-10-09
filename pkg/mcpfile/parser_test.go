@@ -28,14 +28,7 @@ func TestParseMcpFile(t *testing.T) {
 				MCPServer: MCPServer{
 					Name:    "test-server",
 					Version: "1.0.0",
-					Runtime: &ServerRuntime{
-						TransportProtocol: TransportProtocolStreamableHttp,
-						StreamableHTTPConfig: &StreamableHTTPConfig{
-							Port:      3000,
-							BasePath:  DefaultBasePath,
-							Stateless: true,
-						},
-					},
+					Runtime: nil, // No runtime defaults - must use separate server config
 				},
 			},
 		},
@@ -46,14 +39,7 @@ func TestParseMcpFile(t *testing.T) {
 				MCPServer: MCPServer{
 					Name:    "test-server",
 					Version: "1.0.0",
-					Runtime: &ServerRuntime{
-						TransportProtocol: TransportProtocolStreamableHttp,
-						StreamableHTTPConfig: &StreamableHTTPConfig{
-							Port:      3000,
-							BasePath:  DefaultBasePath,
-							Stateless: true,
-						},
-					},
+					Runtime: nil, // No runtime defaults - must use separate server config
 					Tools: []*Tool{
 						{
 							Name:        "get_user_by_company",
@@ -83,14 +69,7 @@ func TestParseMcpFile(t *testing.T) {
 				MCPServer: MCPServer{
 					Name:    "test-server",
 					Version: "1.0.0",
-					Runtime: &ServerRuntime{
-						TransportProtocol: TransportProtocolStreamableHttp,
-						StreamableHTTPConfig: &StreamableHTTPConfig{
-							Port:      3000,
-							BasePath:  DefaultBasePath,
-							Stateless: true,
-						},
-					},
+					Runtime: nil, // No runtime defaults - must use separate server config
 					Tools: []*Tool{
 						{
 							Name:        "get_user_by_company",
@@ -120,14 +99,7 @@ func TestParseMcpFile(t *testing.T) {
 				MCPServer: MCPServer{
 					Name:    "test-server",
 					Version: "1.0.0",
-					Runtime: &ServerRuntime{
-						TransportProtocol: TransportProtocolStreamableHttp,
-						StreamableHTTPConfig: &StreamableHTTPConfig{
-							BasePath:  DefaultBasePath,
-							Port:      3000,
-							Stateless: true,
-						},
-					},
+					Runtime: nil, // No runtime defaults - must use separate server config
 					Tools: []*Tool{
 						{
 							Name:        "clone_repo",
@@ -250,14 +222,7 @@ func TestParseMcpFile(t *testing.T) {
 				MCPServer: MCPServer{
 					Name:    "test-server",
 					Version: "1.0.0",
-					Runtime: &ServerRuntime{
-						TransportProtocol: TransportProtocolStreamableHttp,
-						StreamableHTTPConfig: &StreamableHTTPConfig{
-							BasePath:  DefaultBasePath,
-							Port:      3000,
-							Stateless: true,
-						},
-					},
+					Runtime: nil, // No runtime defaults - must use separate server config
 					Prompts: []*Prompt{
 						{
 							Name:        "code_review",
@@ -294,14 +259,7 @@ func TestParseMcpFile(t *testing.T) {
 				MCPServer: MCPServer{
 					Name:    "test-server",
 					Version: "1.0.0",
-					Runtime: &ServerRuntime{
-						TransportProtocol: TransportProtocolStreamableHttp,
-						StreamableHTTPConfig: &StreamableHTTPConfig{
-							BasePath:  DefaultBasePath,
-							Port:      3000,
-							Stateless: true,
-						},
-					},
+					Runtime: nil, // No runtime defaults - must use separate server config
 					Resources: []*Resource{
 						{
 							Name:           "web_server_access_log",
@@ -324,14 +282,7 @@ func TestParseMcpFile(t *testing.T) {
 				MCPServer: MCPServer{
 					Name:    "test-server",
 					Version: "1.0.0",
-					Runtime: &ServerRuntime{
-						TransportProtocol: TransportProtocolStreamableHttp,
-						StreamableHTTPConfig: &StreamableHTTPConfig{
-							BasePath:  DefaultBasePath,
-							Port:      3000,
-							Stateless: true,
-						},
-					},
+					Runtime: nil, // No runtime defaults - must use separate server config
 					ResourceTemplates: []*ResourceTemplate{
 						{
 							Name:        "weather-forecast",

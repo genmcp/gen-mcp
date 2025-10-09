@@ -4,7 +4,7 @@
 
 The MCP (Model Context Protocol) file is a YAML-based configuration that defines the capabilities of an MCP server. It specifies the tools, prompts, and resources available, their input and output schemas, and how they should be invoked. This document details version `0.1.0` of the file format.
 
-**Note**: As of version 0.1.0, runtime configuration (such as transport protocol, port, etc.) can be separated into a dedicated `mcpserver.yaml` file. See [Server Configuration Specification](./server_config_format.md) for details. For backward compatibility, runtime configuration can still be included in the `mcpfile.yaml`.
+**Note**: As of version 0.1.0, runtime configuration (such as transport protocol, port, etc.) must be provided in a separate `mcpserver.yaml` file. See [Server Configuration Specification](./server_config_format.md) for details.
 
 ## 2. Top-Level Object
 
@@ -13,31 +13,12 @@ The root of the configuration is a single top-level object with the following fi
 | Field | Type | Description | Required |
 |---|---|---|---|
 | `mcpFileVersion` | string | The version of the MCP file format. Must be `"0.1.0"`. | Yes |
-| `name` | string | The name of the server. Required if runtime is included in this file. | No* |
-| `version` | string | The semantic version of the server's toolset. Required if runtime is included in this file. | No* |
-| `runtime` | `ServerRuntime` | The runtime settings for the server. If omitted, runtime must be provided in a separate server config file. For backward compatibility, if included, it defaults to `streamablehttp` on port `3000`. | No |
 | `tools` | array of `Tool` | The tools provided by this server. | No |
 | `prompts` | array of `Prompt` | The prompts provided by this server. | No |
 | `resources` | array of `Resource` | The resources provided by this server. | No |
 | `resourceTemplates` | array of `ResourceTemplate` | The resource templates provided by this server. | No |
 
-*Note: `name` and `version` are required when `runtime` is present in this file, or when using this file standalone without a separate server config.
-
-### Example (Traditional - with runtime)
-
-```yaml
-mcpFileVersion: 0.1.0
-name: my-awesome-server
-version: 1.2.3
-runtime:
-  transportProtocol: streamablehttp
-  streamableHttpConfig:
-    port: 8080
-tools:
-  # ... tool definitions
-```
-
-### Example (New - without runtime)
+### Example
 
 When using a separate server configuration file:
 

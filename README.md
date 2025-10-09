@@ -75,15 +75,17 @@ genmcp run
 ## 📖 Documentation
 
 - **[MCP File Format Guide](./docs/mcp_file_format.md)** - Learn to write custom tool configurations
-- **[Server Configuration Guide](./docs/server_config_format.md)** - Separate runtime configuration from tool definitions
+- **[Server Configuration Guide](./docs/server_config_format.md)** - Configure runtime settings for your server
 - **[Examples Directory](./examples/)** - Real-world integration examples
 
-### New: Separate Runtime Configuration (v0.1.0+)
+### Separate Configuration Files (Required)
 
-You can now separate runtime settings (port, transport protocol, etc.) from your tool definitions for better organization and configuration management:
+gen-mcp requires two configuration files:
+- `mcpfile.yaml` - Tool, prompt, and resource definitions
+- `mcpserver.yaml` - Runtime configuration (port, transport protocol, etc.)
 
 ```bash
-# Run with separate config files
+# Run with separate config files (REQUIRED)
 genmcp run -f mcpfile.yaml -s mcpserver.yaml
 ```
 
@@ -95,24 +97,18 @@ See the [Separate Configuration Example](./examples/separate-config/) for detail
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `run` | Start MCP server | `genmcp run -f myapi.yaml` or `genmcp run -f myapi.yaml -s server.yaml` |
+| `run` | Start MCP server (requires both files) | `genmcp run -f myapi.yaml -s server.yaml` |
 | `stop` | Stop running server | `genmcp stop` |
 | `convert` | OpenAPI → MCP conversion | `genmcp convert api-spec.json` |
 
 ### Starting Your Server
 
 ```bash
-# Run in foreground (development)
-genmcp run -f /path/to/mcpfile.yaml
-
-# Run with separate server config
+# Run with separate config files (REQUIRED)
 genmcp run -f mcpfile.yaml -s mcpserver.yaml
 
-# Run in background
-genmcp run -d
-
-# Auto-detect mcpfile.yaml in current directory
-genmcp run
+# Run in background (detached)
+genmcp run -f mcpfile.yaml -s mcpserver.yaml -d
 ```
 
 ### Converting Existing APIs

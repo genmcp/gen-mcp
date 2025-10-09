@@ -19,7 +19,8 @@ import (
 func init() {
 	rootCmd.AddCommand(runCmd)
 	runCmd.Flags().StringVarP(&mcpFilePath, "file", "f", "mcpfile.yaml", "mcp file to read from")
-	runCmd.Flags().StringVarP(&serverConfigPath, "server-config", "s", "", "optional server config file (mcpserver.yaml)")
+	runCmd.Flags().StringVarP(&serverConfigPath, "server-config", "s", "", "server config file (mcpserver.yaml) - REQUIRED")
+	runCmd.MarkFlagRequired("server-config")
 	runCmd.Flags().BoolVarP(&detach, "detach", "d", false, "whether to detach when running")
 }
 
@@ -45,18 +46,16 @@ func executeRunCmd(cobraCmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Resolve server config path if provided
-	if serverConfigPath != "" {
-		serverConfigPath, err = filepath.Abs(serverConfigPath)
-		if err != nil {
-			fmt.Printf("failed to resolve server config path: %s\n", err.Error())
-			return
-		}
+	// Resolve server config path (required)
+	serverConfigPath, err = filepath.Abs(serverConfigPath)
+	if err != nil {
+		fmt.Printf("failed to resolve server config path: %s\n", err.Error())
+		return
+	}
 
-		if _, err := os.Stat(serverConfigPath); err != nil {
-			fmt.Printf("no file found at server config path\n")
-			return
-		}
+	if _, err := os.Stat(serverConfigPath); err != nil {
+		fmt.Printf("no file found at server config path\n")
+		return
 	}
 
 	mcpFile, err := mcpfile.ParseMCPFile(mcpFilePath)
@@ -71,22 +70,14 @@ func executeRunCmd(cobraCmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Determine which runtime to check for stdio
-	var transportProtocol string
-	if serverConfigPath != "" {
-		serverConfig, err := mcpfile.ParseMCPServerConfig(serverConfigPath)
-		if err != nil {
-			fmt.Printf("invalid server config: %s\n", err)
-			return
-		}
-		if serverConfig.Runtime != nil {
-			transportProtocol = serverConfig.Runtime.TransportProtocol
-		}
-	} else if mcpFile.Runtime != nil {
-		transportProtocol = mcpFile.Runtime.TransportProtocol
+	// Parse server config to check transport protocol
+	serverConfig, err := mcpfile.ParseMCPServerConfig(serverConfigPath)
+	if err != nil {
+		fmt.Printf("invalid server config: %s\n", err)
+		return
 	}
 
-	if transportProtocol == mcpfile.TransportProtocolStdio && detach {
+	if serverConfig.Runtime != nil && serverConfig.Runtime.TransportProtocol == mcpfile.TransportProtocolStdio && detach {
 		// TODO: re-enable this logging when we figure out logging w. stdio
 		// fmt.Printf("cannot detach when running stdio transport\n")
 		detach = false
@@ -94,7 +85,7 @@ func executeRunCmd(cobraCmd *cobra.Command, args []string) {
 
 	if !detach {
 		// Run servers directly in the current process
-		err := mcpserver.RunServersWithConfig(context.Background(), mcpFilePath, serverConfigPath)
+		err := mcpserver.RunServers(context.Background(), mcpFilePath, serverConfigPath)
 		if err != nil {
 			fmt.Printf("genmcp-server failed with %s\n", err.Error())
 		}
@@ -102,10 +93,7 @@ func executeRunCmd(cobraCmd *cobra.Command, args []string) {
 	}
 
 	// Detached mode: spawn the same command without --detach flag
-	cmdArgs := []string{"run", "-f", mcpFilePath}
-	if serverConfigPath != "" {
-		cmdArgs = append(cmdArgs, "-s", serverConfigPath)
-	}
+	cmdArgs := []string{"run", "-f", mcpFilePath, "-s", serverConfigPath}
 	cmd := exec.Command(os.Args[0], cmdArgs...)
 	err = cmd.Start()
 	if err != nil {
