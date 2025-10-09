@@ -1,0 +1,8 @@
+mcpFileVersion: 0.1.0
+name: test-server
+version: 1.0.0
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8080
+    basePath: /mcp

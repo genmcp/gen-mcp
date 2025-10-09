@@ -176,3 +176,10 @@ type MCPFile struct {
 	FileVersion string `json:"mcpFileVersion"`
 	MCPServer   `json:",inline"`
 }
+
+type MCPServerConfig struct {
+	FileVersion string         `json:"mcpFileVersion"`
+	Name        string         `json:"name"`    // name of the server
+	Version     string         `json:"version"` // version of the server
+	Runtime     *ServerRuntime `json:"runtime,omitempty"`
+}

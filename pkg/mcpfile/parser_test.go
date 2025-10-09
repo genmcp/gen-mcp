@@ -507,3 +507,49 @@ func TestParseMcpFile(t *testing.T) {
 
 	}
 }
+
+func TestParseMCPServerConfig(t *testing.T) {
+	tt := map[string]struct {
+		testFileName string
+		expected     *MCPServerConfig
+		wantErr      bool
+	}{
+		"basic server config": {
+			testFileName: "mcpserver-basic.yaml",
+			expected: &MCPServerConfig{
+				FileVersion: MCPFileVersion,
+				Name:        "test-server",
+				Version:     "1.0.0",
+				Runtime: &ServerRuntime{
+					TransportProtocol: TransportProtocolStreamableHttp,
+					StreamableHTTPConfig: &StreamableHTTPConfig{
+						Port:      8080,
+						BasePath:  "/mcp",
+						Stateless: true,
+					},
+				},
+			},
+		},
+	}
+
+	for testName, testCase := range tt {
+		t.Run(testName, func(t *testing.T) {
+			t.Parallel()
+			serverConfig, err := ParseMCPServerConfig(fmt.Sprintf("./testdata/%s", testCase.testFileName))
+			if testCase.wantErr {
+				assert.Error(t, err, "parsing server config should cause an error")
+			} else {
+				assert.NoError(t, err, "parsing server config should succeed")
+			}
+
+			assert.Equal(t, testCase.expected, serverConfig)
+		})
+	}
+}
+
+func TestParseMCPFileWithoutRuntime(t *testing.T) {
+	mcpFile, err := ParseMCPFile("./testdata/mcpfile-without-runtime.yaml")
+	assert.NoError(t, err)
+	assert.Nil(t, mcpFile.Runtime, "mcpfile without runtime should have nil runtime")
+	assert.Equal(t, 1, len(mcpFile.Tools), "should have one tool")
+}
