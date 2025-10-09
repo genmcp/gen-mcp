@@ -154,7 +154,7 @@ tools:
 
   - name: exec_dns_in_pod
     title: Exec DNS probe in ephemeral pod
-    description: Run a short-lived pod that performs a DNS query using an image containing DNS tools.
+    description: Run a short-lived pod that performs a DNS query using an approved image containing DNS tools.
       The cluster must allow the image to be pulled from the container registry.
     inputSchema:
       type: object
@@ -179,4 +179,36 @@ tools:
     invocation:
       cli:
         command: |
-          oc run dnsquery --rm -i --restart=Never -n {namespace} --image=infoblox/dnstools --command -- sh -c "dig @{server} {name} {type}"
+          namespace="{namespace}"
+          server="{server}"
+          name="{name}"
+          rtype="{type}"
+          pod_name="dnsquery-$(date +%s%3N)"
+          cat <<EOF | oc apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ${pod_name}
+  namespace: ${namespace}
+spec:
+  restartPolicy: Never
+  containers:
+  - name: dnsquery
+    image: registry.redhat.io/openshift4/network-tools-rhel9:latest
+    command: ["sh", "-c", "dig @${server} ${name} ${rtype} +noall +answer"]
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      allowPrivilegeEscalation: false
+      seccompProfile:
+        type: RuntimeDefault
+      capabilities:
+        drop:
+        - "ALL"
+  securityContext:
+    runAsNonRoot: true
+EOF
+          oc -n "${namespace}" wait --for=condition=PodScheduled "pod/${pod_name}" --timeout=30s >/dev/null 2>&1 || true
+          oc -n "${namespace}" wait --for=condition=Ready "pod/${pod_name}" --timeout=90s >/dev/null 2>&1 || true
+          oc -n "${namespace}" logs -f "${pod_name}" || oc -n "${namespace}" logs "${pod_name}" || true
+          oc -n "${namespace}" delete pod "${pod_name}" --ignore-not-found >/dev/null 2>&1 || true
