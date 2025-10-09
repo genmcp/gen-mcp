@@ -1,0 +1,9 @@
+mcpFileVersion: "0.1.0"
+name: user-service
+version: "2.1.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8080
+    basePath: /mcp
+    stateless: true
