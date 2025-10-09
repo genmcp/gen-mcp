@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"go.uber.org/zap"
 
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 	_ "github.com/genmcp/gen-mcp/pkg/invocation/cli"
@@ -20,12 +21,34 @@ import (
 )
 
 func MakeServer(mcpServer *mcpfile.MCPServer) (*mcp.Server, error) {
+	logger := mcpServer.Runtime.GetBaseLogger()
+	logger.Debug("Creating MCP server",
+		zap.String("server_name", mcpServer.Name),
+		zap.String("server_version", mcpServer.Version))
+
 	// Validate the server configuration before creating the server
 	if err := mcpServer.Validate(invocation.InvocationValidator); err != nil {
+		logger.Error("Server configuration validation failed",
+			zap.String("server_name", mcpServer.Name),
+			zap.Error(err))
 		return nil, fmt.Errorf("invalid server configuration: %w", err)
 	}
 
-	return makeServerWithoutValidation(mcpServer)
+	logger.Info("Server configuration validated successfully",
+		zap.String("server_name", mcpServer.Name))
+
+	server, err := makeServerWithoutValidation(mcpServer)
+	if err != nil {
+		logger.Error("Failed to create server",
+			zap.String("server_name", mcpServer.Name),
+			zap.Error(err))
+		return nil, err
+	}
+
+	logger.Info("MCP server created successfully",
+		zap.String("server_name", mcpServer.Name),
+		zap.String("server_version", mcpServer.Version))
+	return server, nil
 }
 
 // makeServerWithoutValidation creates a server without performing validation
@@ -35,17 +58,33 @@ func makeServerWithoutValidation(mcpServer *mcpfile.MCPServer) (*mcp.Server, err
 }
 
 func RunServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
+	logger := mcpServerConfig.Runtime.GetBaseLogger()
+	logger.Info("Starting MCP server",
+		zap.String("server_name", mcpServerConfig.Name),
+		zap.String("server_version", mcpServerConfig.Version),
+		zap.String("transport_protocol", mcpServerConfig.Runtime.TransportProtocol))
+
 	// Validate the server configuration before running
 	if err := mcpServerConfig.Validate(invocation.InvocationValidator); err != nil {
+		logger.Error("Server configuration validation failed before running",
+			zap.String("server_name", mcpServerConfig.Name),
+			zap.Error(err))
 		return fmt.Errorf("invalid server configuration: %w", err)
 	}
 
+	logger.Debug("Server configuration validated, selecting transport protocol",
+		zap.String("transport_protocol", mcpServerConfig.Runtime.TransportProtocol))
+
 	switch strings.ToLower(mcpServerConfig.Runtime.TransportProtocol) {
 	case mcpfile.TransportProtocolStreamableHttp:
+		logger.Info("Running server with streamable HTTP transport")
 		return runStreamableHttpServer(ctx, mcpServerConfig)
 	case mcpfile.TransportProtocolStdio:
+		logger.Info("Running server with stdio transport")
 		return runStdioServer(ctx, mcpServerConfig)
 	default:
+		logger.Error("Invalid transport protocol specified",
+			zap.String("transport_protocol", mcpServerConfig.Runtime.TransportProtocol))
 		return fmt.Errorf("tried running invalid transport protocol")
 	}
 }
@@ -57,9 +96,21 @@ func RunServers(ctx context.Context, mcpFilePath string) error {
 		return fmt.Errorf("failed to parse mcp file: %w", err)
 	}
 
+	// Now we can get the logger from the runtime config
+	logger := mcpConfig.Runtime.GetBaseLogger()
+	logger.Info("Starting servers from MCP file",
+		zap.String("mcp_file_path", mcpFilePath),
+		zap.String("server_name", mcpConfig.Name),
+		zap.String("server_version", mcpConfig.Version))
+
 	if err := mcpConfig.Validate(invocation.InvocationValidator); err != nil {
+		logger.Error("MCP file validation failed",
+			zap.String("mcp_file_path", mcpFilePath),
+			zap.Error(err))
 		return fmt.Errorf("mcp file is invalid: %w", err)
 	}
+
+	logger.Debug("MCP file validated successfully, creating server instance")
 
 	mcpServer := &mcpfile.MCPServer{
 		Name:              mcpConfig.Name,
@@ -75,82 +126,131 @@ func RunServers(ctx context.Context, mcpFilePath string) error {
 }
 
 func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
+	logger := mcpServerConfig.Runtime.GetBaseLogger()
+	port := mcpServerConfig.Runtime.StreamableHTTPConfig.Port
+	basePath := mcpServerConfig.Runtime.StreamableHTTPConfig.BasePath
+	stateless := mcpServerConfig.Runtime.StreamableHTTPConfig.Stateless
+
+	logger.Info("Setting up streamable HTTP server",
+		zap.Int("port", port),
+		zap.String("base_path", basePath),
+		zap.Bool("stateless", stateless))
+
 	sm := NewServerManager(mcpServerConfig)
 	// Create a root mux to handle different endpoints
 	mux := http.NewServeMux()
 
+	logger.Debug("Creating MCP handler")
 	// Set up MCP server under /mcp (or whatever is under BasePath)
 	handler := mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
 		s, err := sm.ServerFromContext(r.Context())
 		if err != nil {
+			logger.Warn("Failed to get server from context in handler",
+				zap.Error(err),
+				zap.String("request_uri", r.RequestURI))
 			return nil
 		}
 
 		return s
 	}, &mcp.StreamableHTTPOptions{
-		Stateless: mcpServerConfig.Runtime.StreamableHTTPConfig.Stateless,
+		Stateless: stateless,
 	})
 
+	logger.Debug("Setting up OAuth middleware")
 	oauthHandler := oauth.Middleware(mcpServerConfig)(handler)
 
-	mux.Handle(mcpServerConfig.Runtime.StreamableHTTPConfig.BasePath, oauthHandler)
+	mux.Handle(basePath, oauthHandler)
+	logger.Debug("Registered MCP handler", zap.String("path", basePath))
 
 	// Set up OAuth protected resource metadata endpoint under / if needed
 	if mcpServerConfig.Runtime.StreamableHTTPConfig.Auth != nil {
+		logger.Debug("Setting up OAuth protected resource metadata endpoint")
 		mux.HandleFunc(oauth.ProtectedResourceMetadataEndpoint, oauth.ProtectedResourceMetadataHandler(mcpServerConfig))
+		logger.Debug("Registered OAuth metadata handler", zap.String("path", oauth.ProtectedResourceMetadataEndpoint))
 	}
 
 	// Use custom server with the mux
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", mcpServerConfig.Runtime.StreamableHTTPConfig.Port),
+		Addr:    fmt.Sprintf(":%d", port),
 		Handler: mux,
 	}
-	fmt.Printf("starting listen on :%d\n", mcpServerConfig.Runtime.StreamableHTTPConfig.Port)
+	logger.Info("Starting HTTP server", zap.Int("port", port))
 
 	// Channel to capture server errors
 	errCh := make(chan error, 1)
 	go func() {
+		var err error
 		if mcpServerConfig.Runtime.StreamableHTTPConfig.TLS != nil {
-			if err := srv.ListenAndServeTLS(
+			logger.Info("Starting HTTPS server with TLS",
+				zap.String("cert_file", mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.CertFile),
+				zap.String("key_file", mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.KeyFile))
+			err = srv.ListenAndServeTLS(
 				mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.CertFile,
 				mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.KeyFile,
-			); err != nil && err != http.ErrServerClosed {
-				errCh <- err
-			}
+			)
 		} else {
-			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				errCh <- err
-			}
+			logger.Info("Starting HTTP server")
+			err = srv.ListenAndServe()
+		}
+
+		if err != nil && err != http.ErrServerClosed {
+			logger.Error("HTTP server error", zap.Error(err))
+			errCh <- err
 		}
 	}()
 
 	// Wait for context cancellation or server error
 	select {
 	case <-ctx.Done():
-		fmt.Println("shutting down server...")
-		return srv.Shutdown(context.Background())
+		logger.Info("Received shutdown signal, shutting down HTTP server gracefully")
+		if err := srv.Shutdown(context.Background()); err != nil {
+			logger.Error("Error during server shutdown", zap.Error(err))
+			return err
+		}
+		logger.Info("HTTP server shutdown completed")
+		return nil
 	case err := <-errCh:
+		logger.Error("HTTP server failed", zap.Error(err))
 		return err
 	}
 }
 
 func runStdioServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
+	logger := mcpServerConfig.Runtime.GetBaseLogger()
+	logger.Info("Setting up stdio server",
+		zap.String("server_name", mcpServerConfig.Name),
+		zap.String("server_version", mcpServerConfig.Version))
+
 	s, err := makeServerWithoutValidation(mcpServerConfig)
 	if err != nil {
+		logger.Error("Failed to create stdio server", zap.Error(err))
 		return fmt.Errorf("failed to create server: %w", err)
 	}
 
-	return s.Run(ctx, &mcp.StdioTransport{})
+	logger.Info("Starting stdio server")
+	if err := s.Run(ctx, &mcp.StdioTransport{}); err != nil {
+		logger.Error("Stdio server failed", zap.Error(err))
+		return err
+	}
+
+	logger.Info("Stdio server completed")
+	return nil
 }
 
 // checkPrimitiveAuthorization verifies if user has required scopes for a primitive (tool or prompt)
-func checkPrimitiveAuthorization(ctx context.Context, requiredScopes []string) error {
+func checkPrimitiveAuthorization(ctx context.Context, requiredScopes []string, primitiveName, primitiveType string) error {
 	if len(requiredScopes) == 0 {
 		return nil // No scopes required
 	}
 
+	baseLogger := logging.BaseFromContext(ctx)
 	userClaims := oauth.GetClaimsFromContext(ctx)
 	if userClaims == nil {
+		// Server-side security logging - NOT sent to client
+		baseLogger.Warn("Authorization check failed: no authentication context found",
+			zap.String("primitive_name", primitiveName),
+			zap.String("primitive_type", primitiveType),
+			zap.Strings("required_scopes", requiredScopes))
 		return fmt.Errorf("no authentication context found")
 	}
 
@@ -160,9 +260,23 @@ func checkPrimitiveAuthorization(ctx context.Context, requiredScopes []string) e
 	// Check if user has all required scopes
 	for _, requiredScope := range requiredScopes {
 		if !slices.Contains(userScopes, requiredScope) {
+			// Server-side security logging - NOT sent to client
+			baseLogger.Warn("Authorization check failed: missing required scope",
+				zap.String("primitive_name", primitiveName),
+				zap.String("primitive_type", primitiveType),
+				zap.String("required_scope", requiredScope),
+				zap.Strings("user_scopes", userScopes),
+				zap.String("user_subject", userClaims.Subject))
 			return fmt.Errorf("missing required scope '%s'", requiredScope)
 		}
 	}
+
+	// Log successful authorization at debug level (server-side only)
+	baseLogger.Debug("Authorization check passed",
+		zap.String("primitive_name", primitiveName),
+		zap.String("primitive_type", primitiveType),
+		zap.Strings("required_scopes", requiredScopes),
+		zap.String("user_subject", userClaims.Subject))
 
 	return nil
 }
@@ -175,12 +289,27 @@ func createAuthorizedToolHandler(tool *mcpfile.Tool) (mcp.ToolHandler, error) {
 	}
 
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		clientLogger := logging.FromContext(ctx)  // Sent to MCP client
+
 		// Check if user has required scopes for this tool
-		if err := checkPrimitiveAuthorization(ctx, tool.RequiredScopes); err != nil {
-			return utils.McpTextError("forbidden: %s for tool '%s'", err.Error(), tool.Name), fmt.Errorf("forbidden: %s for tool '%s'", err.Error(), tool.Name)
+		if err := checkPrimitiveAuthorization(ctx, tool.RequiredScopes, tool.Name, "tool"); err != nil {
+			// Return generic error to client - don't reveal tool name or specific authorization failure
+			return utils.McpTextError("forbidden: insufficient permissions"), fmt.Errorf("forbidden: %s for tool '%s'", err.Error(), tool.Name)
 		}
 
-		return invoker.Invoke(ctx, req)
+		// Client can see their own successful tool invocations
+		clientLogger.Info("Tool invocation started", zap.String("tool_name", tool.Name))
+
+		result, err := invoker.Invoke(ctx, req)
+		if err != nil {
+			clientLogger.Error("Tool invocation failed",
+				zap.String("tool_name", tool.Name),
+				zap.Error(err))
+			return result, err
+		}
+
+		clientLogger.Info("Tool invocation completed successfully", zap.String("tool_name", tool.Name))
+		return result, nil
 	}, nil
 }
 
@@ -191,12 +320,27 @@ func createAuthorizedPromptHandler(prompt *mcpfile.Prompt) (mcp.PromptHandler, e
 	}
 
 	return func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		clientLogger := logging.FromContext(ctx)  // Sent to MCP client
+
 		// Check if user has required scopes for this prompt
-		if err := checkPrimitiveAuthorization(ctx, prompt.RequiredScopes); err != nil {
-			return utils.McpPromptTextError("forbidden: %s for prompt '%s'", err.Error(), prompt.Name), fmt.Errorf("forbidden: %s for prompt '%s'", err.Error(), prompt.Name)
+		if err := checkPrimitiveAuthorization(ctx, prompt.RequiredScopes, prompt.Name, "prompt"); err != nil {
+			// Return generic error to client - don't reveal prompt name or specific authorization failure
+			return utils.McpPromptTextError("forbidden: insufficient permissions"), fmt.Errorf("forbidden: %s for prompt '%s'", err.Error(), prompt.Name)
 		}
 
-		return invoker.InvokePrompt(ctx, req)
+		// Client can see their own successful prompt invocations
+		clientLogger.Info("Prompt invocation started", zap.String("prompt_name", prompt.Name))
+
+		result, err := invoker.InvokePrompt(ctx, req)
+		if err != nil {
+			clientLogger.Error("Prompt invocation failed",
+				zap.String("prompt_name", prompt.Name),
+				zap.Error(err))
+			return result, err
+		}
+
+		clientLogger.Info("Prompt invocation completed successfully", zap.String("prompt_name", prompt.Name))
+		return result, nil
 	}, nil
 }
 
@@ -207,12 +351,27 @@ func createAuthorizedResourceHandler(resource *mcpfile.Resource) (mcp.ResourceHa
 	}
 
 	return func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		clientLogger := logging.FromContext(ctx)  // Sent to MCP client
+
 		// Check if user has required scopes for this resource
-		if err := checkPrimitiveAuthorization(ctx, resource.RequiredScopes); err != nil {
-			return utils.McpResourceTextError("forbidden: %s for resource '%s'", err.Error(), resource.Name), fmt.Errorf("forbidden: %s for resource '%s'", err.Error(), resource.Name)
+		if err := checkPrimitiveAuthorization(ctx, resource.RequiredScopes, resource.Name, "resource"); err != nil {
+			// Return generic error to client - don't reveal resource name or specific authorization failure
+			return utils.McpResourceTextError("forbidden: insufficient permissions"), fmt.Errorf("forbidden: %s for resource '%s'", err.Error(), resource.Name)
 		}
 
-		return invoker.InvokeResource(ctx, req)
+		// Client can see their own successful resource access
+		clientLogger.Info("Resource access started", zap.String("resource_name", resource.Name))
+
+		result, err := invoker.InvokeResource(ctx, req)
+		if err != nil {
+			clientLogger.Error("Resource access failed",
+				zap.String("resource_name", resource.Name),
+				zap.Error(err))
+			return result, err
+		}
+
+		clientLogger.Info("Resource access completed successfully", zap.String("resource_name", resource.Name))
+		return result, nil
 	}, nil
 }
 
@@ -222,18 +381,42 @@ func createAuthorizedResourceTemplateHandler(resourceTemplate *mcpfile.ResourceT
 		return nil, fmt.Errorf("failed to create invoker for resource template %s: %w", resourceTemplate.Name, err)
 	}
 	return func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-		// Check if user has required scopes for this resource
-		if err := checkPrimitiveAuthorization(ctx, resourceTemplate.RequiredScopes); err != nil {
-			return utils.McpResourceTextError("forbidden: %s for resource template '%s'", err.Error(), resourceTemplate.Name), fmt.Errorf("forbidden: %s for resource template '%s'", err.Error(), resourceTemplate.Name)
+		clientLogger := logging.FromContext(ctx)  // Sent to MCP client
+
+		// Check if user has required scopes for this resource template
+		if err := checkPrimitiveAuthorization(ctx, resourceTemplate.RequiredScopes, resourceTemplate.Name, "resource_template"); err != nil {
+			// Return generic error to client - don't reveal resource template name or specific authorization failure
+			return utils.McpResourceTextError("forbidden: insufficient permissions"), fmt.Errorf("forbidden: %s for resource template '%s'", err.Error(), resourceTemplate.Name)
 		}
 
-		return invoker.InvokeResourceTemplate(ctx, req)
+		// Client can see their own successful resource template access
+		clientLogger.Info("Resource template access started", zap.String("resource_template_name", resourceTemplate.Name))
+
+		result, err := invoker.InvokeResourceTemplate(ctx, req)
+		if err != nil {
+			clientLogger.Error("Resource template access failed",
+				zap.String("resource_template_name", resourceTemplate.Name),
+				zap.Error(err))
+			return result, err
+		}
+
+		clientLogger.Info("Resource template access completed successfully", zap.String("resource_template_name", resourceTemplate.Name))
+		return result, nil
 	}, nil
 }
 
 // makeServerWithTools makes a server using the server metadata in mcpServer but with the tools specified in tools
 // this is useful for creating servers with filtered tool lists
 func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*mcp.Server, error) {
+	logger := mcpServer.Runtime.GetBaseLogger()
+	logger.Debug("Building MCP server with tools",
+		zap.String("server_name", mcpServer.Name),
+		zap.String("server_version", mcpServer.Version),
+		zap.Int("num_tools", len(tools)),
+		zap.Int("num_prompts", len(mcpServer.Prompts)),
+		zap.Int("num_resources", len(mcpServer.Resources)),
+		zap.Int("num_resource_templates", len(mcpServer.ResourceTemplates)))
+
 	s := mcp.NewServer(&mcp.Implementation{
 		Name:    mcpServer.Name,
 		Version: mcpServer.Version,
@@ -241,12 +424,17 @@ func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*
 		HasTools: len(mcpServer.Tools) > 0,
 	})
 
-	s.AddReceivingMiddleware(logging.WithLoggingMiddleware(mcpServer.Runtime.GetBaseLogger()))
+	logger.Debug("Adding logging middleware")
+	s.AddReceivingMiddleware(logging.WithLoggingMiddleware(logger))
 
 	var serverErr error
+	logger.Debug("Registering tools", zap.Int("count", len(tools)))
 	for _, t := range tools {
 		handler, err := createAuthorizedToolHandler(t)
 		if err != nil {
+			logger.Error("Failed to create tool handler",
+				zap.String("tool_name", t.Name),
+				zap.Error(err))
 			serverErr = errors.Join(serverErr, err)
 			continue
 		}
@@ -264,11 +452,16 @@ func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*
 		}
 
 		s.AddTool(tool, handler)
+		logger.Debug("Registered tool", zap.String("tool_name", t.Name))
 	}
 
+	logger.Debug("Registering prompts", zap.Int("count", len(mcpServer.Prompts)))
 	for _, p := range mcpServer.Prompts {
 		handler, err := createAuthorizedPromptHandler(p)
 		if err != nil {
+			logger.Error("Failed to create prompt handler",
+				zap.String("prompt_name", p.Name),
+				zap.Error(err))
 			serverErr = errors.Join(serverErr, err)
 			continue
 		}
@@ -280,11 +473,16 @@ func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*
 			},
 			handler,
 		)
+		logger.Debug("Registered prompt", zap.String("prompt_name", p.Name))
 	}
 
+	logger.Debug("Registering resources", zap.Int("count", len(mcpServer.Resources)))
 	for _, r := range mcpServer.Resources {
 		handler, err := createAuthorizedResourceHandler(r)
 		if err != nil {
+			logger.Error("Failed to create resource handler",
+				zap.String("resource_name", r.Name),
+				zap.Error(err))
 			serverErr = errors.Join(serverErr, err)
 			continue
 		}
@@ -299,11 +497,16 @@ func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*
 			},
 			handler,
 		)
+		logger.Debug("Registered resource", zap.String("resource_name", r.Name))
 	}
 
+	logger.Debug("Registering resource templates", zap.Int("count", len(mcpServer.ResourceTemplates)))
 	for _, rt := range mcpServer.ResourceTemplates {
 		handler, err := createAuthorizedResourceTemplateHandler(rt)
 		if err != nil {
+			logger.Error("Failed to create resource template handler",
+				zap.String("resource_template_name", rt.Name),
+				zap.Error(err))
 			serverErr = errors.Join(serverErr, err)
 			continue
 		}
@@ -317,6 +520,13 @@ func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*
 			},
 			handler,
 		)
+		logger.Debug("Registered resource template", zap.String("resource_template_name", rt.Name))
+	}
+
+	if serverErr != nil {
+		logger.Warn("Server created with some errors", zap.Error(serverErr))
+	} else {
+		logger.Info("Server created successfully with all components")
 	}
 
 	return s, serverErr
