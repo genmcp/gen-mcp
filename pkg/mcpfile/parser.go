@@ -36,6 +36,27 @@ func ParseMCPFile(path string) (*MCPFile, error) {
 	return mcpFile, nil
 }
 
+func ParseMCPServerConfig(path string) (*MCPServerConfig, error) {
+	serverConfig := &MCPServerConfig{}
+
+	path, err := filepath.Abs(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get absolute path to server config file: %v", err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read server config file: %v", err)
+	}
+
+	err = yaml.Unmarshal(data, serverConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal server config file: %v", err)
+	}
+
+	return serverConfig, nil
+}
+
 func (m *MCPFile) UnmarshalJSON(data []byte) error {
 	// First unmarshal into a temporary struct to get all fields
 	var raw map[string]json.RawMessage
@@ -58,6 +79,45 @@ func (m *MCPFile) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (c *MCPServerConfig) UnmarshalJSON(data []byte) error {
+	type Doppleganger MCPServerConfig
+
+	tmp := struct {
+		*Doppleganger
+	}{
+		Doppleganger: (*Doppleganger)(c),
+	}
+
+	err := json.Unmarshal(data, &tmp)
+	if err != nil {
+		return err
+	}
+
+	// Set defaults for runtime if present
+	if c.Name != "" || c.Version != "" {
+		if c.Runtime == nil {
+			c.Runtime = &ServerRuntime{
+				TransportProtocol: TransportProtocolStreamableHttp,
+				StreamableHTTPConfig: &StreamableHTTPConfig{
+					Port:      3000,
+					BasePath:  DefaultBasePath,
+					Stateless: true,
+				},
+			}
+		}
+
+		if c.Runtime.TransportProtocol == TransportProtocolStreamableHttp && c.Runtime.StreamableHTTPConfig == nil {
+			c.Runtime.StreamableHTTPConfig = &StreamableHTTPConfig{
+				Port:      3000,
+				BasePath:  DefaultBasePath,
+				Stateless: true,
+			}
+		}
+	}
+
+	return nil
+}
+
 func (s *MCPServer) UnmarshalJSON(data []byte) error {
 	type Doppleganger MCPServer
 
@@ -72,30 +132,8 @@ func (s *MCPServer) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	// Only set defaults if we have a server defined (name or version present)
-	if s.Name != "" || s.Version != "" {
-		if s.Runtime == nil {
-			s.Runtime = &ServerRuntime{
-				TransportProtocol: TransportProtocolStreamableHttp,
-				StreamableHTTPConfig: &StreamableHTTPConfig{
-					Port:      3000,
-					BasePath:  DefaultBasePath,
-					Stateless: true,
-				},
-			}
-		}
-
-		if s.Runtime.TransportProtocol == TransportProtocolStreamableHttp && s.Runtime.StreamableHTTPConfig == nil {
-			s.Runtime.StreamableHTTPConfig = &StreamableHTTPConfig{
-				Port:      3000,
-				BasePath:  DefaultBasePath,
-				Stateless: true,
-			}
-		}
-	}
-
+	// No default runtime settings - runtime must come from separate server config
 	return nil
-
 }
 
 func (t *Tool) UnmarshalJSON(data []byte) error {

@@ -49,8 +49,9 @@ func RunServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
 	}
 }
 
-// RunServers runs all servers defined in the MCP file
-func RunServers(ctx context.Context, mcpFilePath string) error {
+// RunServers runs servers with separate config files
+// serverConfigPath is required and must contain the runtime configuration
+func RunServers(ctx context.Context, mcpFilePath string, serverConfigPath string) error {
 	mcpConfig, err := mcpfile.ParseMCPFile(mcpFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to parse mcp file: %w", err)
@@ -60,10 +61,16 @@ func RunServers(ctx context.Context, mcpFilePath string) error {
 		return fmt.Errorf("mcp file is invalid: %w", err)
 	}
 
+	// Parse server config (required)
+	serverConfig, err := mcpfile.ParseMCPServerConfig(serverConfigPath)
+	if err != nil {
+		return fmt.Errorf("failed to parse server config file: %w", err)
+	}
+
 	mcpServer := &mcpfile.MCPServer{
-		Name:              mcpConfig.Name,
-		Version:           mcpConfig.Version,
-		Runtime:           mcpConfig.Runtime,
+		Name:              serverConfig.Name,
+		Version:           serverConfig.Version,
+		Runtime:           serverConfig.Runtime,
 		Tools:             mcpConfig.Tools,
 		Prompts:           mcpConfig.Prompts,
 		Resources:         mcpConfig.Resources,

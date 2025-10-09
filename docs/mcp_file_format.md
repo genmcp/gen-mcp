@@ -2,7 +2,9 @@
 
 ## 1. Introduction
 
-The MCP (Model Context Protocol) file is a YAML-based configuration that defines the capabilities of an MCP server. It specifies the tools available, their input and output schemas, and how they should be invoked. This document details version `0.1.0` of the file format.
+The MCP (Model Context Protocol) file is a YAML-based configuration that defines the capabilities of an MCP server. It specifies the tools, prompts, and resources available, their input and output schemas, and how they should be invoked. This document details version `0.1.0` of the file format.
+
+**Note**: As of version 0.1.0, runtime configuration (such as transport protocol, port, etc.) must be provided in a separate `mcpserver.yaml` file. See [Server Configuration Specification](./server_config_format.md) for details.
 
 ## 2. Top-Level Object
 
@@ -11,13 +13,35 @@ The root of the configuration is a single top-level object with the following fi
 | Field | Type | Description | Required |
 |---|---|---|---|
 | `mcpFileVersion` | string | The version of the MCP file format. Must be `"0.1.0"`. | Yes |
-| `name` | string | The name of the server. | Yes |
-| `version` | string | The semantic version of the server's toolset. | Yes |
-| `runtime` | `ServerRuntime` | The runtime settings for the server. If omitted, it defaults to `streamablehttp` on port `3000`. | No |
 | `tools` | array of `Tool` | The tools provided by this server. | No |
+| `prompts` | array of `Prompt` | The prompts provided by this server. | No |
+| `resources` | array of `Resource` | The resources provided by this server. | No |
+| `resourceTemplates` | array of `ResourceTemplate` | The resource templates provided by this server. | No |
 
 ### Example
 
+When using a separate server configuration file:
+
+**mcpfile.yaml:**
+```yaml
+mcpFileVersion: 0.1.0
+tools:
+- name: get_user
+  description: "Retrieves a user by their ID"
+  inputSchema:
+    type: object
+    properties:
+      userId:
+        type: string
+    required:
+    - userId
+  invocation:
+    http:
+      method: GET
+      url: http://localhost:8080/users/{userId}
+```
+
+**mcpserver.yaml:**
 ```yaml
 mcpFileVersion: 0.1.0
 name: my-awesome-server
@@ -26,9 +50,9 @@ runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
     port: 8080
-tools:
-  # ... tool definitions
 ```
+
+Run with: `gen-mcp run -f mcpfile.yaml -s mcpserver.yaml`
 
 ## 3. ServerRuntime Object
 
