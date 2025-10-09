@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"maps"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"

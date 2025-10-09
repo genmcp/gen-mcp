@@ -12,7 +12,6 @@ import (
 
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/genmcp/gen-mcp/pkg/oauth"
-	"github.com/genmcp/gen-mcp/pkg/observability/logging"
 )
 
 type ServerManager struct {
