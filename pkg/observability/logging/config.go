@@ -101,11 +101,10 @@ func (lc *LoggingConfig) toZapConfig() (zap.Config, error) {
 	var config zap.Config
 
 	// Set defaults if not specified
-	if lc.Encoding == "" {
-		config = zap.NewProductionConfig()
-	} else if lc.Encoding == "console" {
+	switch lc.Encoding {
+	case "console":
 		config = zap.NewDevelopmentConfig()
-	} else {
+	default:
 		config = zap.NewProductionConfig()
 	}
 
