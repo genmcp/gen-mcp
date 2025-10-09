@@ -13,6 +13,7 @@ PORT="${PORT:-8080}"
 SCENARIO2_BAD_HOST="does-not-exist.netedge.test"
 SCENARIO2_ORIG_HOST_ANNOTATION="netedge-tools-original-host"
 SCENARIO3_POLICY_NAME="netedge-deny-router"
+CURRENT_ROUTE_HOST=""
 
 log() { printf '%s\n' "$*" >&2; }
 
@@ -82,6 +83,7 @@ YAML
   oc -n "${NAMESPACE}" wait --for=jsonpath='{.subsets[0].addresses[0].ip}' endpoints/"${APP_NAME}" --timeout=120s
 
   show_status
+  refresh_route_host
 }
 
 ensure_workload() {
@@ -107,6 +109,24 @@ show_status() {
   fi
 }
 
+refresh_route_host() {
+  local status_host spec_host chosen_host
+  status_host="$(oc -n "${NAMESPACE}" get route "${APP_NAME}" -o jsonpath='{.status.ingress[0].host}' 2>/dev/null || true)"
+  spec_host="$(oc -n "${NAMESPACE}" get route "${APP_NAME}" -o jsonpath='{.spec.host}' 2>/dev/null || true)"
+  if [ -n "${status_host}" ]; then
+    chosen_host="${status_host}"
+  else
+    chosen_host="${spec_host}"
+  fi
+  if [ -n "${chosen_host}" ]; then
+    log "current route host from cluster: ${chosen_host}"
+    CURRENT_ROUTE_HOST="${chosen_host}"
+  else
+    log "could not determine current route host from cluster"
+    CURRENT_ROUTE_HOST=""
+  fi
+}
+
 scenario1_break() {
   ensure_workload
   log "breaking service selector to create empty endpoints"
@@ -120,6 +140,7 @@ scenario1_break() {
     sleep 5
   done
   show_status
+  refresh_route_host
   log "note: route should now return 503 due to no backends"
 }
 
@@ -130,6 +151,7 @@ scenario1_repair() {
   log "waiting for endpoints to repopulate"
   oc -n "${NAMESPACE}" wait --for=jsonpath='{.subsets[0].addresses[0].ip}' endpoints/"${APP_NAME}" --timeout=120s
   show_status
+  refresh_route_host
   log "note: route should now succeed"
 }
 
@@ -154,6 +176,7 @@ scenario2_break() {
   patch=$(printf '{"spec":{"host":"%s"},"metadata":{"annotations":{"%s":"%s"}}}' "${SCENARIO2_BAD_HOST}" "${SCENARIO2_ORIG_HOST_ANNOTATION}" "${stored_host}")
   oc -n "${NAMESPACE}" patch route "${APP_NAME}" --type=merge -p "${patch}"
   show_status
+  refresh_route_host
   log "note: external DNS lookups for ${SCENARIO2_BAD_HOST} should now fail with NXDOMAIN"
 }
 
@@ -172,6 +195,7 @@ scenario2_repair() {
   patch=$(printf '{"spec":{"host":"%s"}}' "${stored_host}")
   oc -n "${NAMESPACE}" patch route "${APP_NAME}" --type=merge -p "${patch}"
   show_status
+  refresh_route_host
   log "note: route host restored; DNS should resolve again if reachable from this environment"
 }
 
@@ -191,6 +215,7 @@ spec:
   - Ingress
 YAML
   show_status
+  refresh_route_host
   log "note: router traffic should now be blocked by the NetworkPolicy"
 }
 
@@ -198,29 +223,26 @@ scenario3_repair() {
   log "removing NetworkPolicy ${SCENARIO3_POLICY_NAME}"
   oc -n "${NAMESPACE}" delete networkpolicy "${SCENARIO3_POLICY_NAME}" --ignore-not-found
   show_status
+  refresh_route_host
   log "note: router traffic should now be allowed"
 }
 
 route_url() {
-  local host
-  host="$(oc -n "${NAMESPACE}" get route "${APP_NAME}" -o jsonpath='{.spec.host}' 2>/dev/null || true)"
-  if [ -z "${host}" ]; then
-    host="$(oc -n "${NAMESPACE}" get route "${APP_NAME}" -o jsonpath='{.status.ingress[0].host}' 2>/dev/null || true)"
-  fi
-  if [ -n "${host}" ]; then
-    printf 'http://%s\n' "${host}"
+  refresh_route_host
+  if [ -n "${CURRENT_ROUTE_HOST}" ]; then
+    printf 'http://%s\n' "${CURRENT_ROUTE_HOST}"
   fi
 }
 
 curl_route() {
-  local url
-  url="$(route_url || true)"
-  if [ -n "${url:-}" ]; then
-    log "curling ${url}"
-    curl -fsS "${url}" | head -n 3 || { log "curl failed or route not resolvable from here"; return 1; }
-  else
+  refresh_route_host
+  if [ -z "${CURRENT_ROUTE_HOST}" ]; then
     log "could not determine route host"
+    return 1
   fi
+  local url="http://${CURRENT_ROUTE_HOST}"
+  log "curling ${url}"
+  curl -fsS "${url}" | head -n 3 || { log "curl failed or route not resolvable from here"; return 1; }
 }
 
 cleanup_workload() {
@@ -234,6 +256,7 @@ scenario_cleanup() {
   if oc -n "${NAMESPACE}" get networkpolicy "${SCENARIO3_POLICY_NAME}" >/dev/null 2>&1; then
     oc -n "${NAMESPACE}" delete networkpolicy "${SCENARIO3_POLICY_NAME}" --ignore-not-found
   fi
+  CURRENT_ROUTE_HOST=""
 }
 
 scenario_name() {
@@ -282,6 +305,7 @@ scenario_repair() {
 scenario_status() {
   ensure_workload
   show_status
+  refresh_route_host
 }
 
 remind_scenario() {
