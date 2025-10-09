@@ -553,3 +553,21 @@ func TestParseMCPFileWithoutRuntime(t *testing.T) {
 	assert.Nil(t, mcpFile.Runtime, "mcpfile without runtime should have nil runtime")
 	assert.Equal(t, 1, len(mcpFile.Tools), "should have one tool")
 }
+
+func TestServerConfigAndMCPFileSeparation(t *testing.T) {
+	// Test that we can parse both files independently and combine them
+	serverConfig, err := ParseMCPServerConfig("./testdata/mcpserver-basic.yaml")
+	assert.NoError(t, err)
+	assert.NotNil(t, serverConfig.Runtime, "server config should have runtime")
+	assert.Equal(t, "test-server", serverConfig.Name)
+	assert.Equal(t, "1.0.0", serverConfig.Version)
+
+	mcpFile, err := ParseMCPFile("./testdata/mcpfile-without-runtime.yaml")
+	assert.NoError(t, err)
+	assert.Nil(t, mcpFile.Runtime, "mcpfile should not have runtime")
+	assert.Equal(t, 1, len(mcpFile.Tools), "should have one tool")
+
+	// Verify they can be combined to create a complete server config
+	assert.NotNil(t, serverConfig.Runtime)
+	assert.NotNil(t, mcpFile.Tools)
+}
