@@ -8,14 +8,19 @@ import (
 )
 
 type ctxKey struct{}
+type baseCtxKey struct{}
 
 // WithLoggingMiddleware creates an MCP middleware that adds request-scoped logging.
 // It extracts the ServerSession from incoming requests and creates a request-specific
-// logger that can be retrieved using FromContext. If session extraction or logger
-// creation fails, it logs a warning and continues the request chain without error.
+// logger that can be retrieved using FromContext. It also stores the base logger
+// for server-side security logging. If session extraction or logger creation fails,
+// it logs a warning and continues the request chain without error.
 func WithLoggingMiddleware(base *zap.Logger) mcp.Middleware {
 	return func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (result mcp.Result, err error) {
+			// Always store the base logger for server-side security logging
+			ctx = WithBaseLogger(ctx, base)
+
 			session := req.GetSession()
 			ss, ok := session.(*mcp.ServerSession)
 			if !ok {
@@ -42,11 +47,37 @@ func WithRequestLogger(ctx context.Context, logger *zap.Logger) context.Context 
 	return context.WithValue(ctx, ctxKey{}, logger)
 }
 
-// FromContext retrieves the logger stored in the context by WithRequestLogger.
+// WithBaseLogger stores the base logger in the given context, making it available
+// for server-side security logging via BaseFromContext throughout the request lifecycle.
+func WithBaseLogger(ctx context.Context, logger *zap.Logger) context.Context {
+	return context.WithValue(ctx, baseCtxKey{}, logger)
+}
+
+// FromContext retrieves the request-scoped logger stored in the context by WithRequestLogger.
+// This logger sends logs to both server-side and MCP client.
 // If no logger is found or the stored value is not a *zap.Logger, it returns
 // a no-op logger to ensure safe operation without panics.
 func FromContext(ctx context.Context) *zap.Logger {
 	logger := ctx.Value(ctxKey{})
+	if logger == nil {
+		return zap.NewNop()
+	}
+
+	zapLogger, ok := logger.(*zap.Logger)
+	if !ok {
+		return zap.NewNop()
+	}
+
+	return zapLogger
+}
+
+// BaseFromContext retrieves the base logger stored in the context by WithBaseLogger.
+// This logger only sends logs to server-side outputs (files, console) and should be used
+// for security events that should not be visible to MCP clients.
+// If no logger is found or the stored value is not a *zap.Logger, it returns
+// a no-op logger to ensure safe operation without panics.
+func BaseFromContext(ctx context.Context) *zap.Logger {
+	logger := ctx.Value(baseCtxKey{})
 	if logger == nil {
 		return zap.NewNop()
 	}
