@@ -124,21 +124,17 @@ func (sm *ServerManager) filterToolsForScope(scope string) []*mcpfile.Tool {
 
 	logger.Debug("Filtering tools for scope",
 		zap.String("scope", scope),
-		zap.Strings("user_scopes", userScopes),
 		zap.Int("total_tools", len(sm.mcpServer.Tools)))
 
 	for _, tool := range sm.mcpServer.Tools {
 		if err := checkAuthorization(tool.RequiredScopes, scopesLookup); err != nil {
 			logger.Debug("Tool filtered out due to insufficient scopes",
-				zap.String("tool_name", tool.Name),
-				zap.Strings("required_scopes", tool.RequiredScopes),
-				zap.Strings("user_scopes", userScopes))
+				zap.String("tool_name", tool.Name))
 			continue
 		}
 
 		logger.Debug("Tool included for user",
-			zap.String("tool_name", tool.Name),
-			zap.Strings("required_scopes", tool.RequiredScopes))
+			zap.String("tool_name", tool.Name))
 		allowedTools = append(allowedTools, tool)
 	}
 

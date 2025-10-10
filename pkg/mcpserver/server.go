@@ -249,8 +249,7 @@ func checkPrimitiveAuthorization(ctx context.Context, requiredScopes []string, p
 		// Server-side security logging - NOT sent to client
 		baseLogger.Warn("Authorization check failed: no authentication context found",
 			zap.String("primitive_name", primitiveName),
-			zap.String("primitive_type", primitiveType),
-			zap.Strings("required_scopes", requiredScopes))
+			zap.String("primitive_type", primitiveType))
 		return fmt.Errorf("no authentication context found")
 	}
 
@@ -264,10 +263,8 @@ func checkPrimitiveAuthorization(ctx context.Context, requiredScopes []string, p
 			baseLogger.Warn("Authorization check failed: missing required scope",
 				zap.String("primitive_name", primitiveName),
 				zap.String("primitive_type", primitiveType),
-				zap.String("required_scope", requiredScope),
-				zap.Strings("user_scopes", userScopes),
 				zap.String("user_subject", userClaims.Subject))
-			return fmt.Errorf("missing required scope '%s'", requiredScope)
+			return fmt.Errorf("missing required scope")
 		}
 	}
 
@@ -275,7 +272,6 @@ func checkPrimitiveAuthorization(ctx context.Context, requiredScopes []string, p
 	baseLogger.Debug("Authorization check passed",
 		zap.String("primitive_name", primitiveName),
 		zap.String("primitive_type", primitiveType),
-		zap.Strings("required_scopes", requiredScopes),
 		zap.String("user_subject", userClaims.Subject))
 
 	return nil
@@ -289,7 +285,7 @@ func createAuthorizedToolHandler(tool *mcpfile.Tool) (mcp.ToolHandler, error) {
 	}
 
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		clientLogger := logging.FromContext(ctx)  // Sent to MCP client
+		clientLogger := logging.FromContext(ctx) // Sent to MCP client
 
 		// Check if user has required scopes for this tool
 		if err := checkPrimitiveAuthorization(ctx, tool.RequiredScopes, tool.Name, "tool"); err != nil {
@@ -297,7 +293,6 @@ func createAuthorizedToolHandler(tool *mcpfile.Tool) (mcp.ToolHandler, error) {
 			baseLogger := logging.BaseFromContext(ctx)
 			baseLogger.Error("Tool authorization failed",
 				zap.String("tool_name", tool.Name),
-				zap.Strings("required_scopes", tool.RequiredScopes),
 				zap.Error(err))
 			// Return generic error to client - don't reveal tool name or specific authorization failure
 			return utils.McpTextError("forbidden: insufficient permissions"), nil
@@ -336,7 +331,7 @@ func createAuthorizedPromptHandler(prompt *mcpfile.Prompt) (mcp.PromptHandler, e
 	}
 
 	return func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
-		clientLogger := logging.FromContext(ctx)  // Sent to MCP client
+		clientLogger := logging.FromContext(ctx) // Sent to MCP client
 
 		// Check if user has required scopes for this prompt
 		if err := checkPrimitiveAuthorization(ctx, prompt.RequiredScopes, prompt.Name, "prompt"); err != nil {
@@ -344,7 +339,6 @@ func createAuthorizedPromptHandler(prompt *mcpfile.Prompt) (mcp.PromptHandler, e
 			baseLogger := logging.BaseFromContext(ctx)
 			baseLogger.Error("Prompt authorization failed",
 				zap.String("prompt_name", prompt.Name),
-				zap.Strings("required_scopes", prompt.RequiredScopes),
 				zap.Error(err))
 			// Return generic error to client - don't reveal prompt name or specific authorization failure
 			return utils.McpPromptTextError("forbidden: insufficient permissions"), nil
@@ -383,7 +377,7 @@ func createAuthorizedResourceHandler(resource *mcpfile.Resource) (mcp.ResourceHa
 	}
 
 	return func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-		clientLogger := logging.FromContext(ctx)  // Sent to MCP client
+		clientLogger := logging.FromContext(ctx) // Sent to MCP client
 
 		// Check if user has required scopes for this resource
 		if err := checkPrimitiveAuthorization(ctx, resource.RequiredScopes, resource.Name, "resource"); err != nil {
@@ -391,7 +385,6 @@ func createAuthorizedResourceHandler(resource *mcpfile.Resource) (mcp.ResourceHa
 			baseLogger := logging.BaseFromContext(ctx)
 			baseLogger.Error("Resource authorization failed",
 				zap.String("resource_name", resource.Name),
-				zap.Strings("required_scopes", resource.RequiredScopes),
 				zap.Error(err))
 			// Return generic error to client - don't reveal resource name or specific authorization failure
 			return utils.McpResourceTextError("forbidden: insufficient permissions"), nil
@@ -429,7 +422,7 @@ func createAuthorizedResourceTemplateHandler(resourceTemplate *mcpfile.ResourceT
 		return nil, fmt.Errorf("failed to create invoker for resource template %s: %w", resourceTemplate.Name, err)
 	}
 	return func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-		clientLogger := logging.FromContext(ctx)  // Sent to MCP client
+		clientLogger := logging.FromContext(ctx) // Sent to MCP client
 
 		// Check if user has required scopes for this resource template
 		if err := checkPrimitiveAuthorization(ctx, resourceTemplate.RequiredScopes, resourceTemplate.Name, "resource_template"); err != nil {
@@ -437,7 +430,6 @@ func createAuthorizedResourceTemplateHandler(resourceTemplate *mcpfile.ResourceT
 			baseLogger := logging.BaseFromContext(ctx)
 			baseLogger.Error("Resource template authorization failed",
 				zap.String("resource_template_name", resourceTemplate.Name),
-				zap.Strings("required_scopes", resourceTemplate.RequiredScopes),
 				zap.Error(err))
 			// Return generic error to client - don't reveal resource template name or specific authorization failure
 			return utils.McpResourceTextError("forbidden: insufficient permissions"), nil
