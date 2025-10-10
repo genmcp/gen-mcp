@@ -2,8 +2,13 @@ package mcpfile
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
+	"sync"
 
+	"github.com/genmcp/gen-mcp/pkg/observability/logging"
 	"github.com/google/jsonschema-go/jsonschema"
+	"go.uber.org/zap"
 )
 
 const (
@@ -273,6 +278,40 @@ type ServerRuntime struct {
 
 	// Configuration for stdio transport protocol.
 	StdioConfig *StdioConfig `json:"stdioConfig,omitempty" jsonschema:"optional"`
+
+	// Configuration for the server logging
+	LoggingConfig *logging.LoggingConfig `json:"loggingConfig" jsonschema:"optional"`
+
+	baseLogger     *zap.Logger
+	initLoggerOnce sync.Once
+}
+
+// GetBaseLogger returns the base logger for the server, defaulting to noop if either the runtime or
+// any of the logging config is nil or has errors
+func (sr *ServerRuntime) GetBaseLogger() *zap.Logger {
+	if sr == nil {
+		return zap.NewNop()
+	}
+
+	sr.initLoggerOnce.Do(func() {
+		if sr.LoggingConfig != nil {
+			logger, err := sr.LoggingConfig.BuildBase()
+			if err != nil || logger == nil {
+				// Surface the error to stderr before falling back
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "ERROR: Failed to build base logger, using no-op logger: %v\n", err)
+				} else {
+					fmt.Fprintf(os.Stderr, "ERROR: BuildBase returned nil logger, using no-op logger\n")
+				}
+				logger = zap.NewNop()
+			}
+			sr.baseLogger = logger
+		} else {
+			sr.baseLogger = zap.NewNop()
+		}
+	})
+
+	return sr.baseLogger
 }
 
 // MCPServer defines the metadata and capabilities of an MCP server.

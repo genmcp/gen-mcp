@@ -15,6 +15,9 @@ The root of the configuration is a single top-level object with the following fi
 | `version` | string | The semantic version of the server's toolset. | Yes |
 | `runtime` | `ServerRuntime` | The runtime settings for the server. If omitted, it defaults to `streamablehttp` on port `3000`. | No |
 | `tools` | array of `Tool` | The tools provided by this server. | No |
+| `prompts` | array of `Prompt` | The prompts provided by this server. | No |
+| `resources` | array of `Resource` | The resources provided by this server. | No |
+| `resourceTemplates` | array of `ResourceTemplate` | The resource templates provided by this server. | No |
 
 ### Example
 
@@ -39,6 +42,7 @@ The `ServerRuntime` object specifies the transport protocol and its configuratio
 | `transportProtocol` | string | The transport protocol to use. Must be one of `streamablehttp` or `stdio`. | Yes |
 | `streamableHttpConfig` | `StreamableHTTPConfig` | Configuration for the `streamablehttp` transport protocol. Required if `transportProtocol` is `streamablehttp`. | No |
 | `stdioConfig` | `StdioConfig` | Configuration for the `stdio` transport protocol. Required if `transportProtocol` is `stdio`. | No |
+| `loggingConfig` | `LoggingConfig` | Configuration for server logging. | No |
 
 ### 3.1. StreamableHTTPConfig Object
 
@@ -46,6 +50,7 @@ The `ServerRuntime` object specifies the transport protocol and its configuratio
 |---|---|---|---|
 | `port` | integer | The port for the server to listen on. | Yes |
 | `basePath` | string | The base path for the MCP server. Defaults to `/mcp`. | No |
+| `stateless` | boolean | Indicates whether the server is stateless. | No |
 | `auth` | `AuthConfig` | OAuth 2.0 configuration for protected resource. | No |
 | `tls` | `TLSConfig` | TLS configuration for the HTTP server. | No |
 
@@ -67,7 +72,27 @@ The `ServerRuntime` object specifies the transport protocol and its configuratio
 
 This object is currently empty and serves as a placeholder for future configuration options.
 
-## 4. Tool Object
+### 3.5. LoggingConfig Object
+
+| Field | Type | Description | Required |
+|---|---|---|---|
+| `level` | string | The minimum enabled logging level (debug, info, warn, error, dpanic, panic, fatal). | No |
+| `development` | boolean | Puts the logger in development mode. | No |
+| `disableCaller` | boolean | Stops annotating logs with the calling function's file name and line number. | No |
+| `disableStacktrace` | boolean | Completely disables automatic stacktrace capturing. | No |
+| `encoding` | string | Sets the logger's encoding ("json" or "console"). | No |
+| `outputPaths` | array of string | A list of URLs or file paths to write logging output to. | No |
+| `errorOutputPaths` | array of string | A list of URLs to write internal logger errors to. | No |
+| `initialFields` | map[string]interface{} | A collection of fields to add to the root logger. | No |
+| `enableMcpLogs` | boolean | Controls whether logs are sent to MCP clients. Defaults to true. | No |
+
+**Note**: When `enableMcpLogs` is true, all MCP log entries are sent to MCP clients regardless of the configured `level`. The MCP client determines which log levels to actually display or process.
+
+## 4. Primitive Objects
+
+The MCP file format supports four types of primitive objects: Tools, Prompts, Resources, and Resource Templates. Each primitive object represents a capability that can be invoked by an MCP client.
+
+### 4.1. Tool Object
 
 A `Tool` object describes a specific, invokable function.
 
@@ -80,6 +105,63 @@ A `Tool` object describes a specific, invokable function.
 | `outputSchema` | `JsonSchema` | A JSON Schema object defining the structure of the tool's output. | No |
 | `invocation` | `Invocation` | An object describing how to execute the tool. Must contain a single key: either `http` or `cli`. | Yes |
 | `requiredScopes` | array of string | OAuth 2.0 scopes required to execute this tool. Only relevant when the server uses OAuth authentication. | No |
+
+### 4.2. Prompt Object
+
+A `Prompt` object describes a natural-language or LLM-style function invocation.
+
+| Field | Type | Description | Required |
+|---|---|---|---|
+| `name` | string | A unique, programmatic identifier for the prompt. | Yes |
+| `title` | string | A human-readable title for display purposes. | No |
+| `description` | string | A detailed description of what the prompt does. | Yes |
+| `arguments` | array of `PromptArgument` | List of template arguments for the prompt. | No |
+| `inputSchema` | `JsonSchema` | A JSON Schema object defining the parameters the prompt accepts. | Yes |
+| `outputSchema` | `JsonSchema` | A JSON Schema object defining the structure of the prompt's output. | No |
+| `invocation` | `Invocation` | An object describing how to execute the prompt. Must contain a single key: either `http` or `cli`. | Yes |
+| `requiredScopes` | array of string | OAuth 2.0 scopes required to execute this prompt. Only relevant when the server uses OAuth authentication. | No |
+
+#### 4.2.1. PromptArgument Object
+
+| Field | Type | Description | Required |
+|---|---|---|---|
+| `name` | string | Unique identifier for the argument. | Yes |
+| `title` | string | Human-readable title for display. | No |
+| `description` | string | Detailed explanation of the argument. | No |
+| `required` | boolean | Indicates if the argument is mandatory. | No |
+
+### 4.3. Resource Object
+
+A `Resource` object represents a retrievable or executable resource.
+
+| Field | Type | Description | Required |
+|---|---|---|---|
+| `name` | string | A unique, programmatic identifier for the resource. | Yes |
+| `title` | string | A human-readable title for display purposes. | No |
+| `description` | string | A detailed description of the resource. | Yes |
+| `mimeType` | string | The MIME type of this resource, if known. | No |
+| `size` | integer | The size of the raw resource content in bytes, if known. | No |
+| `uri` | string | The URI of this resource. | Yes |
+| `inputSchema` | `JsonSchema` | A JSON Schema object defining the parameters the resource accepts. | Yes |
+| `outputSchema` | `JsonSchema` | A JSON Schema object defining the structure of the resource's output. | No |
+| `invocation` | `Invocation` | An object describing how to invoke the resource. Must contain a single key: either `http` or `cli`. | Yes |
+| `requiredScopes` | array of string | OAuth 2.0 scopes required to access this resource. Only relevant when the server uses OAuth authentication. | No |
+
+### 4.4. ResourceTemplate Object
+
+A `ResourceTemplate` object represents a reusable URI-based template for resources.
+
+| Field | Type | Description | Required |
+|---|---|---|---|
+| `name` | string | A unique, programmatic identifier for the resource template. | Yes |
+| `title` | string | A human-readable title for display purposes. | No |
+| `description` | string | A detailed description of the resource template. | Yes |
+| `mimeType` | string | MIME type for resources matching this template. | No |
+| `uriTemplate` | string | URI template (RFC 6570) used to construct resource URIs. | Yes |
+| `inputSchema` | `JsonSchema` | A JSON Schema object defining the parameters the resource template accepts. | Yes |
+| `outputSchema` | `JsonSchema` | A JSON Schema object defining the structure of the resource template's output. | No |
+| `invocation` | `Invocation` | An object describing how to invoke the resource template. Must contain a single key: either `http` or `cli`. | Yes |
+| `requiredScopes` | array of string | OAuth 2.0 scopes required to access this resource template. Only relevant when the server uses OAuth authentication. | No |
 
 ## 5. JsonSchema Object
 
@@ -144,33 +226,120 @@ The `templateVariables` map links placeholders in the `command` string to proper
 
 | Field | Type | Description | Required |
 |---|---|---|---|
-| `property` | string | The name of the property in the `inputSchema` to use for this variable. | Yes |
-| `format` | string | A format string for the argument (e.g., `--depth {depth}`). The placeholder within this string is replaced by the actual value of the input property. | No |
+| `format` | string | A format string for the argument (e.g., `--depth {depth}`). The placeholder within this string is replaced by the actual value of the input property. | Yes |
 | `omitIfFalse` | boolean | If `true`, the entire formatted argument is omitted from the command if the input property's value is `false`. Defaults to `false`. | No |
 
 #### Example
 
-In this example, the `{repoUrl}`, `{depth}`, and `{verbose}` placeholders in `command` are defined in `templateVariables`. Each `TemplateVariable` then maps to a property in the `inputSchema` (e.g., `repoUrl`, `depth`, `verbose`).
+In this example, the `{repoUrl}`, `{depth}`, and `{verbose}` placeholders in `command` are defined in `templateVariables`. The key name corresponds to the property in the `inputSchema`.
 
 ```yaml
 invocation:
   cli:
     command: "git clone {repoUrl} {depth} {verbose}"
     templateVariables:
-      repoUrl:
-        property: "repoUrl"
       depth:
-        property: "depth"
         format: "--depth {depth}"
       verbose:
-        property: "verbose"
         format: "--verbose"
         omitIfFalse: true
 ```
 
-## 7. Security Configuration Examples
+## 7. Complete Examples
 
-### 7.1. TLS Configuration
+### 7.1. Basic Logging Configuration
+
+```yaml
+mcpFileVersion: "0.1.0"
+name: Feature Request API
+version: "0.0.1"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8008
+  loggingConfig:
+    enableMcpLogs: true
+    encoding: "console"
+    level: "debug"
+tools:
+  - name: get_features
+    title: "Get all features"
+    description: "Returns a list of all features sorted by upvotes (highest first)"
+    inputSchema:
+      type: object
+    invocation:
+      http:
+        method: GET
+        url: http://localhost:9090/features
+```
+
+### 7.2. Advanced Logging Configuration
+
+```yaml
+mcpFileVersion: "0.1.0"
+name: Production API
+version: "1.0.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8080
+  loggingConfig:
+    level: "info"
+    encoding: "json"
+    development: false
+    disableCaller: false
+    disableStacktrace: false
+    outputPaths:
+      - "/var/log/mcp-server.log"
+      - "stdout"
+    errorOutputPaths:
+      - "/var/log/mcp-server-error.log"
+      - "stderr"
+    initialFields:
+      service: "mcp-api"
+      version: "1.0.0"
+    enableMcpLogs: true
+tools:
+  - name: health_check
+    description: "Returns the health status of the service"
+    inputSchema:
+      type: object
+    invocation:
+      http:
+        method: GET
+        url: http://localhost:8080/health
+```
+
+### 7.3. Disabled MCP Logging
+
+```yaml
+mcpFileVersion: "0.1.0"
+name: Silent API
+version: "1.0.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8080
+  loggingConfig:
+    level: "warn"
+    encoding: "json"
+    enableMcpLogs: false
+    outputPaths:
+      - "/var/log/system.log"
+tools:
+  - name: process_data
+    description: "Processes data without sending logs to MCP clients"
+    inputSchema:
+      type: object
+    invocation:
+      http:
+        method: POST
+        url: http://localhost:8080/process
+```
+
+## 8. Security Configuration Examples
+
+### 8.1. TLS Configuration
 
 To enable HTTPS for your MCP server, configure TLS in the `streamableHttpConfig`:
 
@@ -187,7 +356,7 @@ runtime:
       keyFile: /etc/ssl/private/server.key
 ```
 
-### 7.2. OAuth 2.0 Configuration
+### 8.2. OAuth 2.0 Configuration
 
 To protect your MCP server with OAuth 2.0 authentication:
 
@@ -213,7 +382,7 @@ tools:
     # ... rest of tool definition
 ```
 
-### 7.3. Combined TLS and OAuth Configuration
+### 8.3. Combined TLS and OAuth Configuration
 
 For maximum security, combine both TLS and OAuth:
 
@@ -234,7 +403,7 @@ runtime:
       jwksUri: https://auth.example.com/.well-known/jwks.json
 ```
 
-## 8. Complete Example for a CLI
+## 9. Complete Example for a CLI
 
 ```yaml
 mcpFileVersion: "0.1.0"
@@ -264,18 +433,14 @@ tools:
       cli:
         command: "git clone {repoUrl} {depth} {verbose}"
         templateVariables:
-          repoUrl:
-            property: "repoUrl"
           depth:
-            property: "depth"
             format: "--depth {depth}"
           verbose:
-            property: "verbose"
             format: "--verbose"
             omitIfFalse: true
 ```
 
-## 9. Complete Example for an HTTP Server
+## 10. Complete Example for an HTTP Server
 
 ```yaml
 mcpFileVersion: "0.1.0"

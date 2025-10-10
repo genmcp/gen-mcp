@@ -97,6 +97,45 @@
       ],
       "description": "The structure for HTTP invocation configuration."
     },
+    "LoggingConfig": {
+      "properties": {
+        "level": {
+          "type": "string"
+        },
+        "development": {
+          "type": "boolean"
+        },
+        "disableCaller": {
+          "type": "boolean"
+        },
+        "disableStacktrace": {
+          "type": "boolean"
+        },
+        "encoding": {
+          "type": "string"
+        },
+        "outputPaths": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "errorOutputPaths": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "initialFields": {
+          "type": "object"
+        },
+        "enableMcpLogs": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
     "MCPFile": {
       "properties": {
         "mcpFileVersion": {
@@ -591,12 +630,17 @@
         "stdioConfig": {
           "$ref": "#/$defs/StdioConfig",
           "description": "Configuration for stdio transport protocol."
+        },
+        "loggingConfig": {
+          "$ref": "#/$defs/LoggingConfig",
+          "description": "Configuration for the server logging"
         }
       },
       "additionalProperties": false,
       "type": "object",
       "required": [
-        "transportProtocol"
+        "transportProtocol",
+        "loggingConfig"
       ],
       "description": "ServerRuntime defines transport protocol and associated configuration."
     },

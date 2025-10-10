@@ -158,7 +158,12 @@ func TestCliInvocation(t *testing.T) {
 					Arguments: []byte("{}"),
 				},
 			},
-			expectError: true,
+			expectedResult: func(t *testing.T, result *mcp.CallToolResult) {
+				assert.True(t, result.IsError, "cli invocation should return MCP error result for execution failure")
+				assert.Len(t, result.Content, 1)
+				textContent := result.Content[0].(*mcp.TextContent)
+				assert.Contains(t, textContent.Text, "Command execution failed")
+			},
 		},
 	}
 
@@ -168,11 +173,17 @@ func TestCliInvocation(t *testing.T) {
 
 			res, err := tc.cliInvoker.Invoke(context.Background(), tc.request)
 			if tc.expectError {
-				assert.Error(t, err, "cli invocation should have an error")
+				// For validation/parsing errors, expect Go error
+				assert.Error(t, err, "cli invocation should return a Go error for validation/parsing failures")
+				assert.Nil(t, res, "cli invocation should not return a result when there's a Go error")
 			} else {
-				assert.NoError(t, err, "cli invocation should not have an error")
+				// For successful executions and execution errors, expect MCP result
+				assert.NoError(t, err, "cli invocation should not return a Go error")
+				assert.NotNil(t, res, "cli invocation should return a result")
 				if tc.expectedResult != nil {
 					tc.expectedResult(t, res)
+				} else {
+					assert.False(t, res.IsError, "cli invocation should not have an error result")
 				}
 			}
 		})
@@ -385,7 +396,13 @@ func TestCliPromptInvocation(t *testing.T) {
 					Arguments: map[string]string{},
 				},
 			},
-			expectError: true,
+			expectedResult: func(t *testing.T, result *mcp.GetPromptResult) {
+				assert.NotEmpty(t, result.Description, "cli prompt invocation should have an error description for execution failure")
+				assert.Len(t, result.Messages, 1)
+				assert.Equal(t, mcp.Role("assistant"), result.Messages[0].Role)
+				textContent := result.Messages[0].Content.(*mcp.TextContent)
+				assert.Contains(t, textContent.Text, "Command execution failed")
+			},
 		},
 	}
 
@@ -395,11 +412,17 @@ func TestCliPromptInvocation(t *testing.T) {
 
 			res, err := tc.cliInvoker.InvokePrompt(context.Background(), tc.request)
 			if tc.expectError {
-				assert.Error(t, err, "cli prompt invocation should have an error")
+				// For validation/parsing errors, expect Go error
+				assert.Error(t, err, "cli prompt invocation should return a Go error for validation/parsing failures")
+				assert.Nil(t, res, "cli prompt invocation should not return a result when there's a Go error")
 			} else {
-				assert.NoError(t, err, "cli prompt invocation should not have an error")
+				// For successful executions and execution errors, expect MCP result
+				assert.NoError(t, err, "cli prompt invocation should not return a Go error")
+				assert.NotNil(t, res, "cli prompt invocation should return a result")
 				if tc.expectedResult != nil {
 					tc.expectedResult(t, res)
+				} else {
+					assert.Empty(t, res.Description, "cli prompt invocation should not have an error description")
 				}
 			}
 		})
@@ -477,9 +500,13 @@ func TestCliResourceInvocation(t *testing.T) {
 
 			res, err := tc.cliInvoker.InvokeResource(context.Background(), tc.request)
 			if tc.expectError {
-				assert.Error(t, err, "cli resource invocation should have an error")
+				// For validation/parsing errors, expect Go error
+				assert.Error(t, err, "cli resource invocation should return a Go error for validation/parsing failures")
+				assert.Nil(t, res, "cli resource invocation should not return a result when there's a Go error")
 			} else {
-				assert.NoError(t, err, "cli resource invocation should not have an error")
+				// For successful executions and execution errors, expect MCP result
+				assert.NoError(t, err, "cli resource invocation should not return a Go error")
+				assert.NotNil(t, res, "cli resource invocation should return a result")
 				if tc.expectedResult != nil {
 					tc.expectedResult(t, res)
 				}
@@ -646,12 +673,16 @@ func TestCliResourceTemplateInvocation(t *testing.T) {
 
 			res, err := tc.cliInvoker.InvokeResourceTemplate(context.Background(), tc.request)
 			if tc.expectError {
-				assert.Error(t, err, "cli resource template invocation should have an error")
+				// For validation/parsing errors, expect Go error
+				assert.Error(t, err, "cli resource template invocation should return a Go error for validation/parsing failures")
+				assert.Nil(t, res, "cli resource template invocation should not return a result when there's a Go error")
 				if tc.errorMsg != "" {
 					assert.Contains(t, err.Error(), tc.errorMsg, "error message should contain expected text")
 				}
 			} else {
-				assert.NoError(t, err, "cli resource template invocation should not have an error")
+				// For successful executions and execution errors, expect MCP result
+				assert.NoError(t, err, "cli resource template invocation should not return a Go error")
+				assert.NotNil(t, res, "cli resource template invocation should return a result")
 				if tc.expectedResult != nil {
 					tc.expectedResult(t, res)
 				}
