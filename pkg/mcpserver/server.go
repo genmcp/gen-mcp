@@ -473,12 +473,20 @@ func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*
 		zap.Int("num_resources", len(mcpServer.Resources)),
 		zap.Int("num_resource_templates", len(mcpServer.ResourceTemplates)))
 
+	opts := &mcp.ServerOptions{
+		HasTools:     len(mcpServer.Tools) > 0,
+		HasPrompts:   len(mcpServer.Prompts) > 0,
+		HasResources: len(mcpServer.Resources)+len(mcpServer.ResourceTemplates) > 0,
+	}
+	if mcpServer.Instructions != "" {
+		logger.Debug("Adding server instructions")
+		opts.Instructions = mcpServer.Instructions
+	}
+
 	s := mcp.NewServer(&mcp.Implementation{
 		Name:    mcpServer.Name,
 		Version: mcpServer.Version,
-	}, &mcp.ServerOptions{
-		HasTools: len(mcpServer.Tools) > 0,
-	})
+	}, opts)
 
 	logger.Debug("Adding logging middleware")
 	s.AddReceivingMiddleware(logging.WithLoggingMiddleware(logger))
