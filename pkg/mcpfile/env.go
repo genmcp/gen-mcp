@@ -25,6 +25,10 @@ func NewEnvRuntimeOverrider() RuntimeOverrider {
 }
 
 func (e *envRuntimeOverrider) ApplyOverrides(runtime *ServerRuntime) error {
+	if runtime == nil {
+		return fmt.Errorf("can only apply env overrides to a non-nil server runtime")
+	}
+
 	reflectRuntime := reflect.ValueOf(runtime).Elem()
 	_, err := processStruct(reflectRuntime, genmcpEnvPrefix)
 	return err
@@ -42,7 +46,7 @@ func processStruct(val reflect.Value, prefix string) (bool, error) {
 			continue
 		}
 
-		if fieldVal.Kind() == reflect.Ptr && fieldVal.Elem().Kind() == reflect.Struct {
+		if fieldVal.Kind() == reflect.Ptr && fieldVal.Type().Elem().Kind() == reflect.Struct {
 			wasNil := false
 			if fieldVal.IsNil() {
 				fieldVal.Set(reflect.New(fieldVal.Type().Elem()))
@@ -140,13 +144,15 @@ func setField(field reflect.Value, value string) error {
 		}
 		return setField(field.Elem(), value)
 	case reflect.Map:
-		// Handle maps, particularly map[string]interface{} by parsing as JSON
+		// Handle maps by parsing as JSON into the correct type
 		if field.Type().Key().Kind() == reflect.String {
-			var mapValue map[string]interface{}
-			if err := json.Unmarshal([]byte(value), &mapValue); err != nil {
+			// Allocate a new value of the field's concrete map type
+			mapPtr := reflect.New(field.Type()).Interface()
+			if err := json.Unmarshal([]byte(value), mapPtr); err != nil {
 				return fmt.Errorf("failed to parse map value as JSON: %w", err)
 			}
-			field.Set(reflect.ValueOf(mapValue))
+			// Set the field with the dereferenced value
+			field.Set(reflect.ValueOf(mapPtr).Elem())
 		} else {
 			return fmt.Errorf("unsupported map key type: %v", field.Type().Key().Kind())
 		}

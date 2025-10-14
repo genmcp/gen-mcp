@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/genmcp/gen-mcp/pkg/observability/logging"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -72,6 +73,48 @@ func TestEnvOverrides(t *testing.T) {
 			expectErr: true,
 			env: map[string]string{
 				"GENMCP_STREAMABLEHTTPCONFIG_PORT": "\"9000\"",
+			},
+		},
+		"handles maps correctly": {
+			initialRuntime: &ServerRuntime{
+				TransportProtocol: "streamablehttp",
+				StreamableHTTPConfig: &StreamableHTTPConfig{
+					Port: 8080,
+				},
+			},
+			expectedRuntime: &ServerRuntime{
+				TransportProtocol: "streamablehttp",
+				StreamableHTTPConfig: &StreamableHTTPConfig{
+					Port: 8080,
+				},
+				LoggingConfig: &logging.LoggingConfig{
+					InitialFields: map[string]any{
+						"service": "genmcp",
+					},
+				},
+			},
+			env: map[string]string{
+				"GENMCP_LOGGINGCONFIG_INITIALFIELDS": "{\"service\": \"genmcp\"}",
+			},
+		},
+		"handles slices correctly": {
+			initialRuntime: &ServerRuntime{
+				TransportProtocol: "streamablehttp",
+				StreamableHTTPConfig: &StreamableHTTPConfig{
+					Port: 8080,
+				},
+			},
+			expectedRuntime: &ServerRuntime{
+				TransportProtocol: "streamablehttp",
+				StreamableHTTPConfig: &StreamableHTTPConfig{
+					Port: 8080,
+				},
+				LoggingConfig: &logging.LoggingConfig{
+					OutputPaths: []string{"/out/1", "/out/2"},
+				},
+			},
+			env: map[string]string{
+				"GENMCP_LOGGINGCONFIG_OUTPUTPATHS": "/out/1,/out/2",
 			},
 		},
 	}
