@@ -40,6 +40,25 @@ func TestParseMcpFile(t *testing.T) {
 				},
 			},
 		},
+		"with instructions": {
+			testFileName: "one-server-instructions.yaml",
+			expected: &MCPFile{
+				FileVersion: MCPFileVersion,
+				MCPServer: MCPServer{
+					Name:    "test-server",
+					Version: "1.0.0",
+					Runtime: &ServerRuntime{
+						TransportProtocol: TransportProtocolStreamableHttp,
+						StreamableHTTPConfig: &StreamableHTTPConfig{
+							Port:      3000,
+							BasePath:  DefaultBasePath,
+							Stateless: true,
+						},
+					},
+					Instructions: "These are the server instructions.\nIt can be a multi line string\n",
+				},
+			},
+		},
 		"with tools": {
 			testFileName: "one-server-tools.yaml",
 			expected: &MCPFile{
