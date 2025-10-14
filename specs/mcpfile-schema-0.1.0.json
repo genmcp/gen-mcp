@@ -154,6 +154,10 @@
           "$ref": "#/$defs/ServerRuntime",
           "description": "Runtime configuration for the MCP server."
         },
+        "instructions": {
+          "type": "string",
+          "description": "A set of instructions provided by the server to the client about how to use the server"
+        },
         "tools": {
           "items": {
             "$ref": "#/$defs/Tool"
