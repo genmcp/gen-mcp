@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=../../../specs/mcpfile-schema.json
+mcpFileVersion: 0.1.0
+name: test-server
+version: 1.0.0
+instructions: |
+  These are the server instructions.
+  It can be a multi line string

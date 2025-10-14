@@ -325,6 +325,9 @@ type MCPServer struct {
 	// Runtime configuration for the MCP server.
 	Runtime *ServerRuntime `json:"runtime,omitempty" jsonschema:"optional"`
 
+	// A set of instructions provided by the server to the client about how to use the server
+	Instructions string `json:"instructions,omitempty" jsonschema:"optional"`
+
 	// List of tools provided by the server.
 	Tools []*Tool `json:"tools,omitempty" jsonschema:"optional"`
 
