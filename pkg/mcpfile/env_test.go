@@ -79,11 +79,13 @@ func TestEnvOverrides(t *testing.T) {
 	for tn, tc := range tt {
 		t.Run(tn, func(t *testing.T) {
 			for k, v := range tc.env {
-				os.Setenv(k, v)
+				err := os.Setenv(k, v)
+				assert.NoError(t, err)
 			}
 			defer func() {
 				for k := range tc.env {
-					os.Unsetenv(k)
+					err := os.Unsetenv(k)
+					assert.NoError(t, err)
 				}
 			}()
 
