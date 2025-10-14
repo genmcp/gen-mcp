@@ -14,6 +14,7 @@ The root of the configuration is a single top-level object with the following fi
 | `name` | string | The name of the server. | Yes |
 | `version` | string | The semantic version of the server's toolset. | Yes |
 | `runtime` | `ServerRuntime` | The runtime settings for the server. If omitted, it defaults to `streamablehttp` on port `3000`. | No |
+| `instructions` | string | A set of instructions provided by the server to the client about how to use the server. | No |
 | `tools` | array of `Tool` | The tools provided by this server. | No |
 | `prompts` | array of `Prompt` | The prompts provided by this server. | No |
 | `resources` | array of `Resource` | The resources provided by this server. | No |
@@ -29,6 +30,12 @@ runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
     port: 8080
+instructions: |
+  To clone and analyze a repository:
+  1. First use clone_repo to clone the repository locally
+  2. Then use get_commit_history to analyze the repository's history
+  3. Use get_file_contents to examine specific files
+  4. Finally, use generate_report to create a summary
 tools:
   # ... tool definitions
 ```
@@ -411,6 +418,13 @@ name: git-tools
 version: "1.0.0"
 runtime:
   transportProtocol: stdio
+instructions: |
+  This server provides Git repository management tools. For typical workflows:
+  1. Use clone_repo to get a local copy of a repository
+  2. Use check_status to verify the repository state
+  3. Use commit_changes to save modifications
+
+  For shallow clones, always specify a depth parameter to save bandwidth.
 tools:
   - name: clone_repo
     title: "Clone Git Repository"
