@@ -62,8 +62,29 @@ type Tool struct {
 	// OAuth scopes required to invoke this tool.
 	RequiredScopes []string `json:"requiredScopes,omitempty" jsonschema:"optional"`
 
+	// Annotations to indicate tool behaviour to the client.
+	Annotations *ToolAnnotations `json:"annotations" jsonschema:"optional"`
+
 	// Resolved input schema for validation (internal use only).
 	ResolvedInputSchema *jsonschema.Resolved `json:"-"`
+}
+
+type ToolAnnotations struct {
+	// If true, the tool may perform destructive updates to its environemnt. If
+	// false, the tool performs only additive updates
+	DesctructiveHint *bool `json:"destructiveHint,omitempty" jsonschema:"optional"`
+
+	// If true, calling the tool repeatedly with the same arguments will have no additional
+	// effect on its environment
+	IdempotentHint *bool `json:"idempotentHint,omitempty" jsonschema:"optional"`
+
+	// If true, this tool may interact with an "open world" or external entities. If
+	// false, this tool's domain of interaction is closed. For example, the world of
+	// a web search tool is open, wherease that of a memory tool is not.
+	OpenWorldHint *bool `json:"openWorldHint,omitempty" jsonschema:"optional"`
+
+	// If true, the tool does not modify its environment
+	ReadOnlyHint *bool `json:"readOnlyHint,omitempty" jsonschema:"optional"`
 }
 
 func (t Tool) GetName() string                              { return t.Name }

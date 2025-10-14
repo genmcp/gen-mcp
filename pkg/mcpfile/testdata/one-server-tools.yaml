@@ -4,6 +4,11 @@ name: test-server
 version: 1.0.0
 tools:
 - name: get_user_by_company
+  annotations:
+    readOnlyHint: true
+    idempotentHint: false
+    openWorldHint: false
+    destructiveHint: false
   title: Users Provider
   description: Get list of users from a given company
   inputSchema:
