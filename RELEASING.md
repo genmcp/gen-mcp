@@ -4,12 +4,12 @@ This document outlines the release process for this project, which uses automate
 
 ## Release Cadence
 
-gem-mcp minor versions (that is, 0.**5**.0 versus 0.**4**.x) are typically released every 6 weeks. In order to be practical and flexible, we will consider a more rapid minor release if any of the following conditions are true:
+gen-mcp minor versions (that is, 0.**5**.0 versus 0.**4**.x) are typically released every 6 weeks. In order to be practical and flexible, we will consider a more rapid minor release if any of the following conditions are true:
 
-- Significant set of well-tested features introduced since the last release.
+- A significant set of well-tested features introduced since the last release.
 - User demand for rapid adoption of a specific feature.
 
-Additionally, we will consider delaying a minor release if no significant features have landed during the normal 6-weeks release cycle.
+Additionally, we will consider delaying a minor release if no significant features have landed during the normal 6-week release cycle.
 
 gen-mcp patch versions (for example, 0.5.**2** versus 0.5.**1**) are released as often as weekly. Maintainers decide whether or not a patch release is called for based on community input. A patch release may bypass this cadence if circumstances warrant.
 
