@@ -26,6 +26,15 @@ func MakeServer(mcpServer *mcpfile.MCPServer) (*mcp.Server, error) {
 		zap.String("server_name", mcpServer.Name),
 		zap.String("server_version", mcpServer.Version))
 
+	// apply the runtime overrides to the mcp server
+	// if something goes wrong in the env vars, we warn but continue
+	envOverrider := mcpfile.NewEnvRuntimeOverrider()
+	if err := envOverrider.ApplyOverrides(mcpServer.Runtime); err != nil {
+		logger.Warn("Failed to apply overrides from env vars to the mcp server",
+			zap.String("server_name", mcpServer.Name),
+			zap.Error(err))
+	}
+
 	// Validate the server configuration before creating the server
 	if err := mcpServer.Validate(invocation.InvocationValidator); err != nil {
 		logger.Error("Server configuration validation failed",
@@ -120,6 +129,15 @@ func RunServers(ctx context.Context, mcpFilePath string) error {
 		Prompts:           mcpConfig.Prompts,
 		Resources:         mcpConfig.Resources,
 		ResourceTemplates: mcpConfig.ResourceTemplates,
+	}
+
+	// Apply runtime overrides from environment variables
+	// if something goes wrong in the env vars, we warn but continue
+	envOverrider := mcpfile.NewEnvRuntimeOverrider()
+	if err := envOverrider.ApplyOverrides(mcpServer.Runtime); err != nil {
+		logger.Warn("Failed to apply overrides from env vars to the mcp server",
+			zap.String("server_name", mcpServer.Name),
+			zap.Error(err))
 	}
 
 	return RunServer(ctx, mcpServer)
