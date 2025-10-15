@@ -512,8 +512,8 @@ func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*
 
 		// only override annotation defaults if they are set by the user
 		if t.Annotations != nil {
-			if t.Annotations.DesctructiveHint != nil {
-				tool.Annotations.DestructiveHint = t.Annotations.DesctructiveHint
+			if t.Annotations.DestructiveHint != nil {
+				tool.Annotations.DestructiveHint = t.Annotations.DestructiveHint
 			}
 			if t.Annotations.IdempotentHint != nil {
 				tool.Annotations.IdempotentHint = *t.Annotations.IdempotentHint

@@ -774,7 +774,7 @@
       "properties": {
         "destructiveHint": {
           "type": "boolean",
-          "description": "If true, the tool may perform destructive updates to its environemnt. If\nfalse, the tool performs only additive updates"
+          "description": "If true, the tool may perform destructive updates to its environment. If\nfalse, the tool performs only additive updates"
         },
         "idempotentHint": {
           "type": "boolean",
@@ -782,7 +782,7 @@
         },
         "openWorldHint": {
           "type": "boolean",
-          "description": "If true, this tool may interact with an \"open world\" or external entities. If\nfalse, this tool's domain of interaction is closed. For example, the world of\na web search tool is open, wherease that of a memory tool is not."
+          "description": "If true, this tool may interact with an \"open world\" or external entities. If\nfalse, this tool's domain of interaction is closed. For example, the world of\na web search tool is open, whereas that of a memory tool is not."
         },
         "readOnlyHint": {
           "type": "boolean",
