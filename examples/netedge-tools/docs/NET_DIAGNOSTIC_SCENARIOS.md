@@ -1,4 +1,4 @@
-# Network Diagnostic Scenarios for Ingress & DNS
+__# Network Diagnostic Scenarios for Ingress & DNS
 
 This document describes candidate **network breakage scenarios** for use in an AI agent diagnostic project on OpenShift 4.19. The scenarios are designed to be:
 - Within the scope of the **Network Ingress and DNS team**
@@ -37,7 +37,7 @@ for usage.
 - Optionally `query_prometheus` → check router 503 metrics.
 
 ### Agent input to cause it diagnose this task:
-- `On the currently connected cluster, we've deployed an app and exposed it through a Route, but it’s not working, diagnose the root cause and suggest the fix`
+- `On the currently connected cluster, we've deployed an app and exposed it through a Route, but it’s not working. Diagnose the root cause and suggest the fix.`
 ---
 
 ## 2. Route Host Without DNS Record (NXDOMAIN)
@@ -63,7 +63,7 @@ for usage.
 - Optionally `exec_dns_in_pod` → in-cluster resolution check.
 
 ### Agent input to cause it diagnose this task:
-- `On the currently connected cluster, the route's hostname never resolves in DNS even though the service and pods look healthy; diagnose the root cause and suggest the fix.`
+- `On the currently connected cluster, the route's hostname never resolves in DNS even though the service and pods look healthy. Diagnose the root cause and suggest the fix.`
 
 ---
 
@@ -89,7 +89,7 @@ for usage.
 - Could infer by symptoms (503 + healthy endpoints) and escalate.
 
 ### Agent input to cause it diagnose this task:
-- `We locked down the namespace with a NetworkPolicy and now the Route times out; debug and describe the fix`
+- `On the currently connected cluster every request to the Route now times out even though the pods and service look healthy. Diagnose the root cause and suggest the fix.`
 
 ---
 
