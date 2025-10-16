@@ -15,10 +15,10 @@ Some examples can be found in `./examples/`
 - `./pkg/oauth/`: OAuth helpers, primarily to be used in `./pkg/mcpserver`
 - `./pkg/observability/`: observability packages to be used throughout
 - `./cmd/genmcp/`: the entry point for the genmcp CLI
-- `./cmd/genmcp-server/`: the enetry point for the genmcp server binary (to be used in containers)
+- `./cmd/genmcp-server/`: the entry point for the genmcp server binary (to be used in containers)
 - `./examples/`: various examples of how to use genmcp
 - `./docs/`: docs around the mcp file spec
-- `./specs/`: generated json schema specs for the mcp file formar
+- `./specs/`: generated json schema specs for the mcp file format
 - `./test/`: integration tests for the project
 
 ## Dev commands
@@ -36,4 +36,4 @@ There are more makefile commands than those listed here, but these are the only 
 
 ## PR Guidelines
 
-- When finishing a set of changes, before opening a PR be sure the update the `./CHANGELOG.md` file with any relevant changes your PR introduces. Every PR with user visible changes should update the `./CHANGELOG.md` with a short summary of the changes
+- When finishing a set of changes, before opening a PR be sure to update the `./CHANGELOG.md` file with any relevant changes your PR introduces. Every PR with user-visible changes should update the `./CHANGELOG.md` with a short summary of the changes
