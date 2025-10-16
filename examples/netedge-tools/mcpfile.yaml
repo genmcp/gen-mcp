@@ -66,7 +66,7 @@ tools:
 
   - name: query_prometheus
     title: Query Prometheus (range)
-    description: Run a Prometheus `query_range` query and return JSON. Requires `curl` on the gen-mcp host.
+    description: Run a Prometheus `query_range` query and return JSON via the HTTP API.
     inputSchema:
       type: object
       properties:
@@ -92,13 +92,9 @@ tools:
       - end
       - step
     invocation:
-      cli:
-        command: |
-          curl -sG "{prometheus_url}/api/v1/query_range" \
-            --data-urlencode "query={query}" \
-            --data-urlencode "start={start}" \
-            --data-urlencode "end={end}" \
-            --data-urlencode "step={step}"
+      http:
+        method: GET
+        url: "{prometheus_url}/api/v1/query_range"
 
   - name: get_coredns_config
     title: Get CoreDNS ConfigMap

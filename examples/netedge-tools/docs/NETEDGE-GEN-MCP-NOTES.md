@@ -57,9 +57,11 @@ to `genmcp` for your local checkout.
 
 Key assumptions and caveats
 --------------------------
-- The Phase‑0 tools use the `cli` invoker (they shell out). The following tools must
-  be available on the machine running the MCP server: `oc` or `kubectl`, `curl`, and
-  DNS tools (`dig` or `nslookup`). `jq` or `python3` is helpful for JSON extraction.
+- Most Phase‑0 tools use the `cli` invoker (they shell out). The MCP server machine
+  needs `oc` or `kubectl` plus DNS tooling (`dig` or `nslookup`). `jq` or `python3`
+  help when pretty-printing JSON from `inspect_route`.
+- `query_prometheus` uses the HTTP invoker and requires network access to the target
+  Prometheus endpoint.
 - `exec_dns_in_pod` pulls `registry.redhat.io/openshift4/network-tools-rhel9:latest`;
   replace with an approved image if your cluster restricts external pulls.
 - Template notes: when writing CLI `command` templates, each `{param}` must appear
