@@ -1,12 +1,13 @@
 # NetEdge Break/Repair Script
 
-`netedge-break-repair.sh` stages, breaks, and repairs the deterministic ingress and DNS scenarios captured in `NET_DIAGNOSTIC_SCENARIOS.md`. It deploys a minimal application stack (Deployment, Service, Route), introduces the chosen fault, and restores the healthy baseline when asked.
+`netedge-break-repair.sh` stages, breaks, and repairs the deterministic ingress and DNS scenarios captured in [`NET_DIAGNOSTIC_SCENARIOS.md`](./NET_DIAGNOSTIC_SCENARIOS.md). It deploys a minimal application stack (Deployment, Service, Route), introduces the chosen fault, and restores the healthy baseline when asked.
 
 ## Prerequisites
 
 - `oc` CLI available in `$PATH`
+- `envsubst` (from GNU `gettext`) available for templating manifests
 - Credentials that allow creating resources in the target namespace
-- Ability to pull `registry.redhat.io/openshift4/network-tools-rhel9:latest` (needed if scenario 3 traffic blocks need cleanup)
+- Ability to pull `quay.io/openshift/origin-hello-openshift:latest` (default demo image; override with `IMAGE` if restricted)
 
 ## Basic Usage
 

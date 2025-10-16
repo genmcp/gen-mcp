@@ -5,6 +5,10 @@ This document describes candidate **network breakage scenarios** for use in an A
 - Detectable using only **Phase 0** diagnostic tools
 - Safe — the cluster remains fully accessible remotely
 
+The [`../netedge-break-repair.sh`](../netedge-break-repair.sh) helper script can
+stage each scenario end-to-end; see [`README-netedge-break-repair.md`](./README-netedge-break-repair.md)
+for usage.
+
 ---
 
 ## 1. Route → Service Selector Mismatch (Empty Endpoints)

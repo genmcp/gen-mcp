@@ -6,9 +6,10 @@ A single concise reference for the NETEDGE Phase‑0 gen‑mcp tooling: what’s
 how to build and run, key assumptions, and short next‑step ideas.
 
 What this directory contains
-- `mcpfile.yaml` — the curated NETEDGE MCP tools (CLI invoker).
-- `NETEDGE-MCP-GOALS.md` — design goals and playbooks (kept for reference).
-- `README.md` — short pointer (see this file for the canonical notes).
+- `mcpfile.yaml` — curated NETEDGE MCP tools using the `stdio` transport.
+- `docs/` — documentation (this file, scenario catalog, break/repair guide).
+- `netedge-break-repair.sh` — script that stages documented ingress scenarios.
+- `scripts/exec_dns_in_pod.sh` — helper invoked by the `exec_dns_in_pod` tool.
 
 Quick summary of provided tools
 - `inspect_route` — fetch a `Route` and, when possible, its `Service` and `Endpoints`.
@@ -40,38 +41,27 @@ DEV NOTES — build & run
   ./genmcp stop -f examples/netedge-tools/mcpfile.yaml
   ```
 
-- If the server cannot bind to the configured port (e.g. `bind: operation not permitted`):
-  - edit `examples/netedge-tools/mcpfile.yaml` and change `streamableHttpConfig.port` to a different port (e.g. `8081`), or
-  - ensure the runtime permits binding the selected port and that no other process occupies it.
-
-Integration with Codex CLI (workaround)
---------------------------------------
-Codex may not directly call an HTTP MCP server in your environment. A tiny proxy/adapter
-can bridge Codex to a local HTTP MCP server. Example `config.toml` for Codex:
+Integration with Codex CLI
+--------------------------
+The NETEDGE tools use the `stdio` transport, so Codex CLI can launch the server
+directly. Example `config.toml` snippet:
 
 ```toml
-[mcp_servers.kubernetes]
-command = "/opt/homebrew/bin/mcp-remote"
-args    = ["http://localhost:8080/mcp"]
+[mcp_servers.netedge]
+command = "/absolute/path/to/genmcp"
+args    = ["run", "-f", "examples/netedge-tools/mcpfile.yaml"]
 ```
 
-Start the gen‑mcp server first (example):
-
-```bash
-./genmcp run -f examples/netedge-tools/mcpfile.yaml
-```
-
-`mcp-remote` is a small helper that forwards Codex’s MCP requests to the HTTP endpoint
-at `http://localhost:8080/mcp`. If you want, we can add a tiny `mcp-remote` shim to
-this repo for reproducibility.
+Codex spawns the command in STDIO mode; no HTTP proxy is required. Adjust the path
+to `genmcp` for your local checkout.
 
 Key assumptions and caveats
 --------------------------
 - The Phase‑0 tools use the `cli` invoker (they shell out). The following tools must
   be available on the machine running the MCP server: `oc` or `kubectl`, `curl`, and
   DNS tools (`dig` or `nslookup`). `jq` or `python3` is helpful for JSON extraction.
-- `exec_dns_in_pod` uses the `infoblox/dnstools` image; replace with an approved image
-  if your cluster restricts external images.
+- `exec_dns_in_pod` pulls `registry.redhat.io/openshift4/network-tools-rhel9:latest`;
+  replace with an approved image if your cluster restricts external pulls.
 - Template notes: when writing CLI `command` templates, each `{param}` must appear
   exactly once. If a parameter must be used multiple times, assign it once to a shell
   variable inside the command and reuse that variable. The repo validator counts the
@@ -118,4 +108,4 @@ automation while keeping safety and auditability central.
 
 Location
 --------
-This file is the canonical NETEDGE notes for the gen‑mcp examples: `examples/netedge-tools/NETEDGE-GEN-MCP-NOTES.md`.
+This file is the canonical NETEDGE notes for the gen‑mcp examples: `examples/netedge-tools/docs/NETEDGE-GEN-MCP-NOTES.md`.
