@@ -1,0 +1,87 @@
+language: en-US
+early_access: false
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT MERGE"
+    base_branches:
+      - main
+  tools:
+    shellcheck:
+      enabled: true
+    yamllint:
+      enabled: true
+    golangci-lint:
+      enabled: true
+
+  # Path-specific review instructions
+  path_instructions:
+    - path: "**/*.go"
+      instructions: |
+        Review Go code for:
+        - Proper error handling
+        - Resource cleanup (defer statements)
+        - Potential race conditions
+        - Performance implications
+
+    - path: "cmd/**/*.go"
+      instructions: |
+        This is CLI command code that directly affects users.
+
+        **CHANGELOG requirement:**
+        - If this PR modifies user-facing CLI behavior (new commands, changed flags, different output, etc.), verify that CHANGELOG.md has been updated
+        - Ensure the change is documented in the appropriate section (Added, Changed, Fixed, etc.)
+        - Check that the description is user-focused (what users will experience), not implementation-focused
+        - Breaking changes must be marked with **BREAKING** prefix
+        - If CHANGELOG.md is not modified for a user-visible change, REQUEST that it be updated
+
+    - path: "pkg/**/*.go"
+      instructions: |
+        This is library code that may affect users.
+
+        **CHANGELOG requirement:**
+        - If this PR changes public APIs, server behavior, or user-visible functionality, verify that CHANGELOG.md has been updated
+        - Breaking API changes must be marked with **BREAKING** prefix in CHANGELOG.md
+        - Internal implementation changes with no user impact do not require CHANGELOG updates
+        - If unclear whether the change is user-visible, ask the PR author to clarify
+        - If CHANGELOG.md is not modified for a user-visible change, REQUEST that it be updated
+
+    - path: "**/CHANGELOG.md"
+      instructions: |
+        Verify that changelog entries:
+        - Follow Keep a Changelog format (Added, Changed, Fixed, Removed, etc.)
+        - Are user-focused (describe impact, not implementation details)
+        - Include PR references (#XXX)
+        - Breaking changes are marked with **BREAKING** prefix
+        - Are in the correct section under the unreleased/current version
+
+    - path: "examples/**"
+      instructions: |
+        Changes to examples typically should be documented in CHANGELOG.md if they:
+        - Add new example use cases
+        - Fix broken examples
+        - Demonstrate new features
+
+        Minor updates or fixes may not require CHANGELOG entries.
+
+    - path: "docs/**"
+      instructions: |
+        Documentation changes generally do not require CHANGELOG updates unless:
+        - They document a new feature (in which case the feature itself should be in CHANGELOG)
+        - They correct significant user-facing documentation errors
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  learnings:
+    scope: global
