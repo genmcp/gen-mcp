@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/utils/ptr"
 )
 
 func TestParseMcpFile(t *testing.T) {
@@ -91,6 +92,12 @@ func TestParseMcpFile(t *testing.T) {
 							},
 							InvocationData: json.RawMessage(`{"method":"POST","url":"http://localhost:5000"}`),
 							InvocationType: "http",
+							Annotations: &ToolAnnotations{
+								IdempotentHint:  ptr.To(false),
+								ReadOnlyHint:    ptr.To(true),
+								OpenWorldHint:   ptr.To(false),
+								DestructiveHint: ptr.To(false),
+							},
 						},
 					},
 				},

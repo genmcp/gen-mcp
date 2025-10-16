@@ -526,11 +526,30 @@ func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*
 			Description: t.Description,
 			Title:       t.Title,
 			InputSchema: t.InputSchema,
+			Annotations: &mcp.ToolAnnotations{
+				Title: t.Title, // some clients use the annotation instead of the title field from the tool
+			},
 		}
 
 		// Only set OutputSchema if it's not nil to avoid typed nil issues
 		if t.OutputSchema != nil {
 			tool.OutputSchema = t.OutputSchema
+		}
+
+		// only override annotation defaults if they are set by the user
+		if t.Annotations != nil {
+			if t.Annotations.DestructiveHint != nil {
+				tool.Annotations.DestructiveHint = t.Annotations.DestructiveHint
+			}
+			if t.Annotations.IdempotentHint != nil {
+				tool.Annotations.IdempotentHint = *t.Annotations.IdempotentHint
+			}
+			if t.Annotations.OpenWorldHint != nil {
+				tool.Annotations.OpenWorldHint = t.Annotations.OpenWorldHint
+			}
+			if t.Annotations.ReadOnlyHint != nil {
+				tool.Annotations.ReadOnlyHint = *t.Annotations.ReadOnlyHint
+			}
 		}
 
 		s.AddTool(tool, handler)
