@@ -86,6 +86,8 @@ genmcp run
 | `run` | Start MCP server | `genmcp run -f myapi.yaml` |
 | `stop` | Stop running server | `genmcp stop` |
 | `convert` | OpenAPI → MCP conversion | `genmcp convert api-spec.json` |
+| `build` | Build container image from mcpfile | `genmcp build -f myapi.yaml --tag myapi:latest` |
+| `version` | Display version information | `genmcp version` |
 
 ### Starting Your Server
 

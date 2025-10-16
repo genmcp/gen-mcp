@@ -8,19 +8,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v0.1.0]
 
 ### Added
+- Runtime environment variable overrides in mcpfile (#177)
+- Tool annotations support (destructiveHint, idempotentHint, openWorldHint) to indicate tool behavior to clients (#180)
+- Server instructions support to provide context to LLMs (#173)
+- Comprehensive logging system with invocation and server logs (#168)
+- JSON schema validation for mcpfile (#155)
+- Support for MCP spec `resource` and `resourceTemplate` primitives (#157)
+- Support for MCP spec `Prompts` (#138)
+- `genmcp build` command to create container images from mcpfiles (#126)
+- AI-based converter for CLI tools (#67)
+- Structured output from HTTP JSON responses (#107)
+- `genmcp version` command (#105)
+- gRPC integration demo showcasing GenMCP with gRPC services (#153)
 
 ### Changed
-- GenMCP now uses the official [modelcontextprocotol SDK](https://github.com/modelcontextprotocol/go-sdk)
-- StreamableHttp servers are now registered as stateless, so you can safely scale them to 0 or to N. This is configurable.
+- **BREAKING**: Simplified mcpfile format by embedding server fields directly, migrated format version to v0.1.0 (#137)
+- GenMCP now uses the official [Model Context Protocol Go SDK](https://github.com/modelcontextprotocol/go-sdk) (#90)
+- Bumped MCP Go-SDK to v1.0.0 release (#134)
+- StreamableHttp servers are now configurable as stateless or stateful (default: stateless) (#100)
+- Migrated from ghodss/yaml to sigs.k8s.io/yaml (#89)
 
 ### Deprecated
 
 ### Removed
+- Vendor directory to reduce PR noise (#154)
 
 ### Fixed
-- When converting an OpenAPI spec, invalid tools will not cause the conversion to fail anymore
+- Parsing now returns proper error on invalid mcpfile version (#171)
+- OpenAPI 2.0 body parameter handling now correctly aligns with spec (#150)
+- Tool input schemas with empty properties now correctly serialize to `{}` (#112)
+- OAuth example ports corrected to avoid conflicts (#101)
+- Individual tool errors in OpenAPI conversion no longer block entire mcpfile creation (#97)
+- Release workflows now target correct branches (#86)
+- Nightly release job now manages only a single 'nightly' tag (#83)
 
 ### Security
+
+### New Contributors
+- @mikelolasagasti made their first contribution
+- @Manaswa-S made their first contribution
+- @rh-rahulshetty made their first contribution
+- @aliok made their first contribution
 
 ## [v0.0.0]
 
