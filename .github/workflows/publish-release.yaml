@@ -87,7 +87,7 @@ jobs:
       - name: Run tests
         run: |
           echo "Running all tests..."
-          go test ./...
+          make test
           echo "All tests passed!"
 
       - name: Publish release
