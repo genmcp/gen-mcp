@@ -1,0 +1,127 @@
+gen-mcp first-netedge $ examples/netedge-tools/netedge-break-repair.sh --setup
+creating namespace test-ingress
+namespace/test-ingress created
+applying deployment, service and route in test-ingress
+deployment.apps/hello created
+service/hello created
+route.route.openshift.io/hello created
+waiting for deployment to be available
+Waiting for deployment "hello" rollout to finish: 0 of 1 updated replicas are available...
+deployment "hello" successfully rolled out
+waiting for endpoints to be populated
+endpoints/hello condition met
+route summary
+hello   hello-test-ingress.apps.btofel-netedg-251008.devcluster.openshift.com   True
+service selector
+{"app":"hello"}
+endpoints detail
+apiVersion: v1
+kind: Endpoints
+metadata:
+  annotations:
+    endpoints.kubernetes.io/last-change-trigger-time: "2025-10-08T17:23:00Z"
+  creationTimestamp: "2025-10-08T17:22:54Z"
+  name: hello
+  namespace: test-ingress
+  resourceVersion: "74287"
+  uid: 86f4b84e-fab5-4eee-b2ac-22d65f130a45
+subsets:
+- addresses:
+  - ip: 10.131.0.18
+    nodeName: ip-10-0-19-194.ec2.internal
+    targetRef:
+      kind: Pod
+      name: hello-d77cf57c9-2twxx
+      namespace: test-ingress
+      uid: 74d90fbe-c45a-4d11-b287-ecfed1e51f4d
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+
+gen-mcp first-netedge $ examples/netedge-tools/netedge-break-repair.sh --status
+route summary
+hello   hello-test-ingress.apps.btofel-netedg-251008.devcluster.openshift.com   True
+service selector
+{"app":"hello"}
+endpoints detail
+apiVersion: v1
+kind: Endpoints
+metadata:
+  annotations:
+    endpoints.kubernetes.io/last-change-trigger-time: "2025-10-08T17:23:00Z"
+  creationTimestamp: "2025-10-08T17:22:54Z"
+  name: hello
+  namespace: test-ingress
+  resourceVersion: "74287"
+  uid: 86f4b84e-fab5-4eee-b2ac-22d65f130a45
+subsets:
+- addresses:
+  - ip: 10.131.0.18
+    nodeName: ip-10-0-19-194.ec2.internal
+    targetRef:
+      kind: Pod
+      name: hello-d77cf57c9-2twxx
+      namespace: test-ingress
+      uid: 74d90fbe-c45a-4d11-b287-ecfed1e51f4d
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+
+gen-mcp first-netedge $ examples/netedge-tools/netedge-break-repair.sh --curl
+curling http://hello-test-ingress.apps.btofel-netedg-251008.devcluster.openshift.com
+Hello OpenShift!
+
+gen-mcp first-netedge $ examples/netedge-tools/netedge-break-repair.sh --break
+breaking service selector to create empty endpoints
+The Service "hello" is invalid: spec.selector: Invalid value: "__broken__": a valid label must be an empty string or consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyValue',  or 'my_value',  or '12345', regex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')
+gen-mcp first-netedge $ examples/netedge-tools/netedge-break-repair.sh --curl
+curling http://hello-test-ingress.apps.btofel-netedg-251008.devcluster.openshift.com
+Hello OpenShift!
+gen-mcp first-netedge $ examples/netedge-tools/netedge-break-repair.sh --break
+breaking service selector to create empty endpoints
+service/hello patched
+waiting for endpoints to become empty
+endpoints are empty
+route summary
+hello   hello-test-ingress.apps.btofel-netedg-251008.devcluster.openshift.com   True
+service selector
+{"app":"broken-mismatch"}
+endpoints detail
+apiVersion: v1
+kind: Endpoints
+metadata:
+  creationTimestamp: "2025-10-08T17:22:54Z"
+  name: hello
+  namespace: test-ingress
+  resourceVersion: "75609"
+  uid: 86f4b84e-fab5-4eee-b2ac-22d65f130a45
+note: route should now return 503 due to no backends
+
+gen-mcp first-netedge $ examples/netedge-tools/netedge-break-repair.sh --curl
+curling http://hello-test-ingress.apps.btofel-netedg-251008.devcluster.openshift.com
+curl: (22) The requested URL returned error: 503
+curl failed or route not resolvable from here
+
+gen-mcp first-netedge $ examples/netedge-tools/netedge-break-repair.sh --status
+route summary
+hello   hello-test-ingress.apps.btofel-netedg-251008.devcluster.openshift.com   True
+service selector
+{"app":"broken-mismatch"}
+endpoints detail
+apiVersion: v1
+kind: Endpoints
+metadata:
+  creationTimestamp: "2025-10-08T17:22:54Z"
+  name: hello
+  namespace: test-ingress
+  resourceVersion: "75609"
+  uid: 86f4b84e-fab5-4eee-b2ac-22d65f130a45
+
+gen-mcp first-netedge $ oc -n test-ingress patch svc hello --type merge -p '{"spec":{"selector":  {"app":"hello"}}}'
+service/hello patched
+
+gen-mcp first-netedge $ examples/netedge-tools/netedge-break-repair.sh --curl
+curling http://hello-test-ingress.apps.btofel-netedg-251008.devcluster.openshift.com
+Hello OpenShift!
