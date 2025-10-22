@@ -1,6 +1,6 @@
 # NetEdge Break/Repair Script
 
-`netedge-break-repair.sh` stages, breaks, and repairs the deterministic ingress and DNS scenarios captured in [`NET_DIAGNOSTIC_SCENARIOS.md`](./NET_DIAGNOSTIC_SCENARIOS.md). It deploys a minimal application stack (Deployment, Service, Route), introduces the chosen fault, and restores the healthy baseline when asked.
+`netedge-break-repair.sh` stages, breaks, and repairs the deterministic ingress and DNS scenarios captured in [`NET_DIAGNOSTIC_SCENARIOS.md`](./NET_DIAGNOSTIC_SCENARIOS.md). It deploys a minimal application stack (Deployment, Service, Route), introduces the chosen fault, and restores the healthy baseline when asked. Scenario 4 adds an auxiliary Gateway-facing Service to exercise clusters without a managed LoadBalancer.
 
 ## Prerequisites
 
@@ -12,7 +12,7 @@
 ## Basic Usage
 
 ```bash
-examples/netedge-tools/netedge-break-repair.sh [--scenario=<1|2|3>] <action>
+examples/netedge-tools/netedge-break-repair.sh [--scenario=<1|2|3|4>] <action>
 ```
 
 Actions:
@@ -21,10 +21,10 @@ Actions:
 - `--break` – Apply the scenario-specific failure
 - `--repair` – Restore the healthy state for the scenario
 - `--status` – Show Route, Service, Endpoints (and NetworkPolicy) details
-- `--curl` – Curl the current Route host (best effort)
+- `--curl` – Curl the scenario-specific endpoint (Route for 1–3, Gateway host for 4)
 - `--cleanup` – Remove the created resources and any managed NetworkPolicy
 
-If `--scenario` is omitted the script defaults to scenario **1**. Always reuse the same `--scenario=N` flag on follow-up commands; the script prints a reminder after each action.
+If `--scenario` is omitted the script defaults to scenario **1**. Always reuse the same `--scenario=N` flag on follow-up commands; the script prints a reminder after each action. Scenario **4** assumes the cluster lacks a LoadBalancer implementation (typical on bare-metal or local clusters); on cloud clusters with managed LBs the “break” will succeed but the Service may still obtain an address.
 
 ## Scenarios
 
@@ -34,6 +34,8 @@ If `--scenario` is omitted the script defaults to scenario **1**. Always reuse t
    - Agent prompt: “On the current cluster the Route’s hostname never resolves in DNS even though the Service and Pods look healthy. Diagnose the root cause and tell me how to fix it.”
 3. **NetworkPolicy blocking router traffic** – Applies a default-deny ingress NetworkPolicy in the namespace. Repair deletes the policy.
    - Agent prompt: “On the current cluster every request to the Route now times out even though the pods and service look healthy. Diagnose the root cause and tell me how to fix it.”
+4. **Gateway Service pending (no LoadBalancer provider)** – Creates a second Service (`${APP_NAME}-gateway`) of type `LoadBalancer` targeting the workload pods. On clusters without a LoadBalancer implementation the Service never receives an external IP, leaving Gateway traffic pending. Repair deletes the LoadBalancer Service and any associated HTTPRoute.
+   - Agent prompt: “On the current cluster we tried to expose the app through a Gateway, but it never provisions an external address. Diagnose the root cause and tell me how to fix it.”
 
 ## Environment Overrides
 
@@ -65,11 +67,18 @@ examples/netedge-tools/netedge-break-repair.sh --scenario=3 --setup
 examples/netedge-tools/netedge-break-repair.sh --scenario=3 --break
 examples/netedge-tools/netedge-break-repair.sh --scenario=3 --repair
 examples/netedge-tools/netedge-break-repair.sh --scenario=3 --cleanup
+
+# Scenario 4: Gateway Service pending
+examples/netedge-tools/netedge-break-repair.sh --scenario=4 --setup
+examples/netedge-tools/netedge-break-repair.sh --scenario=4 --break
+examples/netedge-tools/netedge-break-repair.sh --scenario=4 --status
+examples/netedge-tools/netedge-break-repair.sh --scenario=4 --repair
 ```
 
 ## Notes
 
-- The script refreshes the Route host from the API after each action so `--curl` always uses the current value.
+- The script refreshes the Route host from the API after each action; for scenario 4 it also resolves the annotated Gateway host before curling.
 - Scenario 2 stores the original host in the `netedge-tools-original-host` annotation on the Route; avoid deleting this annotation if you plan to run `--repair`.
 - Scenario 3 leaves the namespace intact but removes the managed NetworkPolicy during cleanup.
+- Scenario 4 creates an additional Service of type `LoadBalancer`; on clusters with a managed provider it may obtain an external IP. The repair step deletes the Service to return to the Route-only baseline. After `--break`, `--curl` targets the Gateway host annotated on the Service and should fail when no LoadBalancer is available.
 - If `oc` cannot reach the cluster, commands fail early with diagnostics.

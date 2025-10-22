@@ -93,6 +93,39 @@ for usage.
 
 ---
 
+## 4. Gateway Service Pending (No LoadBalancer Provider)
+
+### Why it's in-scope & interesting
+- Exercises the **Gateway API → Service (LoadBalancer)** integration point.
+- Surfaces a common bare-metal/OpenShift Local issue: no cloud LoadBalancer to provision an external IP.
+- Highlights a troubleshooting path that combines **resource inspection** with **Prometheus evidence**.
+- Reversible by deleting the LoadBalancer Service and falling back to the cluster-internal Route.
+
+### How to stage it
+1. Deploy the healthy baseline (Deployment, Service, Route) via `netedge-break-repair.sh --setup`.
+2. **Break**: create an additional Service (`${APP_NAME}-gateway`) of type `LoadBalancer` targeting the same pods. Annotate the Service with the intended Gateway host.
+3. Optionally create a `HTTPRoute` referencing the Service so tooling can report listener status.
+4. Wait ~60s and observe that `.status.loadBalancer.ingress` never populates on clusters without a LoadBalancer implementation.
+5. **Repair**: delete the `LoadBalancer` Service (and the optional `HTTPRoute`).
+
+### How a human would diagnose
+1. `oc get gateway` (or `HTTPRoute`) → listeners reference a Service that never obtains an external address.
+2. `oc get svc ${APP_NAME}-gateway -o yaml` → `spec.type: LoadBalancer` with empty `.status.loadBalancer`.
+3. `oc get infrastructure cluster -o jsonpath='{.status.platformStatus.type}'` → platform reports `None`, `BareMetal`, or other environment without managed LBs.
+4. Suggest fixes: install MetalLB/OVN-K logical LB, or switch Gateway to use NodePort/Route instead of expecting a cloud LB.
+
+### How the phase-0 agent would diagnose
+- `get_service_endpoints` (`service=${APP_NAME}`, `namespace=${NAMESPACE}`) → confirm the backend pods/Endpoints are healthy.
+- `inspect_route` → verify the original Route is still functional, isolating the failure to the new Gateway path.
+- `query_prometheus` → compare `kube_service_spec_type{service="${APP_NAME}-gateway",namespace="${NAMESPACE}"}` with `kube_service_status_load_balancer_ingress{service="${APP_NAME}-gateway",namespace="${NAMESPACE}"}` to prove no ingress address ever appears.
+- `probe_dns_local` or `exec_dns_in_pod` → demonstrate the advertised Gateway host cannot resolve/accept traffic due to the missing IP.
+- Recommend mitigation: delete the LoadBalancer Service (fall back to Route) or deploy a LoadBalancer provider.
+
+### Agent input to cause it diagnose this task:
+- `On the currently connected cluster we tried to expose the app through a Gateway, but it never provisions an external address. Diagnose the root cause and suggest the fix.`
+
+---
+
 ## Recommended Scenario for v1: Selector Mismatch
 
 **Why**:  
