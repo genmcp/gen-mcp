@@ -22,7 +22,11 @@ profile.cov
 
 # Built CLI binary
 genmcp
+genmcp-*
+
+# Built server binary
 genmcp-server
+genmcp-server-*
 
 # Go workspace file
 go.work
