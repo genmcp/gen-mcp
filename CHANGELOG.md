@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v0.1.0]
 
 ### Added
+- **BREAKING**: Separated runtime configuration from tool definitions into two files: `mcpserver.yaml` (runtime config) and `mcpfile.yaml` (tool definitions), with `kind` field to identify file types similar to Kubernetes resources (#XXX)
 - Runtime environment variable overrides in mcpfile (#177)
 - Tool annotations support (destructiveHint, idempotentHint, openWorldHint) to indicate tool behavior to clients (#180)
 - Server instructions support to provide context to LLMs (#173)
@@ -22,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - gRPC integration demo showcasing GenMCP with gRPC services (#153)
 
 ### Changed
+- **BREAKING**: mcpfile format now requires separate `mcpserver.yaml` and `mcpfile.yaml` files with `kind` field. Legacy single-file format is deprecated but still supported (#XXX)
 - **BREAKING**: Simplified mcpfile format by embedding server fields directly, migrated format version to v0.1.0 (#137)
 - GenMCP now uses the official [Model Context Protocol Go SDK](https://github.com/modelcontextprotocol/go-sdk) (#90)
 - Bumped MCP Go-SDK to v1.0.0 release (#134)
@@ -29,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Migrated from ghodss/yaml to sigs.k8s.io/yaml (#89)
 
 ### Deprecated
+- Single-file mcpfile format is deprecated. Use separate `mcpserver.yaml` and `mcpfile.yaml` files instead (#XXX)
 
 ### Removed
 - Vendor directory to reduce PR noise (#154)
