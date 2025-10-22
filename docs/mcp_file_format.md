@@ -2,27 +2,30 @@
 
 ## 1. Introduction
 
-The MCP (Model Context Protocol) file is a YAML-based configuration that defines the capabilities of an MCP server. It specifies the tools available, their input and output schemas, and how they should be invoked. This document details version `0.1.0` of the file format.
+The MCP (Model Context Protocol) file format consists of two YAML-based configuration files that define an MCP server:
+- **mcpserver.yaml**: Contains the server runtime configuration (transport protocol, port, logging, etc.)
+- **mcpfile.yaml**: Contains the tool, prompt, and resource definitions
 
-## 2. Top-Level Object
+Both files include a `kind` field (similar to Kubernetes resources) to identify their purpose. This document details version `0.1.0` of the file format.
 
-The root of the configuration is a single top-level object with the following fields:
+## 2. File Types
+
+### 2.1. MCPServerConfig (mcpserver.yaml)
+
+The server configuration file contains runtime settings for the MCP server.
 
 | Field | Type | Description | Required |
 |---|---|---|---|
+| `kind` | string | Must be `"MCPServerConfig"`. | Yes |
 | `mcpFileVersion` | string | The version of the MCP file format. Must be `"0.1.0"`. | Yes |
 | `name` | string | The name of the server. | Yes |
 | `version` | string | The semantic version of the server's toolset. | Yes |
-| `runtime` | `ServerRuntime` | The runtime settings for the server. If omitted, it defaults to `streamablehttp` on port `3000`. | No |
-| `instructions` | string | A set of instructions provided by the server to the client about how to use the server. | No |
-| `tools` | array of `Tool` | The tools provided by this server. | No |
-| `prompts` | array of `Prompt` | The prompts provided by this server. | No |
-| `resources` | array of `Resource` | The resources provided by this server. | No |
-| `resourceTemplates` | array of `ResourceTemplate` | The resource templates provided by this server. | No |
+| `runtime` | `ServerRuntime` | The runtime settings for the server. | Yes |
 
-### Example
+#### Example
 
 ```yaml
+kind: MCPServerConfig
 mcpFileVersion: 0.1.0
 name: my-awesome-server
 version: 1.2.3
@@ -30,6 +33,27 @@ runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
     port: 8080
+```
+
+### 2.2. MCPToolDefinitions (mcpfile.yaml)
+
+The tool definitions file contains the tools, prompts, and resources provided by the server.
+
+| Field | Type | Description | Required |
+|---|---|---|---|
+| `kind` | string | Must be `"MCPToolDefinitions"`. | Yes |
+| `mcpFileVersion` | string | The version of the MCP file format. Must be `"0.1.0"`. | Yes |
+| `instructions` | string | A set of instructions provided by the server to the client about how to use the server. | No |
+| `tools` | array of `Tool` | The tools provided by this server. | No |
+| `prompts` | array of `Prompt` | The prompts provided by this server. | No |
+| `resources` | array of `Resource` | The resources provided by this server. | No |
+| `resourceTemplates` | array of `ResourceTemplate` | The resource templates provided by this server. | No |
+
+#### Example
+
+```yaml
+kind: MCPToolDefinitions
+mcpFileVersion: 0.1.0
 instructions: |
   To clone and analyze a repository:
   1. First use clone_repo to clone the repository locally
@@ -39,6 +63,10 @@ instructions: |
 tools:
   # ... tool definitions
 ```
+
+### 2.3. Legacy Single-File Format (Deprecated)
+
+For backward compatibility, the legacy single-file format is still supported but is deprecated. In the legacy format, both server configuration and tool definitions are in a single `mcpfile.yaml` file without a `kind` field. New projects should use the separate file format described above.
 
 ## 3. ServerRuntime Object
 
@@ -254,9 +282,11 @@ invocation:
 
 ## 7. Complete Examples
 
-### 7.1. Basic Logging Configuration
+### 7.1. Basic Server with Logging
 
+**mcpserver.yaml:**
 ```yaml
+kind: MCPServerConfig
 mcpFileVersion: "0.1.0"
 name: Feature Request API
 version: "0.0.1"
@@ -268,6 +298,12 @@ runtime:
     enableMcpLogs: true
     encoding: "console"
     level: "debug"
+```
+
+**mcpfile.yaml:**
+```yaml
+kind: MCPToolDefinitions
+mcpFileVersion: "0.1.0"
 tools:
   - name: get_features
     title: "Get all features"
@@ -280,9 +316,11 @@ tools:
         url: http://localhost:9090/features
 ```
 
-### 7.2. Advanced Logging Configuration
+### 7.2. Production Server with Advanced Logging
 
+**mcpserver.yaml:**
 ```yaml
+kind: MCPServerConfig
 mcpFileVersion: "0.1.0"
 name: Production API
 version: "1.0.0"
@@ -306,6 +344,12 @@ runtime:
       service: "mcp-api"
       version: "1.0.0"
     enableMcpLogs: true
+```
+
+**mcpfile.yaml:**
+```yaml
+kind: MCPToolDefinitions
+mcpFileVersion: "0.1.0"
 tools:
   - name: health_check
     description: "Returns the health status of the service"
@@ -317,9 +361,11 @@ tools:
         url: http://localhost:8080/health
 ```
 
-### 7.3. Disabled MCP Logging
+### 7.3. Server with Disabled MCP Logging
 
+**mcpserver.yaml:**
 ```yaml
+kind: MCPServerConfig
 mcpFileVersion: "0.1.0"
 name: Silent API
 version: "1.0.0"
@@ -333,6 +379,12 @@ runtime:
     enableMcpLogs: false
     outputPaths:
       - "/var/log/system.log"
+```
+
+**mcpfile.yaml:**
+```yaml
+kind: MCPToolDefinitions
+mcpFileVersion: "0.1.0"
 tools:
   - name: process_data
     description: "Processes data without sending logs to MCP clients"
@@ -350,7 +402,9 @@ tools:
 
 To enable HTTPS for your MCP server, configure TLS in the `streamableHttpConfig`:
 
+**mcpserver.yaml:**
 ```yaml
+kind: MCPServerConfig
 mcpFileVersion: "0.1.0"
 name: secure-server
 version: "1.0.0"
@@ -367,7 +421,9 @@ runtime:
 
 To protect your MCP server with OAuth 2.0 authentication:
 
+**mcpserver.yaml:**
 ```yaml
+kind: MCPServerConfig
 mcpFileVersion: "0.1.0"
 name: protected-server
 version: "1.0.0"
@@ -380,6 +436,12 @@ runtime:
         - https://auth.example.com
         - https://keycloak.company.com/auth/realms/mcp
       jwksUri: https://auth.example.com/.well-known/jwks.json
+```
+
+**mcpfile.yaml:**
+```yaml
+kind: MCPToolDefinitions
+mcpFileVersion: "0.1.0"
 tools:
   - name: admin_tool
     description: "Administrative tool requiring elevated permissions"
@@ -393,7 +455,9 @@ tools:
 
 For maximum security, combine both TLS and OAuth:
 
+**mcpserver.yaml:**
 ```yaml
+kind: MCPServerConfig
 mcpFileVersion: "0.1.0"
 name: secure-protected-server
 version: "1.0.0"
@@ -410,14 +474,22 @@ runtime:
       jwksUri: https://auth.example.com/.well-known/jwks.json
 ```
 
-## 9. Complete Example for a CLI
+## 9. Complete Example for a CLI Server
 
+**mcpserver.yaml:**
 ```yaml
+kind: MCPServerConfig
 mcpFileVersion: "0.1.0"
 name: git-tools
 version: "1.0.0"
 runtime:
   transportProtocol: stdio
+```
+
+**mcpfile.yaml:**
+```yaml
+kind: MCPToolDefinitions
+mcpFileVersion: "0.1.0"
 instructions: |
   This server provides Git repository management tools. For typical workflows:
   1. Use clone_repo to get a local copy of a repository
@@ -456,14 +528,22 @@ tools:
 
 ## 10. Complete Example for an HTTP Server
 
+**mcpserver.yaml:**
 ```yaml
+kind: MCPServerConfig
 mcpFileVersion: "0.1.0"
 name: user-service
 version: "2.1.0"
 runtime:
-transportProtocol: streamablehttp
-streamableHttpConfig:
-  port: 3000
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 3000
+```
+
+**mcpfile.yaml:**
+```yaml
+kind: MCPToolDefinitions
+mcpFileVersion: "0.1.0"
 tools:
 - name: get_user
   title: "Get User"
