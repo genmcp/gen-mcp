@@ -31,6 +31,16 @@ func main() {
 			Path: "../../pkg/mcpfile",
 		},
 		{
+			Type: &mcpfile.MCPServerConfig{},
+			Base: "github.com/genmcp/gen-mcp/pkg/mcpfile",
+			Path: "../../pkg/mcpfile",
+		},
+		{
+			Type: &mcpfile.MCPToolDefinitions{},
+			Base: "github.com/genmcp/gen-mcp/pkg/mcpfile",
+			Path: "../../pkg/mcpfile",
+		},
+		{
 			Type: &http.HttpInvocationData{},
 			Base: "github.com/genmcp/gen-mcp/pkg/invocation",
 			Path: "../../pkg/invocation",
