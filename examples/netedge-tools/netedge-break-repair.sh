@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # NetEdge ingress break/repair helper
-# Supports three reversible ingress/network scenarios drawn from NET_DIAGNOSTIC_SCENARIOS.md
+# Supports four reversible ingress/network scenarios drawn from NET_DIAGNOSTIC_SCENARIOS.md
 
 NAMESPACE="${NAMESPACE:-test-ingress}"
 APP_NAME="${APP_NAME:-hello}"
@@ -14,6 +14,12 @@ SCENARIO2_BAD_HOST="does-not-exist.netedge.test"
 SCENARIO2_ORIG_HOST_ANNOTATION="netedge-tools-original-host"
 SCENARIO3_POLICY_NAME="netedge-deny-router"
 CURRENT_ROUTE_HOST=""
+SCENARIO4_LB_SERVICE="${APP_NAME}-gateway"
+SCENARIO4_HOST_ANNOTATION="netedge-tools-gateway-host"
+SCENARIO4_GATEWAY_HOST_DEFAULT="gateway-${APP_NAME}.netedge.test"
+SCENARIO4_GATEWAY_HOST="${SCENARIO4_GATEWAY_HOST:-${SCENARIO4_GATEWAY_HOST_DEFAULT}}"
+SCENARIO4_LB_WAIT_SECONDS="${SCENARIO4_LB_WAIT_SECONDS:-120}"
+ACTIVE_SCENARIO=""
 
 log() { printf '%s\n' "$*" >&2; }
 
@@ -106,6 +112,18 @@ show_status() {
   if oc -n "${NAMESPACE}" get networkpolicy "${SCENARIO3_POLICY_NAME}" >/dev/null 2>&1; then
     log "networkpolicy ${SCENARIO3_POLICY_NAME} status"
     oc -n "${NAMESPACE}" get networkpolicy "${SCENARIO3_POLICY_NAME}" -o yaml || true
+  fi
+
+  if oc -n "${NAMESPACE}" get svc "${SCENARIO4_LB_SERVICE}" >/dev/null 2>&1; then
+    log "gateway loadbalancer service ${SCENARIO4_LB_SERVICE}"
+    oc -n "${NAMESPACE}" get svc "${SCENARIO4_LB_SERVICE}" -o custom-columns=NAME:.metadata.name,TYPE:.spec.type,LB_IP:'{.status.loadBalancer.ingress[0].ip}',LB_HOSTNAME:'{.status.loadBalancer.ingress[0].hostname}' --no-headers || true
+    local s4_host
+    s4_host="$(oc -n "${NAMESPACE}" get svc "${SCENARIO4_LB_SERVICE}" -o jsonpath='{.metadata.annotations["'"${SCENARIO4_HOST_ANNOTATION}"'"]}' 2>/dev/null || true)"
+    if [ -n "${s4_host}" ]; then
+      log "intended gateway host annotation: ${s4_host}"
+    else
+      log "intended gateway host annotation: (not set)"
+    fi
   fi
 }
 
@@ -227,6 +245,66 @@ scenario3_repair() {
   log "note: router traffic should now be allowed"
 }
 
+scenario4_break() {
+  ensure_workload
+  log "creating LoadBalancer service ${SCENARIO4_LB_SERVICE} to simulate a Gateway needing an external IP"
+  cat <<'YAML' | APP_NAME="${APP_NAME}" APP_LABEL="${APP_LABEL}" PORT="${PORT}" \
+    SCENARIO4_HOST_ANNOTATION="${SCENARIO4_HOST_ANNOTATION}" SCENARIO4_GATEWAY_HOST="${SCENARIO4_GATEWAY_HOST}" \
+    envsubst | oc -n "${NAMESPACE}" apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${APP_NAME}-gateway
+  labels:
+    app.kubernetes.io/managed-by: netedge-tools
+  annotations:
+    ${SCENARIO4_HOST_ANNOTATION}: ${SCENARIO4_GATEWAY_HOST}
+spec:
+  type: LoadBalancer
+  selector:
+    app: ${APP_LABEL}
+  ports:
+  - name: http
+    port: ${PORT}
+    targetPort: ${PORT}
+YAML
+
+  log "waiting up to ${SCENARIO4_LB_WAIT_SECONDS}s for load balancer addresses (expected to remain empty without a provider)"
+  local attempts=1
+  if [ "${SCENARIO4_LB_WAIT_SECONDS}" -gt 5 ]; then
+    attempts=$((SCENARIO4_LB_WAIT_SECONDS / 5))
+  fi
+  local lb_ips=""
+  local lb_hosts=""
+  for _ in $(seq 1 "${attempts}"); do
+    lb_ips="$(oc -n "${NAMESPACE}" get svc "${SCENARIO4_LB_SERVICE}" -o jsonpath='{.status.loadBalancer.ingress[*].ip}' 2>/dev/null || true)"
+    lb_hosts="$(oc -n "${NAMESPACE}" get svc "${SCENARIO4_LB_SERVICE}" -o jsonpath='{.status.loadBalancer.ingress[*].hostname}' 2>/dev/null || true)"
+    if [ -n "${lb_ips}${lb_hosts}" ]; then
+      break
+    fi
+    sleep 5
+  done
+
+  if [ -n "${lb_ips}${lb_hosts}" ]; then
+    log "load balancer addresses detected (cluster appears to provision them): IPs='${lb_ips}' HOSTNAMES='${lb_hosts}'"
+  else
+    log "no load balancer ingress addresses provisioned; this indicates the cluster lacks an external LoadBalancer implementation (expected for this scenario)"
+  fi
+
+  show_status
+  refresh_route_host
+  log "intended external gateway host: ${SCENARIO4_GATEWAY_HOST}"
+  log "note: without a LoadBalancer provider this host will not resolve or accept traffic"
+}
+
+scenario4_repair() {
+  log "removing LoadBalancer service ${SCENARIO4_LB_SERVICE}"
+  oc -n "${NAMESPACE}" delete svc "${SCENARIO4_LB_SERVICE}" --ignore-not-found
+  show_status
+  refresh_route_host
+  log "note: Gateway path removed; fall back to the Route or install a LoadBalancer provider"
+}
+
 route_url() {
   refresh_route_host
   if [ -n "${CURRENT_ROUTE_HOST}" ]; then
@@ -235,6 +313,26 @@ route_url() {
 }
 
 curl_route() {
+  if [ "${ACTIVE_SCENARIO}" = "4" ] && oc -n "${NAMESPACE}" get svc "${SCENARIO4_LB_SERVICE}" >/dev/null 2>&1; then
+    local gateway_host
+    gateway_host="$(oc -n "${NAMESPACE}" get svc "${SCENARIO4_LB_SERVICE}" -o jsonpath='{.metadata.annotations["'"${SCENARIO4_HOST_ANNOTATION}"'"]}' 2>/dev/null || true)"
+    if [ -z "${gateway_host}" ]; then
+      gateway_host="${SCENARIO4_GATEWAY_HOST}"
+    fi
+    if [ -z "${gateway_host}" ]; then
+      log "gateway service exists but no host annotation was found"
+      return 1
+    fi
+    local gateway_url="http://${gateway_host}"
+    log "curling ${gateway_url} via Gateway path (expected failure without LoadBalancer)"
+    if ! curl -fsS "${gateway_url}" | head -n 3; then
+      log "curl failed as expected; no LoadBalancer address is provisioned for ${gateway_host}"
+      return 1
+    fi
+    log "curl unexpectedly succeeded; cluster may have provisioned a LoadBalancer for ${SCENARIO4_LB_SERVICE}"
+    return 0
+  fi
+
   refresh_route_host
   if [ -z "${CURRENT_ROUTE_HOST}" ]; then
     log "could not determine route host"
@@ -256,6 +354,7 @@ scenario_cleanup() {
   if oc -n "${NAMESPACE}" get networkpolicy "${SCENARIO3_POLICY_NAME}" >/dev/null 2>&1; then
     oc -n "${NAMESPACE}" delete networkpolicy "${SCENARIO3_POLICY_NAME}" --ignore-not-found
   fi
+  oc -n "${NAMESPACE}" delete svc "${SCENARIO4_LB_SERVICE}" --ignore-not-found >/dev/null 2>&1 || true
   CURRENT_ROUTE_HOST=""
 }
 
@@ -264,6 +363,7 @@ scenario_name() {
     1) printf 'Route → Service selector mismatch';;
     2) printf 'Route host without DNS';;
     3) printf 'Router blocked by NetworkPolicy';;
+    4) printf 'Gateway Service pending (no LoadBalancer provider)';;
     *) printf 'unknown';;
   esac
 }
@@ -277,6 +377,10 @@ scenario_setup() {
       deploy_healthy
       oc -n "${NAMESPACE}" delete networkpolicy "${SCENARIO3_POLICY_NAME}" --ignore-not-found >/dev/null 2>&1 || true
       ;;
+    4)
+      deploy_healthy
+      oc -n "${NAMESPACE}" delete svc "${SCENARIO4_LB_SERVICE}" --ignore-not-found >/dev/null 2>&1 || true
+      ;;
     *)
       log "unsupported scenario $1"
       exit 1
@@ -289,6 +393,7 @@ scenario_break() {
     1) scenario1_break ;;
     2) scenario2_break ;;
     3) scenario3_break ;;
+    4) scenario4_break ;;
     *) log "unsupported scenario $1"; exit 1 ;;
   esac
 }
@@ -298,6 +403,7 @@ scenario_repair() {
     1) scenario1_repair ;;
     2) scenario2_repair ;;
     3) scenario3_repair ;;
+    4) scenario4_repair ;;
     *) log "unsupported scenario $1"; exit 1 ;;
   esac
 }
@@ -314,19 +420,20 @@ remind_scenario() {
 
 usage() {
   cat <<'HELP'
-usage: netedge-break-repair.sh [--scenario=<1|2|3>] [--setup|--break|--repair|--status|--curl|--cleanup]
+usage: netedge-break-repair.sh [--scenario=<1|2|3|4>] [--setup|--break|--repair|--status|--curl|--cleanup]
 
 scenarios:
   1  Route → Service selector mismatch (default)
   2  Route host without DNS record (NXDOMAIN)
   3  NetworkPolicy blocking router → service traffic
+  4  Gateway Service pending (no LoadBalancer provider)
 
 actions:
   --setup    deploy healthy baseline objects for the chosen scenario
   --break    introduce the scenario-specific failure condition
   --repair   restore the healthy state for the chosen scenario
   --status   show route, service selector, endpoints (and policy) state
-  --curl     curl the route host from this machine (best-effort)
+  --curl     curl scenario endpoint (Route for 1–3, Gateway host for 4)
   --cleanup  remove route/service/deployment (and policy if present)
 
 env vars (optional overrides):
@@ -382,14 +489,15 @@ main() {
   fi
 
   case "${scenario}" in
-    1|2|3)
+    1|2|3|4)
       ;;
     *)
-      log "unsupported scenario ${scenario}; choose 1, 2 or 3"
+      log "unsupported scenario ${scenario}; choose 1, 2, 3 or 4"
       exit 1
       ;;
   esac
 
+  ACTIVE_SCENARIO="${scenario}"
   log "scenario ${scenario}: $(scenario_name "${scenario}")"
 
   case "${action}" in
