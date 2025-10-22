@@ -1,10 +1,6 @@
 # yaml-language-server: $schema=../../../specs/mcpfile-schema.json
+kind: MCPToolDefinitions
 mcpFileVersion: 0.1.0
-name: Feature Request API
-runtime:
-  streamableHttpConfig:
-    port: 8080
-  transportProtocol: streamablehttp
 tools:
 - description: Returns a list of all features sorted by upvotes (highest first)
   inputSchema:
@@ -96,4 +92,3 @@ resources:
       method: GET
       url: http://feature-request-demo-default.apps.rosa.ozsht-2wqkz-4rk.36d8.p3.openshiftapps.com/features/progress-report
   mimeType: "text/markdown"
-version: 0.0.1

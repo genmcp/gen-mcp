@@ -1,13 +1,6 @@
 # yaml-language-server: $schema=../../specs/mcpfile-schema.json
+kind: MCPToolDefinitions
 mcpFileVersion: 0.1.0
-name: Feature Request API
-runtime:
-  streamableHttpConfig:
-    port: 8080
-    auth:
-      authorizationServers:
-      - http://localhost:8081/realms/master
-  transportProtocol: streamablehttp
 tools:
 - description: Returns a list of all features sorted by upvotes (highest first)
   inputSchema:
@@ -98,4 +91,3 @@ tools:
   title: Mark feature as completed
   requiredScopes:
   - feature:update
-version: 0.0.1
