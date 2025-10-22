@@ -119,7 +119,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
-      - name: Build genmcp
+      - name: Build genmcp CLI
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
@@ -135,6 +135,22 @@ jobs:
           fi
 
           zip "${CLI_NAME}-${GOOS}-${GOARCH}.zip" "${OUTPUT_NAME}"
+
+      - name: Build genmcp-server
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          make build-server-platform GOOS=${GOOS} GOARCH=${GOARCH}
+
+          SERVER_NAME="genmcp-server"
+          if [ "${GOOS}" == "windows" ]; then
+            OUTPUT_NAME="${SERVER_NAME}-${GOOS}-${GOARCH}.exe"
+          else
+            OUTPUT_NAME="${SERVER_NAME}-${GOOS}-${GOARCH}"
+          fi
+
+          zip "${SERVER_NAME}-${GOOS}-${GOARCH}.zip" "${OUTPUT_NAME}"
 
       - name: Upload assets to release
         run: |

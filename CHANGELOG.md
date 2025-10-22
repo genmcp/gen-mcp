@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumped MCP Go-SDK to v1.0.0 release (#134)
 - StreamableHttp servers are now configurable as stateless or stateful (default: stateless) (#100)
 - Migrated from ghodss/yaml to sigs.k8s.io/yaml (#89)
+- Release automation now builds and uploads genmcp-server binaries alongside CLI binaries for all platforms
 
 ### Deprecated
 
