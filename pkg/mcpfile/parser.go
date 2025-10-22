@@ -15,6 +15,53 @@ const (
 	DefaultBasePath = "/mcp"
 )
 
+// ParseMCPServerConfig parses a server configuration file (mcpserver.yaml).
+func ParseMCPServerConfig(path string) (*MCPServerConfig, error) {
+	config := &MCPServerConfig{}
+
+	path, err := filepath.Abs(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get absolute path to mcpserver config: %v", err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read mcpserver config: %v", err)
+	}
+
+	err = yaml.Unmarshal(data, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal mcpserver config: %v", err)
+	}
+
+	return config, nil
+}
+
+// ParseMCPToolDefinitions parses a tool definitions file (mcpfile.yaml).
+func ParseMCPToolDefinitions(path string) (*MCPToolDefinitions, error) {
+	defs := &MCPToolDefinitions{}
+
+	path, err := filepath.Abs(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get absolute path to mcpfile: %v", err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read mcpfile: %v", err)
+	}
+
+	err = yaml.Unmarshal(data, defs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal mcpfile: %v", err)
+	}
+
+	return defs, nil
+}
+
+// ParseMCPFile parses an MCP file and returns the combined server configuration.
+// It supports both the legacy format (single file) and the new format (separate files).
+// For the new format, pass the path to the mcpserver.yaml file.
 func ParseMCPFile(path string) (*MCPFile, error) {
 	mcpFile := &MCPFile{}
 
@@ -34,6 +81,20 @@ func ParseMCPFile(path string) (*MCPFile, error) {
 	}
 
 	return mcpFile, nil
+}
+
+// CombineConfigs combines a server config and tool definitions into a unified MCPServer.
+func CombineConfigs(serverConfig *MCPServerConfig, toolDefs *MCPToolDefinitions) *MCPServer {
+	return &MCPServer{
+		Name:              serverConfig.Name,
+		Version:           serverConfig.Version,
+		Runtime:           serverConfig.Runtime,
+		Instructions:      toolDefs.Instructions,
+		Tools:             toolDefs.Tools,
+		Prompts:           toolDefs.Prompts,
+		Resources:         toolDefs.Resources,
+		ResourceTemplates: toolDefs.ResourceTemplates,
+	}
 }
 
 func (m *MCPFile) UnmarshalJSON(data []byte) error {
@@ -263,4 +324,70 @@ func (s *StreamableHTTPConfig) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
+}
+
+func (c *MCPServerConfig) UnmarshalJSON(data []byte) error {
+type Doppleganger MCPServerConfig
+
+tmp := struct {
+*Doppleganger
+}{
+Doppleganger: (*Doppleganger)(c),
+}
+
+err := json.Unmarshal(data, &tmp)
+if err != nil {
+return err
+}
+
+if c.FileVersion != MCPFileVersion {
+return fmt.Errorf("invalid mcp file version %s, expected %s - please migrate your file and handle any breaking changes", c.FileVersion, MCPFileVersion)
+}
+
+if c.Kind != KindMCPServerConfig {
+return fmt.Errorf("invalid kind %s, expected %s", c.Kind, KindMCPServerConfig)
+}
+
+// Set defaults for runtime if needed
+if c.Runtime != nil {
+if c.Runtime.TransportProtocol == TransportProtocolStreamableHttp && c.Runtime.StreamableHTTPConfig == nil {
+c.Runtime.StreamableHTTPConfig = &StreamableHTTPConfig{
+Port:      3000,
+BasePath:  DefaultBasePath,
+Stateless: true,
+}
+}
+}
+
+return nil
+}
+
+func (t *MCPToolDefinitions) UnmarshalJSON(data []byte) error {
+type Doppleganger MCPToolDefinitions
+
+tmp := struct {
+*Doppleganger
+}{
+Doppleganger: (*Doppleganger)(t),
+}
+
+err := json.Unmarshal(data, &tmp)
+if err != nil {
+return err
+}
+
+if t.FileVersion != MCPFileVersion {
+return fmt.Errorf("invalid mcp file version %s, expected %s - please migrate your file and handle any breaking changes", t.FileVersion, MCPFileVersion)
+}
+
+if t.Kind != KindMCPToolDefinitions {
+return fmt.Errorf("invalid kind %s, expected %s", t.Kind, KindMCPToolDefinitions)
+}
+
+return nil
+}
+
+// SerializeMCPFile serializes an MCPFile to YAML format.
+func SerializeMCPFile(mcpFile *MCPFile) ([]byte, error) {
+return yaml.Marshal(mcpFile)
 }

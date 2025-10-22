@@ -1,10 +1,6 @@
 # yaml-language-server: $schema=../../specs/mcpfile-schema.json
+kind: MCPToolDefinitions
 mcpFileVersion: 0.1.0
-name: Feature Request API
-runtime:
-  streamableHttpConfig:
-    port: 8080
-  transportProtocol: streamablehttp
 tools:
 - description: Returns a list of all features sorted by upvotes (highest first)
   inputSchema:
@@ -83,4 +79,3 @@ tools:
       url: http://localhost:9090/features/complete
   name: post_features-complete
   title: Mark feature as completed
-version: 0.0.1

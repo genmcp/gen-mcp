@@ -21,6 +21,8 @@ const (
 	PrimitiveTypePrompt             = "prompt"
 	PrimitiveTypeResource           = "resource"
 	PrimitiveTypeResourceTemplate   = "resourceTemplate"
+	KindMCPServerConfig             = "MCPServerConfig"
+	KindMCPToolDefinitions          = "MCPToolDefinitions"
 )
 
 // Primitive represents a tool-like entity that can be invoked (Tool, Prompt, Resource, or ResourceTemplate).
@@ -363,10 +365,53 @@ type MCPServer struct {
 }
 
 // MCPFile is the root structure of an MCP configuration file.
+// DEPRECATED: Use MCPServerConfig and MCPToolDefinitions instead.
 type MCPFile struct {
 	// Version of the MCP file format.
 	FileVersion string `json:"mcpFileVersion" jsonschema:"required"`
 
 	// MCP server definition.
 	MCPServer `json:",inline"`
+}
+
+// MCPServerConfig is the runtime configuration for an MCP server.
+type MCPServerConfig struct {
+	// Kind identifies this as a server configuration file.
+	Kind string `json:"kind" jsonschema:"required"`
+
+	// Version of the MCP file format.
+	FileVersion string `json:"mcpFileVersion" jsonschema:"required"`
+
+	// Name of the MCP server.
+	Name string `json:"name" jsonschema:"required"`
+
+	// Semantic version of the server's toolset.
+	Version string `json:"version" jsonschema:"required"`
+
+	// Runtime configuration for the MCP server.
+	Runtime *ServerRuntime `json:"runtime" jsonschema:"required"`
+}
+
+// MCPToolDefinitions contains tool, prompt, and resource definitions.
+type MCPToolDefinitions struct {
+	// Kind identifies this as a tool definitions file.
+	Kind string `json:"kind" jsonschema:"required"`
+
+	// Version of the MCP file format.
+	FileVersion string `json:"mcpFileVersion" jsonschema:"required"`
+
+	// A set of instructions provided by the server to the client about how to use the server
+	Instructions string `json:"instructions,omitempty" jsonschema:"optional"`
+
+	// List of tools provided by this server.
+	Tools []*Tool `json:"tools,omitempty" jsonschema:"optional"`
+
+	// List of prompts provided by this server.
+	Prompts []*Prompt `json:"prompts,omitempty" jsonschema:"optional"`
+
+	// Set of resources available to the server.
+	Resources []*Resource `json:"resources,omitempty" jsonschema:"optional"`
+
+	// Set of resource templates available to the server.
+	ResourceTemplates []*ResourceTemplate `json:"resourceTemplates,omitempty" jsonschema:"optional"`
 }
