@@ -66,7 +66,7 @@ tools:
 
   - name: query_prometheus
     title: Query Prometheus (range)
-    description: Run a Prometheus `query_range` query and return JSON via the HTTP API.
+    description: Run a Prometheus `query_range` query and return JSON via the HTTP API. Automatically resolves the public Thanos route and injects an OAuth token when only an in-cluster `.svc` URL is provided.
     inputSchema:
       type: object
       properties:
@@ -92,9 +92,45 @@ tools:
       - end
       - step
     invocation:
-      http:
-        method: GET
-        url: "{prometheus_url}/api/v1/query_range"
+      cli:
+        command: |
+          prometheus_url="{prometheus_url}"
+          query="{query}"
+          start="{start}"
+          end="{end}"
+          step="{step}"
+
+          if [ -z "$prometheus_url" ] || printf '%s' "$prometheus_url" | grep -q '\.svc'; then
+            route_host="$(oc -n openshift-monitoring get route thanos-querier -o jsonpath='{.spec.host}' 2>/dev/null || true)"
+            if [ -z "$route_host" ]; then
+              echo "no accessible route found for thanos-querier; provide prometheus_url pointing to a reachable endpoint" >&2
+              exit 1
+            fi
+            prometheus_url="https://$route_host"
+          fi
+
+          case "$prometheus_url" in
+            http://*|https://*)
+              base_url="$prometheus_url"
+              ;;
+            *)
+              base_url="https://$prometheus_url"
+              ;;
+          esac
+
+          token="$(oc whoami -t 2>/dev/null || true)"
+          if [ -z "$token" ]; then
+            echo "failed to obtain bearer token via oc whoami -t" >&2
+            exit 1
+          fi
+
+          curl -sS -k --get \
+            -H "Authorization: Bearer $token" \
+            --data-urlencode "query=$query" \
+            --data-urlencode "start=$start" \
+            --data-urlencode "end=$end" \
+            --data-urlencode "step=$step" \
+            "$base_url/api/v1/query_range"
 
   - name: get_coredns_config
     title: Get CoreDNS ConfigMap

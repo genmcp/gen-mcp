@@ -116,7 +116,7 @@ for usage.
 ### How the phase-0 agent would diagnose
 - `inspect_route` (`name=${APP_NAME}`, `namespace=${NAMESPACE}`) → surface the Route + Service + Endpoints chain and highlight `spec.tls.termination: reencrypt`.
 - `get_service_endpoints` → prove the backend pods are healthy and serving (the issue is not missing endpoints).
-- `query_prometheus` → run `haproxy_server_ssl_verify_result_total{route="${APP_NAME}",namespace="${NAMESPACE}"}` or `haproxy_server_connection_errors_total{route="${APP_NAME}",namespace="${NAMESPACE}"}` over the last 5–10 minutes to show TLS verification failures spiking.
+- `query_prometheus` → run `haproxy_server_ssl_verify_result_total{route="${APP_NAME}",namespace="${NAMESPACE}"}` or `haproxy_server_connection_errors_total{route="${APP_NAME}",namespace="${NAMESPACE}"}` over the last 5–10 minutes to show TLS verification failures spiking (pass the `.svc` URL or the public Thanos route—the tool auto-discovers the external host and injects the bearer token).
 - `probe_dns_local` and/or `exec_dns_in_pod` → confirm the Route hostname still resolves, isolating the fault to router ↔ backend TLS.
 - Recommend mitigation: remove `spec.tls` or enable TLS (with a trusted cert) on the backend Service.
 

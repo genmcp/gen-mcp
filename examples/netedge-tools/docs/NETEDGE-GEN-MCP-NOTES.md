@@ -14,7 +14,7 @@ What this directory contains
 Quick summary of provided tools
 - `inspect_route` — fetch a `Route` and, when possible, its `Service` and `Endpoints`.
 - `get_service_endpoints` — return an Endpoints object for a Service.
-- `query_prometheus` — run a Prometheus `query_range` and return JSON.
+- `query_prometheus` — run a Prometheus `query_range`, automatically resolve the external `thanos-querier` Route when given a `.svc` URL, and inject an OAuth token for authentication.
 - `get_coredns_config` — fetch a ConfigMap (e.g., CoreDNS `Corefile`).
 - `probe_dns_local` — run `dig`/`nslookup` on the gen‑mcp host (probe from the host).
 - `exec_dns_in_pod` — run a short ephemeral pod that executes `dig` inside the cluster.
@@ -61,7 +61,8 @@ Key assumptions and caveats
   needs `oc` or `kubectl` plus DNS tooling (`dig` or `nslookup`). `jq` or `python3`
   help when pretty-printing JSON from `inspect_route`.
 - `query_prometheus` uses the HTTP invoker and requires network access to the target
-  Prometheus endpoint.
+  Prometheus endpoint. When given an in-cluster `.svc` address it falls back to the
+  public `thanos-querier` Route and attaches the `oc` bearer token automatically.
 - `exec_dns_in_pod` pulls `registry.redhat.io/openshift4/network-tools-rhel9:latest`;
   replace with an approved image if your cluster restricts external pulls.
 - Template notes: when writing CLI `command` templates, each `{param}` must appear
