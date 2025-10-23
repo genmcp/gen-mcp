@@ -14,12 +14,7 @@ SCENARIO2_BAD_HOST="does-not-exist.netedge.test"
 SCENARIO2_ORIG_HOST_ANNOTATION="netedge-tools-original-host"
 SCENARIO3_POLICY_NAME="netedge-deny-router"
 CURRENT_ROUTE_HOST=""
-SCENARIO4_LB_SERVICE="${APP_NAME}-gateway"
-SCENARIO4_HOST_ANNOTATION="netedge-tools-gateway-host"
-SCENARIO4_GATEWAY_HOST_DEFAULT="gateway-${APP_NAME}.netedge.test"
-SCENARIO4_GATEWAY_HOST="${SCENARIO4_GATEWAY_HOST:-${SCENARIO4_GATEWAY_HOST_DEFAULT}}"
-SCENARIO4_LB_WAIT_SECONDS="${SCENARIO4_LB_WAIT_SECONDS:-120}"
-ACTIVE_SCENARIO=""
+SCENARIO4_TLS_ANNOTATION="netedge-tools-original-tls"
 
 log() { printf '%s\n' "$*" >&2; }
 
@@ -103,6 +98,14 @@ show_status() {
   log "route summary"
   oc -n "${NAMESPACE}" get route "${APP_NAME}" -o custom-columns=NAME:.metadata.name,HOST:.spec.host,ADMITTED:'{.status.ingress[0].conditions[?(@.type=="Admitted")].status}' --no-headers || true
 
+  local tls_term
+  tls_term="$(oc -n "${NAMESPACE}" get route "${APP_NAME}" -o jsonpath='{.spec.tls.termination}' 2>/dev/null || true)"
+  if [ -n "${tls_term}" ]; then
+    log "route TLS termination: ${tls_term}"
+  else
+    log "route TLS termination: (none)"
+  fi
+
   log "service selector"
   oc -n "${NAMESPACE}" get svc "${APP_NAME}" -o jsonpath='{.spec.selector}{"\n"}' || true
 
@@ -112,18 +115,6 @@ show_status() {
   if oc -n "${NAMESPACE}" get networkpolicy "${SCENARIO3_POLICY_NAME}" >/dev/null 2>&1; then
     log "networkpolicy ${SCENARIO3_POLICY_NAME} status"
     oc -n "${NAMESPACE}" get networkpolicy "${SCENARIO3_POLICY_NAME}" -o yaml || true
-  fi
-
-  if oc -n "${NAMESPACE}" get svc "${SCENARIO4_LB_SERVICE}" >/dev/null 2>&1; then
-    log "gateway loadbalancer service ${SCENARIO4_LB_SERVICE}"
-    oc -n "${NAMESPACE}" get svc "${SCENARIO4_LB_SERVICE}" -o custom-columns=NAME:.metadata.name,TYPE:.spec.type,LB_IP:'{.status.loadBalancer.ingress[0].ip}',LB_HOSTNAME:'{.status.loadBalancer.ingress[0].hostname}' --no-headers || true
-    local s4_host
-    s4_host="$(oc -n "${NAMESPACE}" get svc "${SCENARIO4_LB_SERVICE}" -o jsonpath='{.metadata.annotations["'"${SCENARIO4_HOST_ANNOTATION}"'"]}' 2>/dev/null || true)"
-    if [ -n "${s4_host}" ]; then
-      log "intended gateway host annotation: ${s4_host}"
-    else
-      log "intended gateway host annotation: (not set)"
-    fi
   fi
 }
 
@@ -247,62 +238,35 @@ scenario3_repair() {
 
 scenario4_break() {
   ensure_workload
-  log "creating LoadBalancer service ${SCENARIO4_LB_SERVICE} to simulate a Gateway needing an external IP"
-  cat <<'YAML' | APP_NAME="${APP_NAME}" APP_LABEL="${APP_LABEL}" PORT="${PORT}" \
-    SCENARIO4_HOST_ANNOTATION="${SCENARIO4_HOST_ANNOTATION}" SCENARIO4_GATEWAY_HOST="${SCENARIO4_GATEWAY_HOST}" \
-    envsubst | oc -n "${NAMESPACE}" apply -f -
-apiVersion: v1
-kind: Service
-metadata:
-  name: ${APP_NAME}-gateway
-  labels:
-    app.kubernetes.io/managed-by: netedge-tools
-  annotations:
-    ${SCENARIO4_HOST_ANNOTATION}: ${SCENARIO4_GATEWAY_HOST}
-spec:
-  type: LoadBalancer
-  selector:
-    app: ${APP_LABEL}
-  ports:
-  - name: http
-    port: ${PORT}
-    targetPort: ${PORT}
-YAML
+  log "patching Route to use reencrypt TLS (backend remains plain HTTP) to force router/backend TLS handshake failures"
+  oc -n "${NAMESPACE}" annotate route "${APP_NAME}" "${SCENARIO4_TLS_ANNOTATION}=plain-http" --overwrite >/dev/null 2>&1 || true
 
-  log "waiting up to ${SCENARIO4_LB_WAIT_SECONDS}s for load balancer addresses (expected to remain empty without a provider)"
-  local attempts=1
-  if [ "${SCENARIO4_LB_WAIT_SECONDS}" -gt 5 ]; then
-    attempts=$((SCENARIO4_LB_WAIT_SECONDS / 5))
-  fi
-  local lb_ips=""
-  local lb_hosts=""
-  for _ in $(seq 1 "${attempts}"); do
-    lb_ips="$(oc -n "${NAMESPACE}" get svc "${SCENARIO4_LB_SERVICE}" -o jsonpath='{.status.loadBalancer.ingress[*].ip}' 2>/dev/null || true)"
-    lb_hosts="$(oc -n "${NAMESPACE}" get svc "${SCENARIO4_LB_SERVICE}" -o jsonpath='{.status.loadBalancer.ingress[*].hostname}' 2>/dev/null || true)"
-    if [ -n "${lb_ips}${lb_hosts}" ]; then
-      break
-    fi
-    sleep 5
-  done
+  local patch_file
+  patch_file="$(mktemp)"
+  cat <<'JSON' > "${patch_file}"
+{"spec":{"tls":{"termination":"reencrypt","insecureEdgeTerminationPolicy":"Redirect","destinationCACertificate":"-----BEGIN CERTIFICATE-----\nMIICwjCCAaqgAwIBAgIUPdPBiiv4lqmx+J/0VDP0FmSkL5AwDQYJKoZIhvcNAQEL\nBQAwFDESMBAGA1UEAwwJbmV0ZWRnZS1jYTAeFw0yNDAxMDEwMDAwMDBaFw0zNDAx\nMDEwMDAwMDBaMBQxEjAQBgNVBAMMCW5ldGVkZ2UtY2EwggEiMA0GCSqGSIb3DQEB\nAQUAA4IBDwAwggEKAoIBAQDJF5vQ2p8sVh6a4l4BhFJj3ZdtmLEl3gHtP3nTzmYB\njLfzMOlHFelgW8Trgzzwf1JmHz1DScz3H1JdYaiN2rFbV2jwV3X7hJ2P60+g2PdV\ng9gi3b3tu5C3fYpt3YaKulHytQ+Oqv5x0zDfai+qyDCqgQzfwzEkbg0AoLvvy0F9\nWPzPj6xnEwSa5t1FUbYQwplpHk2nw/TYe8LSF+6T1Vn/ZRQlBIjXopB11Mh17l5b\n7ouC2vhV3ZNiHPJJR7MY3GacsbGu9zwCfn12MBYc4B1YwDWwP6R6jo5fKUn19+ih\nq6B4Tn3FQilds3n3qNNc3blJPoBsXSV6XdJ+2l4O/E/1AgMBAAGjUzBRMB0GA1Ud\nDgQWBBSmU/lVYG5HZM3Xq2bpuASr9PBRGjAfBgNVHSMEGDAWgBSmU/lVYG5HZM3X\nq2bpuASr9PBRGjAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQCH\n0W7jhBP6tQyctXWZfqs169uAHSrmwU0aQAn2j2ad3rZ4IE+u2ASfrmVii5wjNe4E\ntRjS0+QWaEoZwJBGtJ6r/TqlTr/7zQa4XzdX8yEbfL33Gt20lfO1nU/KcqbPjhQi\n6JFpj0YvdwfukuvseIgCyPCYTDWJrrRJbwI62I5qnK0iePvyplTkU1qpLVgv2wP6\nUZUqXYy3eLKUIKwoJs5eX1Po9rIrFHG8wbHPJUBaVuZQgDrw9WdDPQ6YgB1nc8fN\nWHGakUWTynVro4/+Y/5Dn09iuPhR2JrDogFm6uaSYzBeAnkw1GOEiUv7J8wo6P0R\nQrJjapdStc3bVh7usNuh\n-----END CERTIFICATE-----\n"}}}
+JSON
 
-  if [ -n "${lb_ips}${lb_hosts}" ]; then
-    log "load balancer addresses detected (cluster appears to provision them): IPs='${lb_ips}' HOSTNAMES='${lb_hosts}'"
-  else
-    log "no load balancer ingress addresses provisioned; this indicates the cluster lacks an external LoadBalancer implementation (expected for this scenario)"
-  fi
+  oc -n "${NAMESPACE}" patch route "${APP_NAME}" --type=merge --patch-file "${patch_file}"
+  rm -f "${patch_file}"
 
   show_status
   refresh_route_host
-  log "intended external gateway host: ${SCENARIO4_GATEWAY_HOST}"
-  log "note: without a LoadBalancer provider this host will not resolve or accept traffic"
+  log "note: router now expects TLS reencrypt to backend but pods still serve plain HTTP → handshake fails and the Route returns 503"
+  log "tip: use query_prometheus to inspect haproxy_server_ssl_verify_result_total for this route to quantify TLS failures"
 }
 
 scenario4_repair() {
-  log "removing LoadBalancer service ${SCENARIO4_LB_SERVICE}"
-  oc -n "${NAMESPACE}" delete svc "${SCENARIO4_LB_SERVICE}" --ignore-not-found
+  log "restoring Route TLS configuration to plain HTTP"
+  local tls_term
+  tls_term="$(oc -n "${NAMESPACE}" get route "${APP_NAME}" -o jsonpath='{.spec.tls.termination}' 2>/dev/null || true)"
+  if [ -n "${tls_term}" ]; then
+    oc -n "${NAMESPACE}" patch route "${APP_NAME}" --type=json -p '[{"op":"remove","path":"/spec/tls"}]' || true
+  fi
+  oc -n "${NAMESPACE}" annotate route "${APP_NAME}" "${SCENARIO4_TLS_ANNOTATION}-" >/dev/null 2>&1 || true
   show_status
   refresh_route_host
-  log "note: Gateway path removed; fall back to the Route or install a LoadBalancer provider"
+  log "note: Route reverted to HTTP; TLS handshake failures should cease"
 }
 
 route_url() {
@@ -313,34 +277,22 @@ route_url() {
 }
 
 curl_route() {
-  if [ "${ACTIVE_SCENARIO}" = "4" ] && oc -n "${NAMESPACE}" get svc "${SCENARIO4_LB_SERVICE}" >/dev/null 2>&1; then
-    local gateway_host
-    gateway_host="$(oc -n "${NAMESPACE}" get svc "${SCENARIO4_LB_SERVICE}" -o jsonpath='{.metadata.annotations["'"${SCENARIO4_HOST_ANNOTATION}"'"]}' 2>/dev/null || true)"
-    if [ -z "${gateway_host}" ]; then
-      gateway_host="${SCENARIO4_GATEWAY_HOST}"
-    fi
-    if [ -z "${gateway_host}" ]; then
-      log "gateway service exists but no host annotation was found"
-      return 1
-    fi
-    local gateway_url="http://${gateway_host}"
-    log "curling ${gateway_url} via Gateway path (expected failure without LoadBalancer)"
-    if ! curl -fsS "${gateway_url}" | head -n 3; then
-      log "curl failed as expected; no LoadBalancer address is provisioned for ${gateway_host}"
-      return 1
-    fi
-    log "curl unexpectedly succeeded; cluster may have provisioned a LoadBalancer for ${SCENARIO4_LB_SERVICE}"
-    return 0
-  fi
-
   refresh_route_host
   if [ -z "${CURRENT_ROUTE_HOST}" ]; then
     log "could not determine route host"
     return 1
   fi
-  local url="http://${CURRENT_ROUTE_HOST}"
+  local tls_term
+  tls_term="$(oc -n "${NAMESPACE}" get route "${APP_NAME}" -o jsonpath='{.spec.tls.termination}' 2>/dev/null || true)"
+  local scheme="http"
+  local curl_opts=(-fsS)
+  if [ -n "${tls_term}" ]; then
+    scheme="https"
+    curl_opts+=(-k)
+  fi
+  local url="${scheme}://${CURRENT_ROUTE_HOST}"
   log "curling ${url}"
-  curl -fsS "${url}" | head -n 3 || { log "curl failed or route not resolvable from here"; return 1; }
+  curl "${curl_opts[@]}" "${url}" | head -n 3 || { log "curl failed or route not resolvable from here"; return 1; }
 }
 
 cleanup_workload() {
@@ -354,7 +306,7 @@ scenario_cleanup() {
   if oc -n "${NAMESPACE}" get networkpolicy "${SCENARIO3_POLICY_NAME}" >/dev/null 2>&1; then
     oc -n "${NAMESPACE}" delete networkpolicy "${SCENARIO3_POLICY_NAME}" --ignore-not-found
   fi
-  oc -n "${NAMESPACE}" delete svc "${SCENARIO4_LB_SERVICE}" --ignore-not-found >/dev/null 2>&1 || true
+  oc -n "${NAMESPACE}" annotate route "${APP_NAME}" "${SCENARIO4_TLS_ANNOTATION}-" >/dev/null 2>&1 || true
   CURRENT_ROUTE_HOST=""
 }
 
@@ -363,7 +315,7 @@ scenario_name() {
     1) printf 'Route → Service selector mismatch';;
     2) printf 'Route host without DNS';;
     3) printf 'Router blocked by NetworkPolicy';;
-    4) printf 'Gateway Service pending (no LoadBalancer provider)';;
+    4) printf 'Route reencrypt without backend TLS';;
     *) printf 'unknown';;
   esac
 }
@@ -379,7 +331,12 @@ scenario_setup() {
       ;;
     4)
       deploy_healthy
-      oc -n "${NAMESPACE}" delete svc "${SCENARIO4_LB_SERVICE}" --ignore-not-found >/dev/null 2>&1 || true
+      local tls_term
+      tls_term="$(oc -n "${NAMESPACE}" get route "${APP_NAME}" -o jsonpath='{.spec.tls.termination}' 2>/dev/null || true)"
+      if [ -n "${tls_term}" ]; then
+        oc -n "${NAMESPACE}" patch route "${APP_NAME}" --type=json -p '[{"op":"remove","path":"/spec/tls"}]' || true
+      fi
+      oc -n "${NAMESPACE}" annotate route "${APP_NAME}" "${SCENARIO4_TLS_ANNOTATION}-" >/dev/null 2>&1 || true
       ;;
     *)
       log "unsupported scenario $1"
@@ -426,14 +383,14 @@ scenarios:
   1  Route → Service selector mismatch (default)
   2  Route host without DNS record (NXDOMAIN)
   3  NetworkPolicy blocking router → service traffic
-  4  Gateway Service pending (no LoadBalancer provider)
+  4  Route reencrypt without backend TLS
 
 actions:
   --setup    deploy healthy baseline objects for the chosen scenario
   --break    introduce the scenario-specific failure condition
   --repair   restore the healthy state for the chosen scenario
   --status   show route, service selector, endpoints (and policy) state
-  --curl     curl scenario endpoint (Route for 1–3, Gateway host for 4)
+  --curl     curl the route host from this machine (best-effort)
   --cleanup  remove route/service/deployment (and policy if present)
 
 env vars (optional overrides):
@@ -497,7 +454,6 @@ main() {
       ;;
   esac
 
-  ACTIVE_SCENARIO="${scenario}"
   log "scenario ${scenario}: $(scenario_name "${scenario}")"
 
   case "${action}" in

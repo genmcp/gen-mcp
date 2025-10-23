@@ -93,36 +93,35 @@ for usage.
 
 ---
 
-## 4. Gateway Service Pending (No LoadBalancer Provider)
+## 4. Route Reencrypt Without Backend TLS (Router Handshake Failures)
 
 ### Why it's in-scope & interesting
-- Exercises the **Gateway API → Service (LoadBalancer)** integration point.
-- Surfaces a common bare-metal/OpenShift Local issue: no cloud LoadBalancer to provision an external IP.
-- Highlights a troubleshooting path that combines **resource inspection** with **Prometheus evidence**.
-- Reversible by deleting the LoadBalancer Service and falling back to the cluster-internal Route.
+- Exercises the **router → backend TLS handshake** path that the ingress team owns.
+- Mirrors real incidents where a Route is switched to `reencrypt` but the workload still serves plain HTTP.
+- Drives the agent toward **Prometheus metrics** (`haproxy_*`) to see handshake failures accumulate.
+- Fully reversible by removing the TLS stanza from the Route.
 
 ### How to stage it
 1. Deploy the healthy baseline (Deployment, Service, Route) via `netedge-break-repair.sh --setup`.
-2. **Break**: create an additional Service (`${APP_NAME}-gateway`) of type `LoadBalancer` targeting the same pods. Annotate the Service with the intended Gateway host.
-3. Optionally create a `HTTPRoute` referencing the Service so tooling can report listener status.
-4. Wait ~60s and observe that `.status.loadBalancer.ingress` never populates on clusters without a LoadBalancer implementation.
-5. **Repair**: delete the `LoadBalancer` Service (and the optional `HTTPRoute`).
+2. **Break**: patch the Route to `spec.tls.termination: reencrypt` with a bogus CA while leaving the backend Service on HTTP.
+3. Wait 30–60s; router pods will begin returning 503s because the backend never completes TLS.
+4. **Repair**: remove the Route `spec.tls` block to restore plain HTTP edge traffic.
 
 ### How a human would diagnose
-1. `oc get gateway` (or `HTTPRoute`) → listeners reference a Service that never obtains an external address.
-2. `oc get svc ${APP_NAME}-gateway -o yaml` → `spec.type: LoadBalancer` with empty `.status.loadBalancer`.
-3. `oc get infrastructure cluster -o jsonpath='{.status.platformStatus.type}'` → platform reports `None`, `BareMetal`, or other environment without managed LBs.
-4. Suggest fixes: install MetalLB/OVN-K logical LB, or switch Gateway to use NodePort/Route instead of expecting a cloud LB.
+1. `curl` the Route → consistent 503 (router) with `x-router` headers still present.
+2. `oc get route -o yaml` → `spec.tls.termination: reencrypt` even though the Service targets port 8080 (HTTP).
+3. `oc logs -n openshift-ingress router-…` or Prometheus → observe `haproxy_server_ssl_verify_result_total` / `haproxy_server_connection_errors_total` increase.
+4. Fix by reverting the Route to edge/HTTP or enabling TLS on the workload.
 
 ### How the phase-0 agent would diagnose
-- `get_service_endpoints` (`service=${APP_NAME}`, `namespace=${NAMESPACE}`) → confirm the backend pods/Endpoints are healthy.
-- `inspect_route` → verify the original Route is still functional, isolating the failure to the new Gateway path.
-- `query_prometheus` → compare `kube_service_spec_type{service="${APP_NAME}-gateway",namespace="${NAMESPACE}"}` with `kube_service_status_load_balancer_ingress{service="${APP_NAME}-gateway",namespace="${NAMESPACE}"}` to prove no ingress address ever appears.
-- `probe_dns_local` or `exec_dns_in_pod` → demonstrate the advertised Gateway host cannot resolve/accept traffic due to the missing IP.
-- Recommend mitigation: delete the LoadBalancer Service (fall back to Route) or deploy a LoadBalancer provider.
+- `inspect_route` (`name=${APP_NAME}`, `namespace=${NAMESPACE}`) → surface the Route + Service + Endpoints chain and highlight `spec.tls.termination: reencrypt`.
+- `get_service_endpoints` → prove the backend pods are healthy and serving (the issue is not missing endpoints).
+- `query_prometheus` → run `haproxy_server_ssl_verify_result_total{route="${APP_NAME}",namespace="${NAMESPACE}"}` or `haproxy_server_connection_errors_total{route="${APP_NAME}",namespace="${NAMESPACE}"}` over the last 5–10 minutes to show TLS verification failures spiking.
+- `probe_dns_local` and/or `exec_dns_in_pod` → confirm the Route hostname still resolves, isolating the fault to router ↔ backend TLS.
+- Recommend mitigation: remove `spec.tls` or enable TLS (with a trusted cert) on the backend Service.
 
 ### Agent input to cause it diagnose this task:
-- `On the currently connected cluster we tried to expose the app through a Gateway, but it never provisions an external address. Diagnose the root cause and suggest the fix.`
+- `On the currently connected cluster the Route suddenly started returning 503s right after someone enabled reencrypt termination. Diagnose the root cause and tell me how to fix it.`
 
 ---
 
