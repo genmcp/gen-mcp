@@ -70,14 +70,6 @@
           "type": "string",
           "description": "Version of the schema format."
         },
-        "name": {
-          "type": "string",
-          "description": "Name of the MCP server."
-        },
-        "version": {
-          "type": "string",
-          "description": "Semantic version of the server's toolset."
-        },
         "runtime": {
           "$ref": "#/$defs/ServerRuntime",
           "description": "Runtime configuration for the MCP server."
@@ -88,8 +80,6 @@
       "required": [
         "kind",
         "schemaVersion",
-        "name",
-        "version",
         "runtime"
       ],
       "description": "MCPServerConfig is the runtime configuration for an MCP server."

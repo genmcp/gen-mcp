@@ -12,8 +12,6 @@ The server configuration file contains runtime settings for the MCP server.
 |---|---|---|---|
 | `kind` | string | Must be `"MCPServerConfig"`. | Yes |
 | `schemaVersion` | string | The version of the schema format. Must be `"0.2.0"`. | Yes |
-| `name` | string | The name of the server. | Yes |
-| `version` | string | The semantic version of the server's toolset. | Yes |
 | `runtime` | `ServerRuntime` | The runtime settings for the server. | Yes |
 
 ### Example
@@ -21,8 +19,6 @@ The server configuration file contains runtime settings for the MCP server.
 ```yaml
 kind: MCPServerConfig
 schemaVersion: 0.2.0
-name: my-awesome-server
-version: 1.2.3
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
@@ -92,8 +88,6 @@ This object is currently empty and serves as a placeholder for future configurat
 ```yaml
 kind: MCPServerConfig
 schemaVersion: 0.2.0
-name: Feature Request API
-version: 0.0.1
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
@@ -110,8 +104,6 @@ runtime:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: 0.2.0
-name: Production API
-version: 1.0.0
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
@@ -140,8 +132,6 @@ runtime:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: 0.2.0
-name: Silent API
-version: 1.0.0
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
@@ -164,8 +154,6 @@ To enable HTTPS for your MCP server, configure TLS in the `streamableHttpConfig`
 ```yaml
 kind: MCPServerConfig
 schemaVersion: 0.2.0
-name: secure-server
-version: 1.0.0
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
@@ -183,8 +171,6 @@ To protect your MCP server with OAuth 2.0 authentication:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: 0.2.0
-name: protected-server
-version: 1.0.0
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
@@ -204,8 +190,6 @@ For maximum security, combine both TLS and OAuth:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: 0.2.0
-name: secure-protected-server
-version: 1.0.0
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
@@ -225,8 +209,6 @@ runtime:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: 0.2.0
-name: git-tools
-version: 1.0.0
 runtime:
   transportProtocol: stdio
 ```

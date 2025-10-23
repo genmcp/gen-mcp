@@ -382,12 +382,6 @@ type MCPServerConfig struct {
 	// Version of the schema format.
 	FileVersion string `json:"schemaVersion" jsonschema:"required"`
 
-	// Name of the MCP server.
-	Name string `json:"name" jsonschema:"required"`
-
-	// Semantic version of the server's toolset.
-	Version string `json:"version" jsonschema:"required"`
-
 	// Runtime configuration for the MCP server.
 	Runtime *ServerRuntime `json:"runtime" jsonschema:"required"`
 }
@@ -399,6 +393,12 @@ type MCPToolDefinitions struct {
 
 	// Version of the schema format.
 	FileVersion string `json:"schemaVersion" jsonschema:"required"`
+
+	// Name of the MCP server.
+	Name string `json:"name" jsonschema:"required"`
+
+	// Semantic version of the server's toolset.
+	Version string `json:"version" jsonschema:"required"`
 
 	// A set of instructions provided by the server to the client about how to use the server
 	Instructions string `json:"instructions,omitempty" jsonschema:"optional"`

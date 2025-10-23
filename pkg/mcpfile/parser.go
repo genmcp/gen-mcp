@@ -86,8 +86,8 @@ func ParseMCPFile(path string) (*MCPFile, error) {
 // CombineConfigs combines a server config and tool definitions into a unified MCPServer.
 func CombineConfigs(serverConfig *MCPServerConfig, toolDefs *MCPToolDefinitions) *MCPServer {
 	return &MCPServer{
-		Name:              serverConfig.Name,
-		Version:           serverConfig.Version,
+		Name:              toolDefs.Name,
+		Version:           toolDefs.Version,
 		Runtime:           serverConfig.Runtime,
 		Instructions:      toolDefs.Instructions,
 		Tools:             toolDefs.Tools,

@@ -14,6 +14,8 @@ The tool definitions file contains the tools, prompts, and resources provided by
 |---|---|---|---|
 | `kind` | string | Must be `"MCPToolDefinitions"`. | Yes |
 | `schemaVersion` | string | The version of the schema format. Must be `"0.2.0"`. | Yes |
+| `name` | string | The name of the MCP server. | Yes |
+| `version` | string | The semantic version of the server's toolset. | Yes |
 | `instructions` | string | A set of instructions provided by the server to the client about how to use the server. | No |
 | `tools` | array of `Tool` | The tools provided by this server. | No |
 | `prompts` | array of `Prompt` | The prompts provided by this server. | No |
@@ -25,6 +27,8 @@ The tool definitions file contains the tools, prompts, and resources provided by
 ```yaml
 kind: MCPToolDefinitions
 schemaVersion: 0.2.0
+name: my-awesome-server
+version: 1.2.3
 instructions: |
   To clone and analyze a repository:
   1. First use clone_repo to clone the repository locally

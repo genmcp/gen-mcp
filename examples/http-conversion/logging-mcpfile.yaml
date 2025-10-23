@@ -1,6 +1,8 @@
 # yaml-language-server: $schema=../../specs/mcpfile-schema.json
 kind: MCPToolDefinitions
 schemaVersion: 0.2.0
+name: Feature Request API
+version: 0.0.1
 
 tools:
 - description: Returns a list of all features sorted by upvotes (highest first)

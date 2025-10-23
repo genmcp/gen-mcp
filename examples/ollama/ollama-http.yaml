@@ -1,5 +1,7 @@
 kind: MCPToolDefinitions
-schemaVersion: "0.1.0"
+schemaVersion: "0.2.0"
+name: ollama
+version: "1.0.0"
 tools:
 - name: generate
   title: "Generate a response"
