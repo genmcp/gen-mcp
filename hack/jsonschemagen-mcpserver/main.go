@@ -9,8 +9,6 @@ import (
 
 	"github.com/invopop/jsonschema"
 
-	"github.com/genmcp/gen-mcp/pkg/invocation/cli"
-	"github.com/genmcp/gen-mcp/pkg/invocation/http"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 )
 
@@ -22,33 +20,12 @@ type schemaType struct {
 }
 
 func main() {
-	// Use a slice to guarantee the processing order.
-	// mcpfile.MCPFile will be processed first.
+	// Generate schema for MCPServerConfig
 	types := []schemaType{
-		{
-			Type: &mcpfile.MCPFile{},
-			Base: "github.com/genmcp/gen-mcp/pkg/mcpfile",
-			Path: "../../pkg/mcpfile",
-		},
 		{
 			Type: &mcpfile.MCPServerConfig{},
 			Base: "github.com/genmcp/gen-mcp/pkg/mcpfile",
 			Path: "../../pkg/mcpfile",
-		},
-		{
-			Type: &mcpfile.MCPToolDefinitions{},
-			Base: "github.com/genmcp/gen-mcp/pkg/mcpfile",
-			Path: "../../pkg/mcpfile",
-		},
-		{
-			Type: &http.HttpInvocationData{},
-			Base: "github.com/genmcp/gen-mcp/pkg/invocation",
-			Path: "../../pkg/invocation",
-		},
-		{
-			Type: &cli.CliInvocationData{},
-			Base: "github.com/genmcp/gen-mcp/pkg/invocation",
-			Path: "../../pkg/invocation",
 		},
 	}
 
@@ -83,8 +60,8 @@ func main() {
 
 	// Build paths
 	specsDir := filepath.Join("..", "..", "specs")
-	versionedFile := filepath.Join(specsDir, fmt.Sprintf("mcpfile-schema-%s.json", mcpfile.MCPFileVersion))
-	latestFile := filepath.Join(specsDir, "mcpfile-schema.json")
+	versionedFile := filepath.Join(specsDir, fmt.Sprintf("mcpserver-schema-%s.json", mcpfile.MCPFileVersion))
+	latestFile := filepath.Join(specsDir, "mcpserver-schema.json")
 
 	// Write versioned schema
 	if err := os.WriteFile(versionedFile, schemaJSON, 0644); err != nil {
@@ -95,4 +72,6 @@ func main() {
 	if err := os.WriteFile(latestFile, schemaJSON, 0644); err != nil {
 		log.Fatalf("Failed to write latest schema: %v", err)
 	}
+
+	fmt.Printf("Generated mcpserver schema version %s\n", mcpfile.MCPFileVersion)
 }
