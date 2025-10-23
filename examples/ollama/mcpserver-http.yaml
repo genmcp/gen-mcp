@@ -1,5 +1,5 @@
 kind: MCPServerConfig
-mcpFileVersion: "0.1.0"
+schemaVersion: "0.1.0"
 name: ollama
 version: "1.0.0"
 runtime:

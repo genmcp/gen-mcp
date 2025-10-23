@@ -1,5 +1,5 @@
 kind: MCPToolDefinitions
-mcpFileVersion: "0.1.0"
+schemaVersion: "0.1.0"
 tools:
 - name: generate
   title: "Generate a response"

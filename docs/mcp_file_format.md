@@ -17,7 +17,7 @@ The server configuration file contains runtime settings for the MCP server.
 | Field | Type | Description | Required |
 |---|---|---|---|
 | `kind` | string | Must be `"MCPServerConfig"`. | Yes |
-| `mcpFileVersion` | string | The version of the MCP file format. Must be `"0.1.0"`. | Yes |
+| `schemaVersion` | string | The version of the MCP file format. Must be `"0.1.0"`. | Yes |
 | `name` | string | The name of the server. | Yes |
 | `version` | string | The semantic version of the server's toolset. | Yes |
 | `runtime` | `ServerRuntime` | The runtime settings for the server. | Yes |
@@ -26,7 +26,7 @@ The server configuration file contains runtime settings for the MCP server.
 
 ```yaml
 kind: MCPServerConfig
-mcpFileVersion: 0.1.0
+schemaVersion: 0.1.0
 name: my-awesome-server
 version: 1.2.3
 runtime:
@@ -42,7 +42,7 @@ The tool definitions file contains the tools, prompts, and resources provided by
 | Field | Type | Description | Required |
 |---|---|---|---|
 | `kind` | string | Must be `"MCPToolDefinitions"`. | Yes |
-| `mcpFileVersion` | string | The version of the MCP file format. Must be `"0.1.0"`. | Yes |
+| `schemaVersion` | string | The version of the MCP file format. Must be `"0.1.0"`. | Yes |
 | `instructions` | string | A set of instructions provided by the server to the client about how to use the server. | No |
 | `tools` | array of `Tool` | The tools provided by this server. | No |
 | `prompts` | array of `Prompt` | The prompts provided by this server. | No |
@@ -53,7 +53,7 @@ The tool definitions file contains the tools, prompts, and resources provided by
 
 ```yaml
 kind: MCPToolDefinitions
-mcpFileVersion: 0.1.0
+schemaVersion: 0.1.0
 instructions: |
   To clone and analyze a repository:
   1. First use clone_repo to clone the repository locally
@@ -287,7 +287,7 @@ invocation:
 **mcpserver.yaml:**
 ```yaml
 kind: MCPServerConfig
-mcpFileVersion: "0.1.0"
+schemaVersion: "0.1.0"
 name: Feature Request API
 version: "0.0.1"
 runtime:
@@ -303,7 +303,7 @@ runtime:
 **mcpfile.yaml:**
 ```yaml
 kind: MCPToolDefinitions
-mcpFileVersion: "0.1.0"
+schemaVersion: "0.1.0"
 tools:
   - name: get_features
     title: "Get all features"
@@ -321,7 +321,7 @@ tools:
 **mcpserver.yaml:**
 ```yaml
 kind: MCPServerConfig
-mcpFileVersion: "0.1.0"
+schemaVersion: "0.1.0"
 name: Production API
 version: "1.0.0"
 runtime:
@@ -349,7 +349,7 @@ runtime:
 **mcpfile.yaml:**
 ```yaml
 kind: MCPToolDefinitions
-mcpFileVersion: "0.1.0"
+schemaVersion: "0.1.0"
 tools:
   - name: health_check
     description: "Returns the health status of the service"
@@ -366,7 +366,7 @@ tools:
 **mcpserver.yaml:**
 ```yaml
 kind: MCPServerConfig
-mcpFileVersion: "0.1.0"
+schemaVersion: "0.1.0"
 name: Silent API
 version: "1.0.0"
 runtime:
@@ -384,7 +384,7 @@ runtime:
 **mcpfile.yaml:**
 ```yaml
 kind: MCPToolDefinitions
-mcpFileVersion: "0.1.0"
+schemaVersion: "0.1.0"
 tools:
   - name: process_data
     description: "Processes data without sending logs to MCP clients"
@@ -405,7 +405,7 @@ To enable HTTPS for your MCP server, configure TLS in the `streamableHttpConfig`
 **mcpserver.yaml:**
 ```yaml
 kind: MCPServerConfig
-mcpFileVersion: "0.1.0"
+schemaVersion: "0.1.0"
 name: secure-server
 version: "1.0.0"
 runtime:
@@ -424,7 +424,7 @@ To protect your MCP server with OAuth 2.0 authentication:
 **mcpserver.yaml:**
 ```yaml
 kind: MCPServerConfig
-mcpFileVersion: "0.1.0"
+schemaVersion: "0.1.0"
 name: protected-server
 version: "1.0.0"
 runtime:
@@ -441,7 +441,7 @@ runtime:
 **mcpfile.yaml:**
 ```yaml
 kind: MCPToolDefinitions
-mcpFileVersion: "0.1.0"
+schemaVersion: "0.1.0"
 tools:
   - name: admin_tool
     description: "Administrative tool requiring elevated permissions"
@@ -458,7 +458,7 @@ For maximum security, combine both TLS and OAuth:
 **mcpserver.yaml:**
 ```yaml
 kind: MCPServerConfig
-mcpFileVersion: "0.1.0"
+schemaVersion: "0.1.0"
 name: secure-protected-server
 version: "1.0.0"
 runtime:
@@ -479,7 +479,7 @@ runtime:
 **mcpserver.yaml:**
 ```yaml
 kind: MCPServerConfig
-mcpFileVersion: "0.1.0"
+schemaVersion: "0.1.0"
 name: git-tools
 version: "1.0.0"
 runtime:
@@ -489,7 +489,7 @@ runtime:
 **mcpfile.yaml:**
 ```yaml
 kind: MCPToolDefinitions
-mcpFileVersion: "0.1.0"
+schemaVersion: "0.1.0"
 instructions: |
   This server provides Git repository management tools. For typical workflows:
   1. Use clone_repo to get a local copy of a repository
@@ -531,7 +531,7 @@ tools:
 **mcpserver.yaml:**
 ```yaml
 kind: MCPServerConfig
-mcpFileVersion: "0.1.0"
+schemaVersion: "0.1.0"
 name: user-service
 version: "2.1.0"
 runtime:
@@ -543,7 +543,7 @@ runtime:
 **mcpfile.yaml:**
 ```yaml
 kind: MCPToolDefinitions
-mcpFileVersion: "0.1.0"
+schemaVersion: "0.1.0"
 tools:
 - name: get_user
   title: "Get User"

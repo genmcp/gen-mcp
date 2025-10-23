@@ -104,8 +104,13 @@ func (m *MCPFile) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	// Unmarshal FileVersion separately
-	if fv, ok := raw["mcpFileVersion"]; ok {
+	// Unmarshal FileVersion separately - support both old and new field names for backward compatibility
+	if fv, ok := raw["schemaVersion"]; ok {
+		if err := json.Unmarshal(fv, &m.FileVersion); err != nil {
+			return err
+		}
+	} else if fv, ok := raw["mcpFileVersion"]; ok {
+		// Legacy field name for backward compatibility
 		if err := json.Unmarshal(fv, &m.FileVersion); err != nil {
 			return err
 		}

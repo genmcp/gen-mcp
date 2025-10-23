@@ -368,7 +368,7 @@ type MCPServer struct {
 // DEPRECATED: Use MCPServerConfig and MCPToolDefinitions instead.
 type MCPFile struct {
 	// Version of the MCP file format.
-	FileVersion string `json:"mcpFileVersion" jsonschema:"required"`
+	FileVersion string `json:"schemaVersion" jsonschema:"required"`
 
 	// MCP server definition.
 	MCPServer `json:",inline"`
@@ -379,8 +379,8 @@ type MCPServerConfig struct {
 	// Kind identifies this as a server configuration file.
 	Kind string `json:"kind" jsonschema:"required"`
 
-	// Version of the MCP file format.
-	FileVersion string `json:"mcpFileVersion" jsonschema:"required"`
+	// Version of the schema format.
+	FileVersion string `json:"schemaVersion" jsonschema:"required"`
 
 	// Name of the MCP server.
 	Name string `json:"name" jsonschema:"required"`
@@ -397,8 +397,8 @@ type MCPToolDefinitions struct {
 	// Kind identifies this as a tool definitions file.
 	Kind string `json:"kind" jsonschema:"required"`
 
-	// Version of the MCP file format.
-	FileVersion string `json:"mcpFileVersion" jsonschema:"required"`
+	// Version of the schema format.
+	FileVersion string `json:"schemaVersion" jsonschema:"required"`
 
 	// A set of instructions provided by the server to the client about how to use the server
 	Instructions string `json:"instructions,omitempty" jsonschema:"optional"`

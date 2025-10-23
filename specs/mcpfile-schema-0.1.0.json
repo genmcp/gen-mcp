@@ -138,7 +138,7 @@
     },
     "MCPFile": {
       "properties": {
-        "mcpFileVersion": {
+        "schemaVersion": {
           "type": "string",
           "description": "Version of the MCP file format."
         },
@@ -190,7 +190,7 @@
       "additionalProperties": false,
       "type": "object",
       "required": [
-        "mcpFileVersion",
+        "schemaVersion",
         "name",
         "version"
       ],
@@ -202,9 +202,9 @@
           "type": "string",
           "description": "Kind identifies this as a server configuration file."
         },
-        "mcpFileVersion": {
+        "schemaVersion": {
           "type": "string",
-          "description": "Version of the MCP file format."
+          "description": "Version of the schema format."
         },
         "name": {
           "type": "string",
@@ -223,7 +223,7 @@
       "type": "object",
       "required": [
         "kind",
-        "mcpFileVersion",
+        "schemaVersion",
         "name",
         "version",
         "runtime"
@@ -236,9 +236,9 @@
           "type": "string",
           "description": "Kind identifies this as a tool definitions file."
         },
-        "mcpFileVersion": {
+        "schemaVersion": {
           "type": "string",
-          "description": "Version of the MCP file format."
+          "description": "Version of the schema format."
         },
         "instructions": {
           "type": "string",
@@ -277,7 +277,7 @@
       "type": "object",
       "required": [
         "kind",
-        "mcpFileVersion"
+        "schemaVersion"
       ],
       "description": "MCPToolDefinitions contains tool, prompt, and resource definitions."
     },
