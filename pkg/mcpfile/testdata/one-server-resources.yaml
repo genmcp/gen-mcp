@@ -1,4 +1,4 @@
-schemaVersion: 0.1.0
+schemaVersion: 0.2.0
 name: test-server
 version: 1.0.0
 resources:

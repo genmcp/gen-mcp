@@ -138,7 +138,7 @@
     },
     "MCPFile": {
       "properties": {
-        "schemaVersion": {
+        "mcpFileVersion": {
           "type": "string",
           "description": "Version of the MCP file format."
         },
@@ -190,96 +190,11 @@
       "additionalProperties": false,
       "type": "object",
       "required": [
-        "schemaVersion",
+        "mcpFileVersion",
         "name",
         "version"
       ],
       "description": "MCPFile is the root structure of an MCP configuration file."
-    },
-    "MCPServerConfig": {
-      "properties": {
-        "kind": {
-          "type": "string",
-          "description": "Kind identifies this as a server configuration file."
-        },
-        "schemaVersion": {
-          "type": "string",
-          "description": "Version of the schema format."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the MCP server."
-        },
-        "version": {
-          "type": "string",
-          "description": "Semantic version of the server's toolset."
-        },
-        "runtime": {
-          "$ref": "#/$defs/ServerRuntime",
-          "description": "Runtime configuration for the MCP server."
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "required": [
-        "kind",
-        "schemaVersion",
-        "name",
-        "version",
-        "runtime"
-      ],
-      "description": "MCPServerConfig is the runtime configuration for an MCP server."
-    },
-    "MCPToolDefinitions": {
-      "properties": {
-        "kind": {
-          "type": "string",
-          "description": "Kind identifies this as a tool definitions file."
-        },
-        "schemaVersion": {
-          "type": "string",
-          "description": "Version of the schema format."
-        },
-        "instructions": {
-          "type": "string",
-          "description": "A set of instructions provided by the server to the client about how to use the server"
-        },
-        "tools": {
-          "items": {
-            "$ref": "#/$defs/Tool"
-          },
-          "type": "array",
-          "description": "List of tools provided by this server."
-        },
-        "prompts": {
-          "items": {
-            "$ref": "#/$defs/Prompt"
-          },
-          "type": "array",
-          "description": "List of prompts provided by this server."
-        },
-        "resources": {
-          "items": {
-            "$ref": "#/$defs/Resource"
-          },
-          "type": "array",
-          "description": "Set of resources available to the server."
-        },
-        "resourceTemplates": {
-          "items": {
-            "$ref": "#/$defs/ResourceTemplate"
-          },
-          "type": "array",
-          "description": "Set of resource templates available to the server."
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "required": [
-        "kind",
-        "schemaVersion"
-      ],
-      "description": "MCPToolDefinitions contains tool, prompt, and resource definitions."
     },
     "Prompt": {
       "properties": {

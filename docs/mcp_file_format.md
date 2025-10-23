@@ -1,59 +1,30 @@
-# MCP File Format Specification
+# MCP Tool Definitions Format Specification
 
 ## 1. Introduction
 
-The MCP (Model Context Protocol) file format consists of two YAML-based configuration files that define an MCP server:
-- **mcpserver.yaml**: Contains the server runtime configuration (transport protocol, port, logging, etc.)
-- **mcpfile.yaml**: Contains the tool, prompt, and resource definitions
+The MCP Tool Definitions file (`mcpfile.yaml`) contains the tools, prompts, and resources provided by an MCP server. This document details version `0.2.0` of the tool definitions format.
 
-Both files include a `kind` field (similar to Kubernetes resources) to identify their purpose. This document details version `0.1.0` of the file format.
+For server runtime configuration (transport protocol, port, logging, etc.), see [MCP Server Configuration Format](./mcp_server_format.md).
 
-## 2. File Types
-
-### 2.1. MCPServerConfig (mcpserver.yaml)
-
-The server configuration file contains runtime settings for the MCP server.
-
-| Field | Type | Description | Required |
-|---|---|---|---|
-| `kind` | string | Must be `"MCPServerConfig"`. | Yes |
-| `schemaVersion` | string | The version of the MCP file format. Must be `"0.1.0"`. | Yes |
-| `name` | string | The name of the server. | Yes |
-| `version` | string | The semantic version of the server's toolset. | Yes |
-| `runtime` | `ServerRuntime` | The runtime settings for the server. | Yes |
-
-#### Example
-
-```yaml
-kind: MCPServerConfig
-schemaVersion: 0.1.0
-name: my-awesome-server
-version: 1.2.3
-runtime:
-  transportProtocol: streamablehttp
-  streamableHttpConfig:
-    port: 8080
-```
-
-### 2.2. MCPToolDefinitions (mcpfile.yaml)
+## 2. MCPToolDefinitions
 
 The tool definitions file contains the tools, prompts, and resources provided by the server.
 
 | Field | Type | Description | Required |
 |---|---|---|---|
 | `kind` | string | Must be `"MCPToolDefinitions"`. | Yes |
-| `schemaVersion` | string | The version of the MCP file format. Must be `"0.1.0"`. | Yes |
+| `schemaVersion` | string | The version of the schema format. Must be `"0.2.0"`. | Yes |
 | `instructions` | string | A set of instructions provided by the server to the client about how to use the server. | No |
 | `tools` | array of `Tool` | The tools provided by this server. | No |
 | `prompts` | array of `Prompt` | The prompts provided by this server. | No |
 | `resources` | array of `Resource` | The resources provided by this server. | No |
 | `resourceTemplates` | array of `ResourceTemplate` | The resource templates provided by this server. | No |
 
-#### Example
+### Example
 
 ```yaml
 kind: MCPToolDefinitions
-schemaVersion: 0.1.0
+schemaVersion: 0.2.0
 instructions: |
   To clone and analyze a repository:
   1. First use clone_repo to clone the repository locally
@@ -64,66 +35,10 @@ tools:
   # ... tool definitions
 ```
 
-### 2.3. Legacy Single-File Format (Deprecated)
+## 3. Primitive Objects
 
-For backward compatibility, the legacy single-file format is still supported but is deprecated. In the legacy format, both server configuration and tool definitions are in a single `mcpfile.yaml` file without a `kind` field. New projects should use the separate file format described above.
+The MCP file format supports four types of primitive objects: Tools, Prompts, Resources, and Resource Templates. Each primitive object represents a capability that can be invoked by an MCP client.
 
-## 3. ServerRuntime Object
-
-The `ServerRuntime` object specifies the transport protocol and its configuration for the server.
-
-| Field | Type | Description | Required |
-|---|---|---|---|
-| `transportProtocol` | string | The transport protocol to use. Must be one of `streamablehttp` or `stdio`. | Yes |
-| `streamableHttpConfig` | `StreamableHTTPConfig` | Configuration for the `streamablehttp` transport protocol. Required if `transportProtocol` is `streamablehttp`. | No |
-| `stdioConfig` | `StdioConfig` | Configuration for the `stdio` transport protocol. Required if `transportProtocol` is `stdio`. | No |
-| `loggingConfig` | `LoggingConfig` | Configuration for server logging. | No |
-
-### 3.1. StreamableHTTPConfig Object
-
-| Field | Type | Description | Required |
-|---|---|---|---|
-| `port` | integer | The port for the server to listen on. | Yes |
-| `basePath` | string | The base path for the MCP server. Defaults to `/mcp`. | No |
-| `stateless` | boolean | Indicates whether the server is stateless. | No |
-| `auth` | `AuthConfig` | OAuth 2.0 configuration for protected resource. | No |
-| `tls` | `TLSConfig` | TLS configuration for the HTTP server. | No |
-
-### 3.2. TLSConfig Object
-
-| Field | Type | Description | Required |
-|---|---|---|---|
-| `certFile` | string | The absolute path to the server's public certificate file on the runtime host where the MCP server will execute. | Yes |
-| `keyFile` | string | The absolute path to the server's private key file on the runtime host where the MCP server will execute. | Yes |
-
-### 3.3. AuthConfig Object
-
-| Field | Type | Description | Required |
-|---|---|---|---|
-| `authorizationServers` | array of string | List of authorization server URLs for OAuth 2.0 token validation. | No |
-| `jwksUri` | string | JSON Web Key Set URI for token signature verification. If no value is given but `authorizationServers` is set, gen-mcp will try to find a JWKS endpoint using different fallback paths.| No |
-
-### 3.4. StdioConfig Object
-
-This object is currently empty and serves as a placeholder for future configuration options.
-
-### 3.5. LoggingConfig Object
-
-| Field | Type | Description | Required |
-|---|---|---|---|
-| `level` | string | The minimum enabled logging level (debug, info, warn, error, dpanic, panic, fatal). | No |
-| `development` | boolean | Puts the logger in development mode. | No |
-| `disableCaller` | boolean | Stops annotating logs with the calling function's file name and line number. | No |
-| `disableStacktrace` | boolean | Completely disables automatic stacktrace capturing. | No |
-| `encoding` | string | Sets the logger's encoding ("json" or "console"). | No |
-| `outputPaths` | array of string | A list of URLs or file paths to write logging output to. | No |
-| `errorOutputPaths` | array of string | A list of URLs to write internal logger errors to. | No |
-| `initialFields` | map[string]interface{} | A collection of fields to add to the root logger. | No |
-| `enableMcpLogs` | boolean | Controls whether logs are sent to MCP clients. Defaults to true. | No |
-
-**Note**: When `enableMcpLogs` is true, all MCP log entries are sent to MCP clients regardless of the configured `level`. The MCP client determines which log levels to actually display or process.
-
-## 4. Primitive Objects
 
 The MCP file format supports four types of primitive objects: Tools, Prompts, Resources, and Resource Templates. Each primitive object represents a capability that can be invoked by an MCP client.
 
@@ -287,7 +202,7 @@ invocation:
 **mcpserver.yaml:**
 ```yaml
 kind: MCPServerConfig
-schemaVersion: "0.1.0"
+schemaVersion: "0.2.0"
 name: Feature Request API
 version: "0.0.1"
 runtime:
@@ -303,7 +218,7 @@ runtime:
 **mcpfile.yaml:**
 ```yaml
 kind: MCPToolDefinitions
-schemaVersion: "0.1.0"
+schemaVersion: "0.2.0"
 tools:
   - name: get_features
     title: "Get all features"
@@ -321,7 +236,7 @@ tools:
 **mcpserver.yaml:**
 ```yaml
 kind: MCPServerConfig
-schemaVersion: "0.1.0"
+schemaVersion: "0.2.0"
 name: Production API
 version: "1.0.0"
 runtime:
@@ -349,7 +264,7 @@ runtime:
 **mcpfile.yaml:**
 ```yaml
 kind: MCPToolDefinitions
-schemaVersion: "0.1.0"
+schemaVersion: "0.2.0"
 tools:
   - name: health_check
     description: "Returns the health status of the service"
@@ -366,7 +281,7 @@ tools:
 **mcpserver.yaml:**
 ```yaml
 kind: MCPServerConfig
-schemaVersion: "0.1.0"
+schemaVersion: "0.2.0"
 name: Silent API
 version: "1.0.0"
 runtime:
@@ -384,7 +299,7 @@ runtime:
 **mcpfile.yaml:**
 ```yaml
 kind: MCPToolDefinitions
-schemaVersion: "0.1.0"
+schemaVersion: "0.2.0"
 tools:
   - name: process_data
     description: "Processes data without sending logs to MCP clients"
@@ -405,7 +320,7 @@ To enable HTTPS for your MCP server, configure TLS in the `streamableHttpConfig`
 **mcpserver.yaml:**
 ```yaml
 kind: MCPServerConfig
-schemaVersion: "0.1.0"
+schemaVersion: "0.2.0"
 name: secure-server
 version: "1.0.0"
 runtime:
@@ -424,7 +339,7 @@ To protect your MCP server with OAuth 2.0 authentication:
 **mcpserver.yaml:**
 ```yaml
 kind: MCPServerConfig
-schemaVersion: "0.1.0"
+schemaVersion: "0.2.0"
 name: protected-server
 version: "1.0.0"
 runtime:
@@ -441,7 +356,7 @@ runtime:
 **mcpfile.yaml:**
 ```yaml
 kind: MCPToolDefinitions
-schemaVersion: "0.1.0"
+schemaVersion: "0.2.0"
 tools:
   - name: admin_tool
     description: "Administrative tool requiring elevated permissions"
@@ -458,7 +373,7 @@ For maximum security, combine both TLS and OAuth:
 **mcpserver.yaml:**
 ```yaml
 kind: MCPServerConfig
-schemaVersion: "0.1.0"
+schemaVersion: "0.2.0"
 name: secure-protected-server
 version: "1.0.0"
 runtime:
@@ -479,7 +394,7 @@ runtime:
 **mcpserver.yaml:**
 ```yaml
 kind: MCPServerConfig
-schemaVersion: "0.1.0"
+schemaVersion: "0.2.0"
 name: git-tools
 version: "1.0.0"
 runtime:
@@ -489,7 +404,7 @@ runtime:
 **mcpfile.yaml:**
 ```yaml
 kind: MCPToolDefinitions
-schemaVersion: "0.1.0"
+schemaVersion: "0.2.0"
 instructions: |
   This server provides Git repository management tools. For typical workflows:
   1. Use clone_repo to get a local copy of a repository
@@ -531,7 +446,7 @@ tools:
 **mcpserver.yaml:**
 ```yaml
 kind: MCPServerConfig
-schemaVersion: "0.1.0"
+schemaVersion: "0.2.0"
 name: user-service
 version: "2.1.0"
 runtime:
@@ -543,7 +458,7 @@ runtime:
 **mcpfile.yaml:**
 ```yaml
 kind: MCPToolDefinitions
-schemaVersion: "0.1.0"
+schemaVersion: "0.2.0"
 tools:
 - name: get_user
   title: "Get User"

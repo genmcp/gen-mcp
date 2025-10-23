@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/genmcp/gen-mcp/pkg/mcpfile/mcp-server-config",
+  "$ref": "#/$defs/MCPServerConfig",
+  "$defs": {
+    "AuthConfig": {
+      "properties": {
+        "authorizationServers": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "List of authorization server URLs for token validation."
+        },
+        "jwksUri": {
+          "type": "string",
+          "description": "URI for the JSON Web Key Set (JWKS) used for token verification."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "AuthConfig defines OAuth 2.0 authorization settings."
+    },
+    "LoggingConfig": {
+      "properties": {
+        "level": {
+          "type": "string"
+        },
+        "development": {
+          "type": "boolean"
+        },
+        "disableCaller": {
+          "type": "boolean"
+        },
+        "disableStacktrace": {
+          "type": "boolean"
+        },
+        "encoding": {
+          "type": "string"
+        },
+        "outputPaths": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "errorOutputPaths": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "initialFields": {
+          "type": "object"
+        },
+        "enableMcpLogs": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "MCPServerConfig": {
+      "properties": {
+        "kind": {
+          "type": "string",
+          "description": "Kind identifies this as a server configuration file."
+        },
+        "schemaVersion": {
+          "type": "string",
+          "description": "Version of the schema format."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the MCP server."
+        },
+        "version": {
+          "type": "string",
+          "description": "Semantic version of the server's toolset."
+        },
+        "runtime": {
+          "$ref": "#/$defs/ServerRuntime",
+          "description": "Runtime configuration for the MCP server."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "kind",
+        "schemaVersion",
+        "name",
+        "version",
+        "runtime"
+      ],
+      "description": "MCPServerConfig is the runtime configuration for an MCP server."
+    },
+    "ServerRuntime": {
+      "properties": {
+        "transportProtocol": {
+          "type": "string",
+          "description": "Transport protocol to use (streamablehttp or stdio)."
+        },
+        "streamableHttpConfig": {
+          "$ref": "#/$defs/StreamableHTTPConfig",
+          "description": "Configuration for streamable HTTP transport protocol."
+        },
+        "stdioConfig": {
+          "$ref": "#/$defs/StdioConfig",
+          "description": "Configuration for stdio transport protocol."
+        },
+        "loggingConfig": {
+          "$ref": "#/$defs/LoggingConfig",
+          "description": "Configuration for the server logging"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "transportProtocol",
+        "loggingConfig"
+      ],
+      "description": "ServerRuntime defines transport protocol and associated configuration."
+    },
+    "StdioConfig": {
+      "properties": {},
+      "additionalProperties": false,
+      "type": "object",
+      "description": "StdioConfig defines configuration for stdio transport protocol."
+    },
+    "StreamableHTTPConfig": {
+      "properties": {
+        "port": {
+          "type": "integer",
+          "description": "Port number to listen on."
+        },
+        "basePath": {
+          "type": "string",
+          "description": "Base path for the MCP server (default: /mcp)."
+        },
+        "stateless": {
+          "type": "boolean",
+          "description": "Indicates whether the server is stateless."
+        },
+        "auth": {
+          "$ref": "#/$defs/AuthConfig",
+          "description": "OAuth 2.0 configuration for protected resources."
+        },
+        "tls": {
+          "$ref": "#/$defs/TLSConfig",
+          "description": "TLS configuration for HTTPS."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "port",
+        "stateless"
+      ],
+      "description": "StreamableHTTPConfig defines configuration for the HTTP-based runtime."
+    },
+    "TLSConfig": {
+      "properties": {
+        "certFile": {
+          "type": "string",
+          "description": "Absolute path to the server's public certificate."
+        },
+        "keyFile": {
+          "type": "string",
+          "description": "Absolute path to the server's private key."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "description": "TLSConfig defines paths to TLS certificate and private key files."
+    }
+  }
+}

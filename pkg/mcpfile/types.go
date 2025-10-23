@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	MCPFileVersion                  = "0.1.0"
+	MCPFileVersion                  = "0.2.0"
 	InvocationTypeHttp              = "http"
 	InvocationTypeCli               = "cli"
 	TransportProtocolStreamableHttp = "streamablehttp"

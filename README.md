@@ -151,7 +151,7 @@ To make use of the schema, add a `yaml-language-server` comment at the top of yo
 
 ```yaml
 # yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/mcpfile-schema.json
-schemaVersion: 0.1.0
+schemaVersion: 0.2.0
 name: ...
 ```
 

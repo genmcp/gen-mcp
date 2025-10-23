@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.1.0]
+## [v0.2.0]
 
 ### Added
 - **BREAKING**: Separated runtime configuration from tool definitions into two files: `mcpserver.yaml` (runtime config) and `mcpfile.yaml` (tool definitions), with `kind` field to identify file types similar to Kubernetes resources (#XXX)
@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **BREAKING**: mcpfile format now requires separate `mcpserver.yaml` and `mcpfile.yaml` files with `kind` field. Legacy single-file format is deprecated but still supported (#XXX)
-- **BREAKING**: Simplified mcpfile format by embedding server fields directly, migrated format version to v0.1.0 (#137)
+- **BREAKING**: Simplified mcpfile format by embedding server fields directly, migrated format version to v0.2.0 (#137)
 - GenMCP now uses the official [Model Context Protocol Go SDK](https://github.com/modelcontextprotocol/go-sdk) (#90)
 - Bumped MCP Go-SDK to v1.0.0 release (#134)
 - StreamableHttp servers are now configurable as stateless or stateful (default: stateless) (#100)
