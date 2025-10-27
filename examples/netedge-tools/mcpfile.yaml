@@ -99,9 +99,10 @@ tools:
           start="{start}"
           end="{end}"
           step="{step}"
+          jsonpath_expr="$(printf '\173.spec.host\175')"
 
-          if [ -z "$prometheus_url" ] || printf '%s' "$prometheus_url" | grep -q '\.svc'; then
-            route_host="$(oc -n openshift-monitoring get route thanos-querier -o jsonpath='{.spec.host}' 2>/dev/null || true)"
+          if [ -z "$prometheus_url" ] || [[ "$prometheus_url" == *".svc"* ]]; then
+            route_host="$(oc -n openshift-monitoring get route thanos-querier -o jsonpath=\"$jsonpath_expr\" 2>/dev/null || true)"
             if [ -z "$route_host" ]; then
               echo "no accessible route found for thanos-querier; provide prometheus_url pointing to a reachable endpoint" >&2
               exit 1
