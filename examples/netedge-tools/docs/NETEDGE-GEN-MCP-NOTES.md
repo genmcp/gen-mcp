@@ -11,13 +11,14 @@ What this directory contains
 - `netedge-break-repair.sh` — script that stages documented ingress scenarios.
 - `scripts/exec_dns_in_pod.sh` — helper invoked by the `exec_dns_in_pod` tool.
 
-Quick summary of provided tools
+Quick summary of provided tools & resources
 - `inspect_route` — fetch a `Route` and, when possible, its `Service` and `Endpoints`.
 - `get_service_endpoints` — return an Endpoints object for a Service.
 - `query_prometheus` — run a Prometheus `query_range`, automatically resolve the external `thanos-querier` Route when given a `.svc` URL, and inject an OAuth token for authentication.
 - `get_coredns_config` — fetch a ConfigMap (e.g., CoreDNS `Corefile`).
 - `probe_dns_local` — run `dig`/`nslookup` on the gen‑mcp host (probe from the host).
 - `exec_dns_in_pod` — run a short ephemeral pod that executes `dig` inside the cluster.
+- `routes_all_namespaces` (resource) — dump `oc get routes -A -o json` so agents can discover Route names/namespaces before using `inspect_route`.
 
 DEV NOTES — build & run
 -----------------------

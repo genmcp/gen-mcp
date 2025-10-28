@@ -220,3 +220,14 @@ tools:
             exit 1
           fi
           "$script_path" "$namespace" "$server" "$name" "$rtype"
+
+resources:
+  - name: routes_all_namespaces
+    title: List Routes (all namespaces)
+    description: Enumerate all Route objects across namespaces so agents can discover available hosts and names before drilling in with `inspect_route`.
+    inputSchema:
+      type: object
+      properties: {}
+    invocation:
+      cli:
+        command: "oc get routes -A -o json"

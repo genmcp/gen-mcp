@@ -83,4 +83,5 @@ examples/netedge-tools/netedge-break-repair.sh --scenario=4 --repair
 - Scenario 2 stores the original host in the `netedge-tools-original-host` annotation on the Route; avoid deleting this annotation if you plan to run `--repair`.
 - Scenario 3 leaves the namespace intact but removes the managed NetworkPolicy during cleanup.
 - Scenario 4 stores a marker annotation on the Route before switching to `reencrypt`. The repair step removes the TLS stanza so the router returns to plain HTTP and handshake errors stop. Use `query_prometheus` (e.g. `haproxy_server_ssl_verify_result_total`); the tool now auto-resolves the external Thanos route and includes an OAuth token when you supply the `.svc` URL.
+- If the agent needs to discover object names, the new `routes_all_namespaces` resource exposes `oc get routes -A -o json` so it can quickly list candidates before calling `inspect_route`.
 - If `oc` cannot reach the cluster, commands fail early with diagnostics.

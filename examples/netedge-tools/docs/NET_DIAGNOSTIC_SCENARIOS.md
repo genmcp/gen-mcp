@@ -32,6 +32,7 @@ for usage.
 5. Compare Service selector vs Pod labels, fix mismatch.
 
 ### How the phase-0 agent would diagnose
+- `routes_all_namespaces` (resource) → discover candidate Route names/namespaces if the prompt did not supply them.
 - `inspect_route` → surface Route, Service, Endpoints, detect empty endpoints.
 - `get_service_endpoints` → verify endpoints are empty.
 - Optionally `query_prometheus` → check router 503 metrics.
