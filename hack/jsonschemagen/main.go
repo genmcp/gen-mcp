@@ -57,6 +57,7 @@ func fixRequiredFieldsForType(schema *jsonschema.Schema, t reflect.Type) {
 
 	// Read the actual struct tags to determine what should be required
 	requiredFields := []string{}
+	explicitlyOptional := make(map[string]bool)
 
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
@@ -67,32 +68,77 @@ func fixRequiredFieldsForType(schema *jsonschema.Schema, t reflect.Type) {
 		}
 
 		jsonTag := field.Tag.Get("json")
-		if jsonTag == "-" || jsonTag == "" {
+		if jsonTag == "-" {
 			continue
 		}
 
+		// Get the JSON field name, handling inline embeds
 		jsonName := jsonTag
 		if idx := strings.Index(jsonTag, ","); idx != -1 {
-			jsonName = jsonTag[:idx]
+			parts := strings.Split(jsonTag, ",")
+			jsonName = parts[0]
+			// Check if this is an inline embed
+			for _, part := range parts[1:] {
+				if part == "inline" {
+					jsonName = "" // Mark as inline
+					break
+				}
+			}
 		}
 
-		// Check the jsonschema tag
 		jsonschemaTag := field.Tag.Get("jsonschema")
-		if strings.Contains(jsonschemaTag, "required") {
-			requiredFields = append(requiredFields, jsonName)
-		}
 
-		fieldType := field.Type
-		if fieldType.Kind() == reflect.Ptr {
-			fieldType = fieldType.Elem()
-		}
-		if fieldType.Kind() == reflect.Struct && fieldType != t {
-			fixRequiredFieldsForType(schema, fieldType)
+		// Handle inline embeds - merge their required fields
+		if jsonName == "" && strings.Contains(jsonTag, "inline") {
+			fieldType := field.Type
+			if fieldType.Kind() == reflect.Ptr {
+				fieldType = fieldType.Elem()
+			}
+			if fieldType.Kind() == reflect.Struct && fieldType != t {
+				fixRequiredFieldsForType(schema, fieldType)
+
+				nestedTypeName := fieldType.Name()
+				if nestedDef, nestedExists := schema.Definitions[nestedTypeName]; nestedExists {
+					requiredFields = append(requiredFields, nestedDef.Required...)
+				}
+			}
+		} else if jsonName != "" {
+			if strings.Contains(jsonschemaTag, "required") {
+				requiredFields = append(requiredFields, jsonName)
+			} else if strings.Contains(jsonschemaTag, "optional") {
+				explicitlyOptional[jsonName] = true
+			}
+
+			fieldType := field.Type
+			if fieldType.Kind() == reflect.Ptr {
+				fieldType = fieldType.Elem()
+			}
+			if fieldType.Kind() == reflect.Struct && fieldType != t {
+				fixRequiredFieldsForType(schema, fieldType)
+			}
 		}
 	}
 
-	// Update the definition's required fields
-	def.Required = requiredFields
+	// Merge with existing required fields, preserving those not explicitly optional
+	finalRequired := make(map[string]bool)
+
+	// Add existing required fields unless they're explicitly optional
+	for _, existing := range def.Required {
+		if !explicitlyOptional[existing] {
+			finalRequired[existing] = true
+		}
+	}
+
+	// Add new required fields from struct tags
+	for _, newRequired := range requiredFields {
+		finalRequired[newRequired] = true
+	}
+
+	// Convert back to slice and update
+	def.Required = make([]string, 0, len(finalRequired))
+	for fieldName := range finalRequired {
+		def.Required = append(def.Required, fieldName)
+	}
 }
 
 func main() {

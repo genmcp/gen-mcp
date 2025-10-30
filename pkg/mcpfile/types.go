@@ -258,8 +258,8 @@ type StreamableHTTPConfig struct {
 	// Base path for the MCP server (default: /mcp).
 	BasePath string `json:"basePath,omitempty" jsonschema:"optional"`
 
-	// Indicates whether the server is stateless (default: true).
-	Stateless bool `json:"stateless" jsonschema:"optional"`
+	// Indicates whether the server is stateless (default: true when unset).
+	Stateless bool `json:"stateless,omitempty" jsonschema:"optional"`
 
 	// OAuth 2.0 configuration for protected resources.
 	Auth *AuthConfig `json:"auth,omitempty" jsonschema:"optional"`

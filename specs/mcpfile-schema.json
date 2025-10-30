@@ -190,7 +190,9 @@
       "additionalProperties": false,
       "type": "object",
       "required": [
-        "mcpFileVersion"
+        "mcpFileVersion",
+        "name",
+        "version"
       ],
       "description": "MCPFile is the root structure of an MCP configuration file."
     },
@@ -445,7 +447,7 @@
         },
         "stateless": {
           "type": "boolean",
-          "description": "Indicates whether the server is stateless (default: true)."
+          "description": "Indicates whether the server is stateless (default: true when unset)."
         },
         "auth": {
           "$ref": "#/$defs/AuthConfig",
