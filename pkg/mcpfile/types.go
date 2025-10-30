@@ -175,8 +175,8 @@ type Resource struct {
 	// The URI of this resource.
 	URI string `json:"uri" jsonschema:"required"`
 
-	// Schema describing input parameters.
-	InputSchema *jsonschema.Schema `json:"inputSchema" jsonschema:"required"`
+	// Schema describing input parameters (optional for resources without inputs).
+	InputSchema *jsonschema.Schema `json:"inputSchema,omitempty" jsonschema:"optional"`
 
 	// Optional schema describing resource output.
 	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
@@ -258,8 +258,8 @@ type StreamableHTTPConfig struct {
 	// Base path for the MCP server (default: /mcp).
 	BasePath string `json:"basePath,omitempty" jsonschema:"optional"`
 
-	// Indicates whether the server is stateless.
-	Stateless bool `json:"stateless" jsonschema:"required"`
+	// Indicates whether the server is stateless (default: true).
+	Stateless bool `json:"stateless" jsonschema:"optional"`
 
 	// OAuth 2.0 configuration for protected resources.
 	Auth *AuthConfig `json:"auth,omitempty" jsonschema:"optional"`
