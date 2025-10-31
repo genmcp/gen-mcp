@@ -161,7 +161,7 @@ genmcp build \
   --push
 ```
 
-**Note:** When building multi-arch locally, Docker daemon doesn't support manifest lists, so each platform is saved with a platform-specific tag (e.g., `myapp:latest-linux-amd64`). Additionally, the original tag (`myapp:latest`) is saved with the image matching your host platform for convenience. When pushing to a registry with `--push`, a proper multi-arch manifest list is created.
+**Note:** When building multi-arch locally, Docker daemon doesn't support manifest lists, so each platform is saved with a platform-specific tag (e.g., `myapp:latest-linux-amd64`). Additionally, the original tag (`myapp:latest`) is saved with your host platform's image if available, otherwise the first built platform. When pushing to a registry with `--push`, a proper multi-arch manifest list is created.
 
 ### Converting CLI (Experimental)
 

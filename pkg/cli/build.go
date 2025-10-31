@@ -133,7 +133,7 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 			fmt.Printf("successfully pushed multi-arch image %s\n", imageTag)
 		} else {
 			fmt.Printf("successfully saved multi-arch images to local container engine\n")
-			fmt.Printf("available tags: %s (host platform)", imageTag)
+			fmt.Printf("available tags: %s", imageTag)
 			for _, p := range platforms {
 				tagSuffix := strings.ReplaceAll(p, "/", "-")
 				fmt.Printf(", %s-%s", imageTag, tagSuffix)
