@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/genmcp/gen-mcp/pkg/builder"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -132,12 +133,10 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 			fmt.Printf("successfully pushed multi-arch image %s\n", imageTag)
 		} else {
 			fmt.Printf("successfully saved multi-arch images to local container engine\n")
-			fmt.Printf("images tagged as: ")
-			for i, p := range platforms {
-				if i > 0 {
-					fmt.Printf(", ")
-				}
-				fmt.Printf("%s-%s", imageTag, p)
+			fmt.Printf("available tags: %s (host platform)", imageTag)
+			for _, p := range platforms {
+				tagSuffix := strings.ReplaceAll(p, "/", "-")
+				fmt.Printf(", %s-%s", imageTag, tagSuffix)
 			}
 			fmt.Printf("\n")
 		}

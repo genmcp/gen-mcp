@@ -127,9 +127,8 @@ When no `--platform` is specified, builds for both `linux/amd64` and `linux/arm6
 # Build and push multi-arch image to registry
 genmcp build --tag registry.example.com/myapp:v1.0.0 --push
 
-# Build multi-arch locally (saves platform-specific tags)
-genmcp build --tag myapp:latest
-# Creates: myapp:latest-linux-amd64, myapp:latest-linux-arm64
+# Build multi-arch locally
+genmcp build --tag myapp:latest  # Creates: myapp:latest-linux-amd64, myapp:latest-linux-arm64
 ```
 
 #### Single-Platform Build
@@ -137,7 +136,7 @@ genmcp build --tag myapp:latest
 For faster iteration during development, specify a single platform:
 
 ```bash
-# Build for specific platform (faster for testing)
+# Build for specific platform
 genmcp build --tag myapp:dev --platform linux/amd64
 
 # Build for ARM64
@@ -162,7 +161,7 @@ genmcp build \
   --push
 ```
 
-**Note:** When building multi-arch locally, Docker daemon doesn't support manifest lists, so each platform is saved separately with tags like `myapp:latest-linux-amd64`. When pushing to a registry with `--push`, a proper multi-arch manifest list is created.
+**Note:** When building multi-arch locally, Docker daemon doesn't support manifest lists, so each platform is saved with a platform-specific tag (e.g., `myapp:latest-linux-amd64`). Additionally, the original tag (`myapp:latest`) is saved with the image matching your host platform for convenience. When pushing to a registry with `--push`, a proper multi-arch manifest list is created.
 
 ### Converting CLI (Experimental)
 

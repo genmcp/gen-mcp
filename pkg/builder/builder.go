@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -167,6 +168,8 @@ func (d *DaemonImageSaver) SaveImageIndex(ctx context.Context, idx v1.ImageIndex
 		return fmt.Errorf("failed to parse tag %s: %w", ref, err)
 	}
 
+	var hostPlatformImage v1.Image
+
 	// Save each platform image separately
 	for _, desc := range manifest.Manifests {
 		if desc.Platform == nil {
@@ -178,6 +181,7 @@ func (d *DaemonImageSaver) SaveImageIndex(ctx context.Context, idx v1.ImageIndex
 			return fmt.Errorf("failed to get image for platform %s/%s: %w", desc.Platform.OS, desc.Platform.Architecture, err)
 		}
 
+		// Create platform-specific tag (e.g., myimage:latest-linux-amd64)
 		platformSuffix := fmt.Sprintf("%s-%s", desc.Platform.OS, desc.Platform.Architecture)
 		platformTag, err := name.NewTag(fmt.Sprintf("%s-%s", baseTag.String(), platformSuffix))
 		if err != nil {
@@ -187,6 +191,19 @@ func (d *DaemonImageSaver) SaveImageIndex(ctx context.Context, idx v1.ImageIndex
 		_, err = daemon.Write(platformTag, img, daemon.WithContext(ctx))
 		if err != nil {
 			return fmt.Errorf("failed to save image for platform %s to local container engine: %w", platformSuffix, err)
+		}
+
+		// Detect host platform to also write with original tag
+		if desc.Platform.OS == runtime.GOOS && desc.Platform.Architecture == runtime.GOARCH {
+			hostPlatformImage = img
+		}
+	}
+
+	// Also write the host platform image with the original tag for convenience
+	if hostPlatformImage != nil {
+		_, err = daemon.Write(baseTag, hostPlatformImage, daemon.WithContext(ctx))
+		if err != nil {
+			return fmt.Errorf("failed to save host platform image with original tag to local container engine: %w", err)
 		}
 	}
 
