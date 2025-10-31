@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - gRPC integration demo showcasing GenMCP with gRPC services (#153)
 
 ### Changed
+- `genmcp build` now defaults to building multi-arch images (linux/amd64 and linux/arm64), with the `--platform` flag allowing single-platform builds for faster iteration
 - **BREAKING**: Simplified mcpfile format by embedding server fields directly, migrated format version to v0.1.0 (#137)
 - GenMCP now uses the official [Model Context Protocol Go SDK](https://github.com/modelcontextprotocol/go-sdk) (#90)
 - Bumped MCP Go-SDK to v1.0.0 release (#134)

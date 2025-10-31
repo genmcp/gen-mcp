@@ -7,8 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-containerregistry/pkg/v1"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/fake"
+	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/partial"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/stretchr/testify/assert"
@@ -63,6 +65,11 @@ type mockImageSaver struct {
 
 func (m *mockImageSaver) SaveImage(ctx context.Context, img v1.Image, ref string) error {
 	args := m.Called(ctx, img, ref)
+	return args.Error(0)
+}
+
+func (m *mockImageSaver) SaveImageIndex(ctx context.Context, idx v1.ImageIndex, ref string) error {
+	args := m.Called(ctx, idx, ref)
 	return args.Error(0)
 }
 
@@ -518,3 +525,292 @@ func TestExtractTagFromReference(t *testing.T) {
 	}
 }
 
+func TestImageBuilder_BuildMultiArch(t *testing.T) {
+	tt := []struct {
+		name           string
+		buildOptions   MultiArchBuildOptions
+		setupMocks     func(*mockFileSystem, *mockBinaryProvider, *mockImageDownloader)
+		expectedError  string
+		validateResult func(t *testing.T, idx v1.ImageIndex)
+	}{
+		{
+			name: "successful multi-arch build with default platforms",
+			buildOptions: MultiArchBuildOptions{
+				MCPFilePath: "/test/mcpfile.yaml",
+				ImageTag:    "test:latest",
+			},
+			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
+				// Mock for linux/amd64
+				baseImgAmd64 := newTestImage(types.DockerManifestSchema2)
+				mid.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(baseImgAmd64, nil)
+
+				binaryDataAmd64 := []byte("fake-binary-amd64")
+				binaryInfoAmd64 := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryDataAmd64))}
+				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(binaryDataAmd64, binaryInfoAmd64, nil)
+
+				// Mock for linux/arm64
+				baseImgArm64 := newTestImage(types.DockerManifestSchema2)
+				mid.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "arm64"}).Return(baseImgArm64, nil)
+
+				binaryDataArm64 := []byte("fake-binary-arm64")
+				binaryInfoArm64 := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryDataArm64))}
+				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "arm64"}).Return(binaryDataArm64, binaryInfoArm64, nil)
+
+				// Mock MCP file operations
+				mcpFileData := []byte("fake-mcp-file-data")
+				mcpFileInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpFileData))}
+				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpFileInfo, nil).Times(2)
+				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpFileData, nil).Times(2)
+			},
+			validateResult: func(t *testing.T, idx v1.ImageIndex) {
+				assert.NotNil(t, idx, "should return a valid image index")
+
+				manifest, err := idx.IndexManifest()
+				assert.NoError(t, err, "should be able to get index manifest")
+				assert.Len(t, manifest.Manifests, 2, "should have 2 platform manifests")
+
+				platforms := make(map[string]bool)
+				for _, desc := range manifest.Manifests {
+					if desc.Platform != nil {
+						key := desc.Platform.OS + "/" + desc.Platform.Architecture
+						platforms[key] = true
+					}
+				}
+				assert.True(t, platforms["linux/amd64"], "should have linux/amd64")
+				assert.True(t, platforms["linux/arm64"], "should have linux/arm64")
+			},
+		},
+		{
+			name: "successful multi-arch build with custom platforms",
+			buildOptions: MultiArchBuildOptions{
+				Platforms: []*v1.Platform{
+					{OS: "linux", Architecture: "amd64"},
+					{OS: "windows", Architecture: "amd64"},
+				},
+				BaseImage:   "custom:base",
+				MCPFilePath: "/custom/mcpfile.yaml",
+				ImageTag:    "custom:tag",
+			},
+			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
+				// Mock for linux/amd64
+				baseImgLinux := newTestImage(types.DockerManifestSchema2)
+				mid.On("DownloadImage", mock.Anything, "custom:base", &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(baseImgLinux, nil)
+
+				binaryDataLinux := []byte("linux-binary")
+				binaryInfoLinux := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryDataLinux))}
+				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(binaryDataLinux, binaryInfoLinux, nil)
+
+				// Mock for windows/amd64
+				baseImgWindows := newTestImage(types.DockerManifestSchema2)
+				mid.On("DownloadImage", mock.Anything, "custom:base", &v1.Platform{OS: "windows", Architecture: "amd64"}).Return(baseImgWindows, nil)
+
+				binaryDataWindows := []byte("windows-binary")
+				binaryInfoWindows := &mockFileInfo{name: "genmcp-server.exe", size: int64(len(binaryDataWindows))}
+				mbp.On("ExtractServerBinary", &v1.Platform{OS: "windows", Architecture: "amd64"}).Return(binaryDataWindows, binaryInfoWindows, nil)
+
+				// Mock MCP file operations
+				mcpFileData := []byte("custom-mcp-data")
+				mcpFileInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpFileData))}
+				mfs.On("Stat", "/custom/mcpfile.yaml").Return(mcpFileInfo, nil).Times(2)
+				mfs.On("ReadFile", "/custom/mcpfile.yaml").Return(mcpFileData, nil).Times(2)
+			},
+			validateResult: func(t *testing.T, idx v1.ImageIndex) {
+				assert.NotNil(t, idx, "should return a valid image index")
+
+				manifest, err := idx.IndexManifest()
+				assert.NoError(t, err, "should be able to get index manifest")
+				assert.Len(t, manifest.Manifests, 2, "should have 2 platform manifests")
+			},
+		},
+		{
+			name: "failure - one platform build fails",
+			buildOptions: MultiArchBuildOptions{
+				Platforms: []*v1.Platform{
+					{OS: "linux", Architecture: "amd64"},
+					{OS: "linux", Architecture: "arm64"},
+				},
+				MCPFilePath: "/test/mcpfile.yaml",
+			},
+			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
+				// First platform succeeds
+				baseImgAmd64 := newTestImage(types.DockerManifestSchema2)
+				mid.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(baseImgAmd64, nil)
+
+				binaryDataAmd64 := []byte("fake-binary-amd64")
+				binaryInfoAmd64 := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryDataAmd64))}
+				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(binaryDataAmd64, binaryInfoAmd64, nil)
+
+				mcpFileData := []byte("fake-mcp-file-data")
+				mcpFileInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpFileData))}
+				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpFileInfo, nil).Maybe()
+				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpFileData, nil).Maybe()
+
+				// Second platform fails
+				mid.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "arm64"}).Return(newTestImage(types.DockerManifestSchema2), nil)
+				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "arm64"}).Return([]byte{}, nil, errors.New("arm64 binary not found"))
+			},
+			expectedError: "failed to build image for platform linux/arm64",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			mockFS := &mockFileSystem{}
+			mockBP := &mockBinaryProvider{}
+			mockID := &mockImageDownloader{}
+			mockIS := &mockImageSaver{}
+
+			tc.setupMocks(mockFS, mockBP, mockID)
+
+			builder := &ImageBuilder{
+				fs:              mockFS,
+				binaryProvider:  mockBP,
+				imageDownloader: mockID,
+				imageSaver:      mockIS,
+			}
+
+			ctx := context.Background()
+			result, err := builder.BuildMultiArch(ctx, tc.buildOptions)
+
+			if tc.expectedError != "" {
+				assert.Error(t, err, "should return an error")
+				assert.Contains(t, err.Error(), tc.expectedError, "error message should contain expected text")
+				assert.Nil(t, result, "should not return a result on error")
+			} else {
+				assert.NoError(t, err, "should not return an error")
+				if tc.validateResult != nil {
+					tc.validateResult(t, result)
+				}
+			}
+
+			mockFS.AssertExpectations(t)
+			mockBP.AssertExpectations(t)
+			mockID.AssertExpectations(t)
+		})
+	}
+}
+
+func TestImageBuilder_SaveIndex(t *testing.T) {
+	tt := []struct {
+		name          string
+		imageRef      string
+		setupMocks    func(*mockImageSaver)
+		expectedError string
+	}{
+		{
+			name:     "successful push to registry",
+			imageRef: "docker.io/test/image:latest",
+			setupMocks: func(mis *mockImageSaver) {
+				mis.On("SaveImageIndex", mock.Anything, mock.Anything, "docker.io/test/image:latest").Return(nil)
+			},
+		},
+		{
+			name:     "push failure",
+			imageRef: "registry.example.com/test/image:v1.0.0",
+			setupMocks: func(mis *mockImageSaver) {
+				mis.On("SaveImageIndex", mock.Anything, mock.Anything, "registry.example.com/test/image:v1.0.0").Return(errors.New("push failed"))
+			},
+			expectedError: "push failed",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			mockIS := &mockImageSaver{}
+			tc.setupMocks(mockIS)
+
+			builder := &ImageBuilder{
+				imageSaver: mockIS,
+			}
+
+			idx := mutate.IndexMediaType(empty.Index, types.DockerManifestList)
+
+			ctx := context.Background()
+			err := builder.SaveIndex(ctx, idx, tc.imageRef)
+
+			if tc.expectedError != "" {
+				assert.Error(t, err, "should return an error")
+				assert.Contains(t, err.Error(), tc.expectedError, "error message should contain expected text")
+			} else {
+				assert.NoError(t, err, "should not return an error")
+			}
+
+			mockIS.AssertExpectations(t)
+		})
+	}
+}
+
+func TestMultiArchBuildOptions_SetDefaults(t *testing.T) {
+	tt := []struct {
+		name           string
+		input          MultiArchBuildOptions
+		expectedOutput MultiArchBuildOptions
+	}{
+		{
+			name:  "empty options should get defaults",
+			input: MultiArchBuildOptions{},
+			expectedOutput: MultiArchBuildOptions{
+				BaseImage: DefaultBaseImage,
+				Platforms: []*v1.Platform{
+					{OS: "linux", Architecture: "amd64"},
+					{OS: "linux", Architecture: "arm64"},
+				},
+			},
+		},
+		{
+			name: "partial options should only set missing defaults",
+			input: MultiArchBuildOptions{
+				BaseImage: "custom:image",
+			},
+			expectedOutput: MultiArchBuildOptions{
+				BaseImage: "custom:image",
+				Platforms: []*v1.Platform{
+					{OS: "linux", Architecture: "amd64"},
+					{OS: "linux", Architecture: "arm64"},
+				},
+			},
+		},
+		{
+			name: "full options should remain unchanged",
+			input: MultiArchBuildOptions{
+				Platforms: []*v1.Platform{
+					{OS: "windows", Architecture: "amd64"},
+					{OS: "linux", Architecture: "arm64"},
+				},
+				BaseImage:   "custom:base",
+				MCPFilePath: "/custom/path",
+				ImageTag:    "custom:tag",
+			},
+			expectedOutput: MultiArchBuildOptions{
+				Platforms: []*v1.Platform{
+					{OS: "windows", Architecture: "amd64"},
+					{OS: "linux", Architecture: "arm64"},
+				},
+				BaseImage:   "custom:base",
+				MCPFilePath: "/custom/path",
+				ImageTag:    "custom:tag",
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			tc.input.SetDefaults()
+			assert.Equal(t, tc.expectedOutput.BaseImage, tc.input.BaseImage, "BaseImage should match")
+			assert.Equal(t, tc.expectedOutput.MCPFilePath, tc.input.MCPFilePath, "MCPFilePath should match")
+			assert.Equal(t, tc.expectedOutput.ImageTag, tc.input.ImageTag, "ImageTag should match")
+			assert.Equal(t, len(tc.expectedOutput.Platforms), len(tc.input.Platforms), "Platforms length should match")
+
+			for i, expectedPlatform := range tc.expectedOutput.Platforms {
+				assert.Equal(t, expectedPlatform.OS, tc.input.Platforms[i].OS, "Platform OS should match")
+				assert.Equal(t, expectedPlatform.Architecture, tc.input.Platforms[i].Architecture, "Platform Architecture should match")
+			}
+		})
+	}
+}
