@@ -214,12 +214,50 @@ tools:
           server="{server}"
           name="{name}"
           rtype="{type}"
-          script_path="examples/netedge-tools/scripts/exec_dns_in_pod.sh"
-          if [ ! -x "$script_path" ]; then
-            echo "helper script $script_path is missing or not executable" >&2
+          image="$NETEDGE_DNS_IMAGE"
+          if [ -z "$image" ]; then
+            image="registry.redhat.io/openshift4/network-tools-rhel9:latest"
+          fi
+          pod_name="netedge-dns-$RANDOM-$$"
+          phase_jsonpath="$(printf '\\173.status.phase\\175')"
+
+          trap 'oc -n "$namespace" delete pod "$pod_name" --ignore-not-found >/dev/null 2>&1 || true' EXIT INT TERM
+
+          oc -n "$namespace" delete pod "$pod_name" --ignore-not-found >/dev/null 2>&1 || true
+
+          overrides="$(printf '\173"spec":\173"securityContext":\173"runAsNonRoot":true,\"seccompProfile\":\173\"type\":\"RuntimeDefault\"\175\175,\"containers\":[\173\"name\":\"dns\",\"securityContext\":\173\"allowPrivilegeEscalation\":false,\"capabilities\":\173\"drop\":[\"ALL\"]\175\175\175]\175\175')"
+
+          if ! oc -n "$namespace" run "$pod_name" \
+            --image="$image" \
+            --restart=Never \
+            --command \
+            --overrides "$overrides" \
+            -- /bin/sh -c "dig @$server $name $rtype +noall +answer" >/dev/null; then
+            echo "failed to create DNS probe pod" >&2
             exit 1
           fi
-          "$script_path" "$namespace" "$server" "$name" "$rtype"
+
+          for attempt in $(seq 1 24); do
+            phase="$(oc -n "$namespace" get pod "$pod_name" -o "jsonpath=$phase_jsonpath" 2>/dev/null || true)"
+            if [ "$phase" = "Succeeded" ]; then
+              break
+            fi
+            if [ "$phase" = "Failed" ]; then
+              oc -n "$namespace" logs "$pod_name" || true
+              echo "DNS probe pod failed" >&2
+              exit 1
+            fi
+            sleep 5
+          done
+
+          final_phase="$(oc -n "$namespace" get pod "$pod_name" -o "jsonpath=$phase_jsonpath" 2>/dev/null || true)"
+          if [ "$final_phase" != "Succeeded" ]; then
+            oc -n "$namespace" logs "$pod_name" || true
+            echo "DNS probe pod did not complete successfully (phase=$final_phase)" >&2
+            exit 1
+          fi
+
+          oc -n "$namespace" logs "$pod_name"
 
 resources:
   - name: routes_all_namespaces

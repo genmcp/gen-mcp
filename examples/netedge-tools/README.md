@@ -13,6 +13,5 @@ Docs
 Key files
 - `mcpfile.yaml` — curated MCP tool definitions used by these examples.
 - `netedge-break-repair.sh` — helper script that stages the documented scenarios.
-- `scripts/exec_dns_in_pod.sh` — helper invoked by the `exec_dns_in_pod` MCP tool.
 
 Update the canonical notes if you need to expand or refine the documentation.

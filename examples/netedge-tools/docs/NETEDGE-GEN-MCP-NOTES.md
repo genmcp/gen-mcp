@@ -9,7 +9,6 @@ What this directory contains
 - `mcpfile.yaml` — curated NETEDGE MCP tools using the `stdio` transport.
 - `docs/` — documentation (this file, scenario catalog, break/repair guide).
 - `netedge-break-repair.sh` — script that stages documented ingress scenarios.
-- `scripts/exec_dns_in_pod.sh` — helper invoked by the `exec_dns_in_pod` tool.
 
 Quick summary of provided tools & resources
 - `inspect_route` — fetch a `Route` and, when possible, its `Service` and `Endpoints`.
@@ -65,7 +64,10 @@ Key assumptions and caveats
   Prometheus endpoint. When given an in-cluster `.svc` address it falls back to the
   public `thanos-querier` Route and attaches the `oc` bearer token automatically.
 - `exec_dns_in_pod` pulls `registry.redhat.io/openshift4/network-tools-rhel9:latest`;
-  replace with an approved image if your cluster restricts external pulls.
+  set `NETEDGE_DNS_IMAGE` to override it if your cluster restricts external pulls.
+  The generated pod runs with `allowPrivilegeEscalation=false`, `capabilities.drop=["ALL"]`,
+  `runAsNonRoot=true`, and `seccompProfile=RuntimeDefault` so it satisfies restricted
+  PodSecurity policies out of the box.
 - Template notes: when writing CLI `command` templates, each `{param}` must appear
   exactly once. If a parameter must be used multiple times, assign it once to a shell
   variable inside the command and reuse that variable. The repo validator counts the
