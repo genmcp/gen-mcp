@@ -22,19 +22,8 @@ type schemaType struct {
 }
 
 func main() {
-	// Use a slice to guarantee the processing order.
-	// mcpfile.MCPFile will be processed first.
+	// Generate schema for MCPToolDefinitions
 	types := []schemaType{
-		{
-			Type: &mcpfile.MCPFile{},
-			Base: "github.com/genmcp/gen-mcp/pkg/mcpfile",
-			Path: "../../pkg/mcpfile",
-		},
-		{
-			Type: &mcpfile.MCPServerConfig{},
-			Base: "github.com/genmcp/gen-mcp/pkg/mcpfile",
-			Path: "../../pkg/mcpfile",
-		},
 		{
 			Type: &mcpfile.MCPToolDefinitions{},
 			Base: "github.com/genmcp/gen-mcp/pkg/mcpfile",
@@ -95,4 +84,6 @@ func main() {
 	if err := os.WriteFile(latestFile, schemaJSON, 0644); err != nil {
 		log.Fatalf("Failed to write latest schema: %v", err)
 	}
+
+	fmt.Printf("Generated mcpfile schema version %s\n", mcpfile.MCPFileVersion)
 }
