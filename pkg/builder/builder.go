@@ -9,13 +9,15 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
-	"github.com/google/go-containerregistry/pkg/v1"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/daemon"
+	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
@@ -41,6 +43,7 @@ type ImageDownloader interface {
 // ImageSaver interface for saving built images to different destinations
 type ImageSaver interface {
 	SaveImage(ctx context.Context, img v1.Image, ref string) error
+	SaveImageIndex(ctx context.Context, idx v1.ImageIndex, ref string) error
 }
 
 // OSFileSystem implements FileSystem using the standard os package
@@ -122,6 +125,22 @@ func (r *RegistryImageSaver) SaveImage(ctx context.Context, img v1.Image, ref st
 	return nil
 }
 
+func (r *RegistryImageSaver) SaveImageIndex(ctx context.Context, idx v1.ImageIndex, ref string) error {
+	repo, err := name.ParseReference(ref)
+	if err != nil {
+		return fmt.Errorf("invalid reference %s: %w", ref, err)
+	}
+
+	if err = remote.WriteIndex(repo, idx,
+		remote.WithContext(ctx),
+		remote.WithAuthFromKeychain(authn.DefaultKeychain),
+	); err != nil {
+		return fmt.Errorf("failed to push image index to %s: %w", ref, err)
+	}
+
+	return nil
+}
+
 func (d *DaemonImageSaver) SaveImage(ctx context.Context, img v1.Image, ref string) error {
 	tag, err := name.NewTag(ref)
 	if err != nil {
@@ -131,6 +150,66 @@ func (d *DaemonImageSaver) SaveImage(ctx context.Context, img v1.Image, ref stri
 	_, err = daemon.Write(tag, img, daemon.WithContext(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to save image to local container engine: %w", err)
+	}
+
+	return nil
+}
+
+func (d *DaemonImageSaver) SaveImageIndex(ctx context.Context, idx v1.ImageIndex, ref string) error {
+	// Docker daemon doesn't support writing image indexes directly
+	// Instead, we save each platform-specific image with a platform suffix
+	manifest, err := idx.IndexManifest()
+	if err != nil {
+		return fmt.Errorf("failed to get index manifest: %w", err)
+	}
+
+	baseTag, err := name.NewTag(ref)
+	if err != nil {
+		return fmt.Errorf("failed to parse tag %s: %w", ref, err)
+	}
+
+	var imageForBaseTag v1.Image
+
+	// Save each platform image separately
+	for _, desc := range manifest.Manifests {
+		if desc.Platform == nil {
+			continue
+		}
+
+		img, err := idx.Image(desc.Digest)
+		if err != nil {
+			return fmt.Errorf("failed to get image for platform %s/%s: %w", desc.Platform.OS, desc.Platform.Architecture, err)
+		}
+
+		// Track first image for base tag
+		if imageForBaseTag == nil {
+			imageForBaseTag = img
+		}
+
+		// Prefer host platform if available
+		if desc.Platform.OS == runtime.GOOS && desc.Platform.Architecture == runtime.GOARCH {
+			imageForBaseTag = img
+		}
+
+		// Create platform-specific tag (e.g., myimage:latest-linux-amd64)
+		platformSuffix := fmt.Sprintf("%s-%s", desc.Platform.OS, desc.Platform.Architecture)
+		platformTag, err := name.NewTag(fmt.Sprintf("%s-%s", baseTag.String(), platformSuffix))
+		if err != nil {
+			return fmt.Errorf("failed to create platform tag: %w", err)
+		}
+
+		_, err = daemon.Write(platformTag, img, daemon.WithContext(ctx))
+		if err != nil {
+			return fmt.Errorf("failed to save image for platform %s to local container engine: %w", platformSuffix, err)
+		}
+	}
+
+	// Also write the selected image with the original tag
+	if imageForBaseTag != nil {
+		_, err = daemon.Write(baseTag, imageForBaseTag, daemon.WithContext(ctx))
+		if err != nil {
+			return fmt.Errorf("failed to save image with original tag to local container engine: %w", err)
+		}
 	}
 
 	return nil
@@ -223,6 +302,42 @@ func (b *ImageBuilder) Build(ctx context.Context, opts BuildOptions) (v1.Image, 
 
 func (b *ImageBuilder) Save(ctx context.Context, img v1.Image, ref string) error {
 	return b.imageSaver.SaveImage(ctx, img, ref)
+}
+
+func (b *ImageBuilder) SaveIndex(ctx context.Context, idx v1.ImageIndex, ref string) error {
+	return b.imageSaver.SaveImageIndex(ctx, idx, ref)
+}
+
+func (b *ImageBuilder) BuildMultiArch(ctx context.Context, opts MultiArchBuildOptions) (v1.ImageIndex, error) {
+	opts.SetDefaults()
+
+	var adds []mutate.IndexAddendum
+
+	for _, platform := range opts.Platforms {
+		buildOpts := BuildOptions{
+			Platform:    platform,
+			BaseImage:   opts.BaseImage,
+			MCPFilePath: opts.MCPFilePath,
+			ImageTag:    opts.ImageTag,
+		}
+
+		img, err := b.Build(ctx, buildOpts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build image for platform %s/%s: %w", platform.OS, platform.Architecture, err)
+		}
+
+		adds = append(adds, mutate.IndexAddendum{
+			Add: img,
+			Descriptor: v1.Descriptor{
+				Platform: platform,
+			},
+		})
+	}
+
+	baseIdx := mutate.IndexMediaType(empty.Index, types.DockerManifestList)
+	idx := mutate.AppendManifests(baseIdx, adds...)
+
+	return idx, nil
 }
 
 func (b *ImageBuilder) getLayerMediaType(baseImg v1.Image) (types.MediaType, error) {

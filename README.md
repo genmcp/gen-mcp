@@ -115,6 +115,54 @@ genmcp convert https://api.example.com/openapi.json -o custom-name.yaml
 genmcp convert https://petstore.swagger.io/v2/swagger.json
 ```
 
+### Building Container Images
+
+The `build` command packages your MCP server and mcpfile into a container image. By default, it builds multi-architecture images for broader platform support.
+
+#### Multi-Architecture Build (Default)
+
+When no `--platform` is specified, builds for both `linux/amd64` and `linux/arm64`:
+
+```bash
+# Build and push multi-arch image to registry
+genmcp build --tag registry.example.com/myapp:v1.0.0 --push
+
+# Build multi-arch locally
+genmcp build --tag myapp:latest  # Creates: myapp:latest-linux-amd64, myapp:latest-linux-arm64
+```
+
+#### Single-Platform Build
+
+For faster iteration during development, specify a single platform:
+
+```bash
+# Build for specific platform
+genmcp build --tag myapp:dev --platform linux/amd64
+
+# Build for ARM64
+genmcp build --tag myapp:latest --platform linux/arm64
+```
+
+#### Additional Options
+
+```bash
+# Custom base image
+genmcp build --tag myapp:latest \
+  --base-image registry.access.redhat.com/ubi9/ubi-minimal:latest
+
+# Specify mcpfile location
+genmcp build --tag myapp:latest -f path/to/mcpfile.yaml
+
+# Full example with all options
+genmcp build \
+  --tag myregistry.io/myapp:v1.0.0 \
+  --file ./custom-mcpfile.yaml \
+  --platform linux/amd64 \
+  --push
+```
+
+**Note:** When building multi-arch locally, Docker daemon doesn't support manifest lists, so each platform is saved with a platform-specific tag (e.g., `myapp:latest-linux-amd64`). Additionally, the original tag (`myapp:latest`) is saved with your host platform's image if available, otherwise the first built platform. When pushing to a registry with `--push`, a proper multi-arch manifest list is created.
+
 ### Converting CLI (Experimental)
 
 Instead of manually writing an MCP file for a CLI, you can use an LLM to generate a genmcp-compatible mcpfile.yaml.
