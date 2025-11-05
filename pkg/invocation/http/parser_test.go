@@ -12,11 +12,14 @@ import (
 
 func TestParser_Parse(t *testing.T) {
 	tt := []struct {
-		name           string
-		inputData      json.RawMessage
-		tool           *mcpfile.Tool
-		expectedConfig *HttpInvocationConfig
-		expectError    bool
+		name             string
+		inputData        json.RawMessage
+		tool             *mcpfile.Tool
+		expectError      bool
+		expectedURL      string
+		expectedMethod   string
+		expectedVarCount int
+		expectedVarNames []string
 	}{
 		{
 			name:      "simple URL without parameters",
@@ -26,12 +29,11 @@ func TestParser_Parse(t *testing.T) {
 					Type: invocation.JsonSchemaTypeObject,
 				},
 			},
-			expectedConfig: &HttpInvocationConfig{
-				PathTemplate: "/api/users",
-				PathIndices:  map[string]int{},
-				Method:       "GET",
-			},
-			expectError: false,
+			expectError:      false,
+			expectedURL:      "/api/users",
+			expectedMethod:   "GET",
+			expectedVarCount: 0,
+			expectedVarNames: []string{},
 		},
 		{
 			name:      "URL with path parameters",
@@ -45,15 +47,11 @@ func TestParser_Parse(t *testing.T) {
 					},
 				},
 			},
-			expectedConfig: &HttpInvocationConfig{
-				PathTemplate: "/api/users/%d/posts/%s",
-				PathIndices: map[string]int{
-					"id":     0,
-					"postId": 1,
-				},
-				Method: "POST",
-			},
-			expectError: false,
+			expectError:      false,
+			expectedURL:      "/api/users/{id}/posts/{postId}",
+			expectedMethod:   "POST",
+			expectedVarCount: 2,
+			expectedVarNames: []string{"id", "postId"},
 		},
 		{
 			name:      "invalid JSON",
@@ -63,8 +61,7 @@ func TestParser_Parse(t *testing.T) {
 					Type: invocation.JsonSchemaTypeObject,
 				},
 			},
-			expectedConfig: nil,
-			expectError:    true,
+			expectError: true,
 		},
 	}
 
@@ -80,7 +77,15 @@ func TestParser_Parse(t *testing.T) {
 				assert.Nil(t, config, "config should be nil on error")
 			} else {
 				assert.NoError(t, err, "parser should not return an error")
-				assert.Equal(t, tc.expectedConfig, config, "parsed config should match expected")
+				assert.NotNil(t, config)
+				hic := config.(*HttpInvocationConfig)
+				assert.Equal(t, tc.expectedURL, hic.URL)
+				assert.Equal(t, tc.expectedMethod, hic.Method)
+				assert.NotNil(t, hic.ParsedTemplate)
+				assert.Len(t, hic.ParsedTemplate.Variables, tc.expectedVarCount)
+				for i, expectedName := range tc.expectedVarNames {
+					assert.Equal(t, expectedName, hic.ParsedTemplate.Variables[i].Name)
+				}
 			}
 		})
 	}
@@ -88,12 +93,14 @@ func TestParser_Parse(t *testing.T) {
 
 func TestParser_ParseResource(t *testing.T) {
 	tt := []struct {
-		name           string
-		inputData      json.RawMessage
-		resource       *mcpfile.Resource
-		expectedConfig *HttpInvocationConfig
-		expectError    bool
-		errorContains  string
+		name             string
+		inputData        json.RawMessage
+		resource         *mcpfile.Resource
+		expectError      bool
+		errorContains    string
+		expectedURL      string
+		expectedMethod   string
+		expectedVarCount int
 	}{
 		{
 			name:      "valid static resource without path parameters",
@@ -103,12 +110,10 @@ func TestParser_ParseResource(t *testing.T) {
 					Type: invocation.JsonSchemaTypeObject,
 				},
 			},
-			expectedConfig: &HttpInvocationConfig{
-				PathTemplate: "http://localhost:8080/status",
-				PathIndices:  map[string]int{},
-				Method:       "GET",
-			},
-			expectError: false,
+			expectError:      false,
+			expectedURL:      "http://localhost:8080/status",
+			expectedMethod:   "GET",
+			expectedVarCount: 0,
 		},
 		{
 			name:      "invalid static resource with path parameters",
@@ -121,9 +126,8 @@ func TestParser_ParseResource(t *testing.T) {
 					},
 				},
 			},
-			expectedConfig: nil,
-			expectError:    true,
-			errorContains:  "static resource URL cannot contain path parameters",
+			expectError:   true,
+			errorContains: "static resource URL cannot contain path parameters",
 		},
 	}
 
@@ -142,7 +146,12 @@ func TestParser_ParseResource(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err, "parser should not return an error")
-				assert.Equal(t, tc.expectedConfig, config, "parsed config should match expected")
+				assert.NotNil(t, config)
+				hic := config.(*HttpInvocationConfig)
+				assert.Equal(t, tc.expectedURL, hic.URL)
+				assert.Equal(t, tc.expectedMethod, hic.Method)
+				assert.NotNil(t, hic.ParsedTemplate)
+				assert.Len(t, hic.ParsedTemplate.Variables, tc.expectedVarCount)
 			}
 		})
 	}

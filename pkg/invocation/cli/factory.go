@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/genmcp/gen-mcp/pkg/invocation"
-	"github.com/genmcp/gen-mcp/pkg/invocation/utils"
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
@@ -16,48 +15,13 @@ func (f *InvokerFactory) CreateInvoker(config invocation.InvocationConfig, schem
 		return nil, fmt.Errorf("invalid InvocationConfig for cli invoker factory")
 	}
 
-	formatters := make(map[string]Formatter)
-	for k, v := range cic.TemplateVariables {
-		formatters[k] = v
-	}
-
-	for k := range cic.ParameterIndices {
-		_, ok := formatters[k]
-		if !ok {
-			formatter, err := NewDummyFormatter(k, schema.Schema())
-			if err != nil {
-				return nil, fmt.Errorf("failed to create formatter for parameter: %w", err)
-			}
-
-			formatters[k] = formatter
-		}
+	if cic.ParsedTemplate == nil {
+		return nil, fmt.Errorf("parsed template is nil - parser may not have been run correctly")
 	}
 
 	return &CliInvoker{
-		CommandTemplate:    cic.Command,
-		ArgumentIndices:    cic.ParameterIndices,
-		ArgumentFormatters: formatters,
-		InputSchema:        schema,
-		URITemplate:        cic.URITemplate,
+		ParsedTemplate: cic.ParsedTemplate,
+		InputSchema:    schema,
+		URITemplate:    cic.URITemplate,
 	}, nil
-
-}
-
-type DummyFormatter struct {
-	formatString string
-}
-
-func NewDummyFormatter(paramName string, schema *jsonschema.Schema) (*DummyFormatter, error) {
-	formatString, err := utils.FormatStringForParam(paramName, schema)
-	if err != nil {
-		return nil, err
-	}
-
-	return &DummyFormatter{
-		formatString: formatString,
-	}, nil
-}
-
-func (df *DummyFormatter) FormatValue(v any) string {
-	return fmt.Sprintf(df.formatString, v)
 }

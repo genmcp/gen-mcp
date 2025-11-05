@@ -8,15 +8,16 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParser_Parse(t *testing.T) {
 	tt := []struct {
-		name           string
-		inputData      json.RawMessage
-		tool           *mcpfile.Tool
-		expectedConfig *CliInvocationConfig
-		expectError    bool
+		name        string
+		inputData   json.RawMessage
+		tool        *mcpfile.Tool
+		expectError bool
+		validate    func(t *testing.T, config *CliInvocationConfig)
 	}{
 		{
 			name:      "simple command without parameters",
@@ -26,11 +27,13 @@ func TestParser_Parse(t *testing.T) {
 					Type: invocation.JsonSchemaTypeObject,
 				},
 			},
-			expectedConfig: &CliInvocationConfig{
-				Command:          "echo hello",
-				ParameterIndices: map[string]int{},
-			},
 			expectError: false,
+			validate: func(t *testing.T, config *CliInvocationConfig) {
+				assert.Equal(t, "echo hello", config.Command)
+				require.NotNil(t, config.ParsedTemplate)
+				assert.Equal(t, "echo hello", config.ParsedTemplate.Template)
+				assert.Empty(t, config.ParsedTemplate.Variables)
+			},
 		},
 		{
 			name:      "command with parameters",
@@ -44,14 +47,14 @@ func TestParser_Parse(t *testing.T) {
 					},
 				},
 			},
-			expectedConfig: &CliInvocationConfig{
-				Command: "echo %s %s",
-				ParameterIndices: map[string]int{
-					"message": 0,
-					"count":   1,
-				},
-			},
 			expectError: false,
+			validate: func(t *testing.T, config *CliInvocationConfig) {
+				assert.Equal(t, "echo {message} {count}", config.Command)
+				require.NotNil(t, config.ParsedTemplate)
+				assert.Len(t, config.ParsedTemplate.Variables, 2)
+				assert.Equal(t, "message", config.ParsedTemplate.Variables[0].Name)
+				assert.Equal(t, "count", config.ParsedTemplate.Variables[1].Name)
+			},
 		},
 		{
 			name:      "invalid JSON",
@@ -61,8 +64,7 @@ func TestParser_Parse(t *testing.T) {
 					Type: invocation.JsonSchemaTypeObject,
 				},
 			},
-			expectedConfig: nil,
-			expectError:    true,
+			expectError: true,
 		},
 		{
 			name:      "command with template variables",
@@ -76,19 +78,15 @@ func TestParser_Parse(t *testing.T) {
 					},
 				},
 			},
-			expectedConfig: &CliInvocationConfig{
-				Command: "curl %s",
-				ParameterIndices: map[string]int{
-					"url": 0,
-				},
-				TemplateVariables: map[string]*TemplateVariable{
-					"verbose": {
-						Template:     "--verbose",
-						shouldFormat: false,
-					},
-				},
-			},
 			expectError: false,
+			validate: func(t *testing.T, config *CliInvocationConfig) {
+				assert.Equal(t, "curl {url}", config.Command)
+				require.NotNil(t, config.ParsedTemplate)
+				assert.Len(t, config.ParsedTemplate.Variables, 1)
+				assert.Equal(t, "url", config.ParsedTemplate.Variables[0].Name)
+				assert.Contains(t, config.TemplateVariables, "verbose")
+				assert.Equal(t, "--verbose", config.TemplateVariables["verbose"].Template)
+			},
 		},
 		{
 			name:      "command with formatted template variables",
@@ -102,19 +100,15 @@ func TestParser_Parse(t *testing.T) {
 					},
 				},
 			},
-			expectedConfig: &CliInvocationConfig{
-				Command: "wget %s",
-				ParameterIndices: map[string]int{
-					"url": 0,
-				},
-				TemplateVariables: map[string]*TemplateVariable{
-					"output": {
-						Template:     "-O %s",
-						shouldFormat: true,
-					},
-				},
-			},
 			expectError: false,
+			validate: func(t *testing.T, config *CliInvocationConfig) {
+				assert.Equal(t, "wget {url}", config.Command)
+				require.NotNil(t, config.ParsedTemplate)
+				assert.Len(t, config.ParsedTemplate.Variables, 1)
+				assert.Equal(t, "url", config.ParsedTemplate.Variables[0].Name)
+				assert.Contains(t, config.TemplateVariables, "output")
+				assert.Equal(t, "-O {filename}", config.TemplateVariables["output"].Template)
+			},
 		},
 	}
 
@@ -130,18 +124,10 @@ func TestParser_Parse(t *testing.T) {
 				assert.Nil(t, config, "config should be nil on error")
 			} else {
 				assert.NoError(t, err, "parser should not return an error")
+				require.NotNil(t, config)
 				cliConfig := config.(*CliInvocationConfig)
-				assert.Equal(t, tc.expectedConfig.Command, cliConfig.Command, "command should match expected")
-				assert.Equal(t, tc.expectedConfig.ParameterIndices, cliConfig.ParameterIndices, "parameter indices should match expected")
-
-				if tc.expectedConfig.TemplateVariables != nil {
-					assert.Equal(t, len(tc.expectedConfig.TemplateVariables), len(cliConfig.TemplateVariables), "template variables count should match")
-					for key, expectedTV := range tc.expectedConfig.TemplateVariables {
-						actualTV := cliConfig.TemplateVariables[key]
-						assert.NotNil(t, actualTV, "template variable should exist")
-						assert.Equal(t, expectedTV.Template, actualTV.Template, "template should match")
-						assert.Equal(t, expectedTV.shouldFormat, actualTV.shouldFormat, "shouldFormat should match")
-					}
+				if tc.validate != nil {
+					tc.validate(t, cliConfig)
 				}
 			}
 		})
@@ -150,12 +136,12 @@ func TestParser_Parse(t *testing.T) {
 
 func TestParser_ParseResource(t *testing.T) {
 	tt := []struct {
-		name           string
-		inputData      json.RawMessage
-		resource       *mcpfile.Resource
-		expectedConfig *CliInvocationConfig
-		expectError    bool
-		errorContains  string
+		name          string
+		inputData     json.RawMessage
+		resource      *mcpfile.Resource
+		expectError   bool
+		errorContains string
+		validate      func(t *testing.T, config *CliInvocationConfig)
 	}{
 		{
 			name:      "valid static resource without parameters",
@@ -165,11 +151,12 @@ func TestParser_ParseResource(t *testing.T) {
 					Type: invocation.JsonSchemaTypeObject,
 				},
 			},
-			expectedConfig: &CliInvocationConfig{
-				Command:          "cat /var/log/app.log",
-				ParameterIndices: map[string]int{},
-			},
 			expectError: false,
+			validate: func(t *testing.T, config *CliInvocationConfig) {
+				assert.Equal(t, "cat /var/log/app.log", config.Command)
+				require.NotNil(t, config.ParsedTemplate)
+				assert.Empty(t, config.ParsedTemplate.Variables)
+			},
 		},
 		{
 			name:      "invalid static resource with template variables",
@@ -182,9 +169,8 @@ func TestParser_ParseResource(t *testing.T) {
 					},
 				},
 			},
-			expectedConfig: nil,
-			expectError:    true,
-			errorContains:  "static resource command cannot contain template variables",
+			expectError:   true,
+			errorContains: "static resource command cannot contain template variables",
 		},
 	}
 
@@ -203,9 +189,11 @@ func TestParser_ParseResource(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err, "parser should not return an error")
+				require.NotNil(t, config)
 				cliConfig := config.(*CliInvocationConfig)
-				assert.Equal(t, tc.expectedConfig.Command, cliConfig.Command, "command should match expected")
-				assert.Equal(t, tc.expectedConfig.ParameterIndices, cliConfig.ParameterIndices, "parameter indices should match expected")
+				if tc.validate != nil {
+					tc.validate(t, cliConfig)
+				}
 			}
 		})
 	}
