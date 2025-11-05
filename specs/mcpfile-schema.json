@@ -218,11 +218,11 @@
           "description": "List of template arguments for the prompt."
         },
         "inputSchema": {
-          "$ref": "#/$defs/Schema",
+          "type": "object",
           "description": "Schema describing input parameters."
         },
         "outputSchema": {
-          "$ref": "#/$defs/Schema",
+          "type": "object",
           "description": "Optional schema describing prompt output."
         },
         "invocation": {
@@ -307,11 +307,11 @@
           "description": "The URI of this resource."
         },
         "inputSchema": {
-          "$ref": "#/$defs/Schema",
-          "description": "Schema describing input parameters."
+          "type": "object",
+          "description": "Schema describing input parameters (optional for resources without inputs)."
         },
         "outputSchema": {
-          "$ref": "#/$defs/Schema",
+          "type": "object",
           "description": "Optional schema describing resource output."
         },
         "invocation": {
@@ -339,7 +339,6 @@
         "name",
         "description",
         "uri",
-        "inputSchema",
         "invocation"
       ],
       "description": "Resource represents a retrievable or executable resource."
@@ -367,11 +366,11 @@
           "description": "URI template (RFC 6570) used to construct resource URIs."
         },
         "inputSchema": {
-          "$ref": "#/$defs/Schema",
+          "type": "object",
           "description": "Schema describing input parameters."
         },
         "outputSchema": {
-          "$ref": "#/$defs/Schema",
+          "type": "object",
           "description": "Optional schema describing resource output."
         },
         "invocation": {
@@ -404,223 +403,6 @@
       ],
       "description": "ResourceTemplate represents a reusable URI-based template for resources."
     },
-    "Schema": {
-      "properties": {
-        "$id": {
-          "type": "string"
-        },
-        "$schema": {
-          "type": "string"
-        },
-        "$ref": {
-          "type": "string"
-        },
-        "$comment": {
-          "type": "string"
-        },
-        "$defs": {
-          "additionalProperties": {
-            "$ref": "#/$defs/Schema"
-          },
-          "type": "object"
-        },
-        "definitions": {
-          "additionalProperties": {
-            "$ref": "#/$defs/Schema"
-          },
-          "type": "object"
-        },
-        "$anchor": {
-          "type": "string"
-        },
-        "$dynamicAnchor": {
-          "type": "string"
-        },
-        "$dynamicRef": {
-          "type": "string"
-        },
-        "$vocabulary": {
-          "additionalProperties": {
-            "type": "boolean"
-          },
-          "type": "object"
-        },
-        "title": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "default": true,
-        "deprecated": {
-          "type": "boolean"
-        },
-        "readOnly": {
-          "type": "boolean"
-        },
-        "writeOnly": {
-          "type": "boolean"
-        },
-        "examples": {
-          "items": true,
-          "type": "array"
-        },
-        "enum": {
-          "items": true,
-          "type": "array"
-        },
-        "const": true,
-        "multipleOf": {
-          "type": "number"
-        },
-        "minimum": {
-          "type": "number"
-        },
-        "maximum": {
-          "type": "number"
-        },
-        "exclusiveMinimum": {
-          "type": "number"
-        },
-        "exclusiveMaximum": {
-          "type": "number"
-        },
-        "minLength": {
-          "type": "integer"
-        },
-        "maxLength": {
-          "type": "integer"
-        },
-        "pattern": {
-          "type": "string"
-        },
-        "prefixItems": {
-          "items": {
-            "$ref": "#/$defs/Schema"
-          },
-          "type": "array"
-        },
-        "items": {
-          "$ref": "#/$defs/Schema"
-        },
-        "minItems": {
-          "type": "integer"
-        },
-        "maxItems": {
-          "type": "integer"
-        },
-        "additionalItems": {
-          "$ref": "#/$defs/Schema"
-        },
-        "uniqueItems": {
-          "type": "boolean"
-        },
-        "contains": {
-          "$ref": "#/$defs/Schema"
-        },
-        "minContains": {
-          "type": "integer"
-        },
-        "maxContains": {
-          "type": "integer"
-        },
-        "unevaluatedItems": {
-          "$ref": "#/$defs/Schema"
-        },
-        "minProperties": {
-          "type": "integer"
-        },
-        "maxProperties": {
-          "type": "integer"
-        },
-        "required": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "dependentRequired": {
-          "additionalProperties": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "type": "object"
-        },
-        "properties": {
-          "additionalProperties": {
-            "$ref": "#/$defs/Schema"
-          },
-          "type": "object"
-        },
-        "patternProperties": {
-          "additionalProperties": {
-            "$ref": "#/$defs/Schema"
-          },
-          "type": "object"
-        },
-        "additionalProperties": {
-          "$ref": "#/$defs/Schema"
-        },
-        "propertyNames": {
-          "$ref": "#/$defs/Schema"
-        },
-        "unevaluatedProperties": {
-          "$ref": "#/$defs/Schema"
-        },
-        "allOf": {
-          "items": {
-            "$ref": "#/$defs/Schema"
-          },
-          "type": "array"
-        },
-        "anyOf": {
-          "items": {
-            "$ref": "#/$defs/Schema"
-          },
-          "type": "array"
-        },
-        "oneOf": {
-          "items": {
-            "$ref": "#/$defs/Schema"
-          },
-          "type": "array"
-        },
-        "not": {
-          "$ref": "#/$defs/Schema"
-        },
-        "if": {
-          "$ref": "#/$defs/Schema"
-        },
-        "then": {
-          "$ref": "#/$defs/Schema"
-        },
-        "else": {
-          "$ref": "#/$defs/Schema"
-        },
-        "dependentSchemas": {
-          "additionalProperties": {
-            "$ref": "#/$defs/Schema"
-          },
-          "type": "object"
-        },
-        "contentEncoding": {
-          "type": "string"
-        },
-        "contentMediaType": {
-          "type": "string"
-        },
-        "contentSchema": {
-          "$ref": "#/$defs/Schema"
-        },
-        "format": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object"
-    },
     "ServerRuntime": {
       "properties": {
         "transportProtocol": {
@@ -643,8 +425,7 @@
       "additionalProperties": false,
       "type": "object",
       "required": [
-        "transportProtocol",
-        "loggingConfig"
+        "transportProtocol"
       ],
       "description": "ServerRuntime defines transport protocol and associated configuration."
     },
@@ -666,7 +447,7 @@
         },
         "stateless": {
           "type": "boolean",
-          "description": "Indicates whether the server is stateless."
+          "description": "Indicates whether the server is stateless (default: true when unset)."
         },
         "auth": {
           "$ref": "#/$defs/AuthConfig",
@@ -680,8 +461,7 @@
       "additionalProperties": false,
       "type": "object",
       "required": [
-        "port",
-        "stateless"
+        "port"
       ],
       "description": "StreamableHTTPConfig defines configuration for the HTTP-based runtime."
     },
@@ -733,11 +513,11 @@
           "description": "Detailed description of the tool's purpose."
         },
         "inputSchema": {
-          "$ref": "#/$defs/Schema",
+          "type": "object",
           "description": "JSON Schema describing input parameters."
         },
         "outputSchema": {
-          "$ref": "#/$defs/Schema",
+          "type": "object",
           "description": "Optional JSON Schema describing output."
         },
         "invocation": {
@@ -769,8 +549,7 @@
         "name",
         "description",
         "inputSchema",
-        "invocation",
-        "annotations"
+        "invocation"
       ],
       "description": "Tool represents an executable capability of the MCP server."
     },
