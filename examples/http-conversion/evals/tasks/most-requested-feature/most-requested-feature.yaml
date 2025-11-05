@@ -1,0 +1,9 @@
+kind: Task
+metadata:
+  name: most-requested-feature
+  difficulty: easy
+steps:
+  prompt:
+    inline: What is the most requested feature for my app?
+  verify:
+    contains: The most requested feature is dark mode, with support for features like automatic detection of system preference and a manual toggle in user settings.
