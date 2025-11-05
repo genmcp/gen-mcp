@@ -141,6 +141,187 @@ func fixRequiredFieldsForType(schema *jsonschema.Schema, t reflect.Type) {
 	}
 }
 
+// createJSONSchemaMetaSchema returns a JSON Schema that describes JSON Schema itself.
+// This provides better IDE autocomplete and validation for inputSchema/outputSchema fields.
+func createJSONSchemaMetaSchema() *jsonschema.Schema {
+	// Create a simple schema that describes common JSON Schema properties
+	// without deep recursion to avoid validation issues
+	schema := &jsonschema.Schema{
+		Type:                 "object",
+		Description:          "A JSON Schema object defining the structure and validation rules.",
+		AdditionalProperties: jsonschema.TrueSchema, // Allow any JSON Schema properties
+	}
+
+	schema.Properties = jsonschema.NewProperties()
+
+	schema.Properties.Set("type", &jsonschema.Schema{
+		Description: "The type of the value. Can be a single type or an array of types.",
+		OneOf: []*jsonschema.Schema{
+			{Type: "string", Enum: []any{"string", "number", "integer", "boolean", "object", "array", "null"}},
+			{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
+		},
+	})
+
+	schema.Properties.Set("properties", &jsonschema.Schema{
+		Type:                 "object",
+		Description:          "An object where each key is a property name and each value is a schema.",
+		AdditionalProperties: jsonschema.TrueSchema,
+	})
+
+	schema.Properties.Set("required", &jsonschema.Schema{
+		Type:        "array",
+		Description: "An array of required property names.",
+		Items:       &jsonschema.Schema{Type: "string"},
+	})
+
+	schema.Properties.Set("additionalProperties", &jsonschema.Schema{
+		Description: "Whether additional properties are allowed (boolean) or a schema they must match (object).",
+	})
+
+	schema.Properties.Set("items", &jsonschema.Schema{
+		Description: "Schema for array items. Can be a single schema or an array of schemas for tuple validation.",
+	})
+
+	schema.Properties.Set("description", &jsonschema.Schema{
+		Type:        "string",
+		Description: "A description of the schema's purpose.",
+	})
+
+	schema.Properties.Set("title", &jsonschema.Schema{
+		Type:        "string",
+		Description: "A short title for the schema.",
+	})
+
+	schema.Properties.Set("default", &jsonschema.Schema{
+		Description: "The default value for this schema.",
+	})
+
+	// Enum
+	schema.Properties.Set("enum", &jsonschema.Schema{
+		Type:        "array",
+		Description: "An array of allowed values.",
+	})
+
+	// Const
+	schema.Properties.Set("const", &jsonschema.Schema{
+		Description: "A constant value that must match exactly.",
+	})
+
+	schema.Properties.Set("$ref", &jsonschema.Schema{
+		Type:        "string",
+		Description: "A reference to another schema definition (e.g., '#/$defs/MyType').",
+	})
+
+	schema.Properties.Set("$defs", &jsonschema.Schema{
+		Type:                 "object",
+		Description:          "A container for reusable schema definitions.",
+		AdditionalProperties: jsonschema.TrueSchema,
+	})
+
+	schema.Properties.Set("definitions", &jsonschema.Schema{
+		Type:                 "object",
+		Description:          "Legacy container for reusable schema definitions. Use $defs instead.",
+		AdditionalProperties: jsonschema.TrueSchema,
+	})
+
+	schema.Properties.Set("allOf", &jsonschema.Schema{
+		Type:        "array",
+		Description: "Must match all of the schemas in the array.",
+	})
+
+	schema.Properties.Set("anyOf", &jsonschema.Schema{
+		Type:        "array",
+		Description: "Must match at least one of the schemas in the array.",
+	})
+
+	schema.Properties.Set("oneOf", &jsonschema.Schema{
+		Type:        "array",
+		Description: "Must match exactly one of the schemas in the array.",
+	})
+
+	schema.Properties.Set("not", &jsonschema.Schema{
+		Description: "Must not match this schema.",
+	})
+
+	schema.Properties.Set("minimum", &jsonschema.Schema{
+		Type:        "number",
+		Description: "Minimum value for numbers.",
+	})
+
+	schema.Properties.Set("maximum", &jsonschema.Schema{
+		Type:        "number",
+		Description: "Maximum value for numbers.",
+	})
+
+	schema.Properties.Set("exclusiveMinimum", &jsonschema.Schema{
+		Type:        "number",
+		Description: "Exclusive minimum value for numbers.",
+	})
+
+	schema.Properties.Set("exclusiveMaximum", &jsonschema.Schema{
+		Type:        "number",
+		Description: "Exclusive maximum value for numbers.",
+	})
+
+	schema.Properties.Set("multipleOf", &jsonschema.Schema{
+		Type:        "number",
+		Description: "Value must be a multiple of this number.",
+	})
+
+	schema.Properties.Set("minLength", &jsonschema.Schema{
+		Type:        "integer",
+		Description: "Minimum length for strings.",
+	})
+
+	schema.Properties.Set("maxLength", &jsonschema.Schema{
+		Type:        "integer",
+		Description: "Maximum length for strings.",
+	})
+
+	schema.Properties.Set("pattern", &jsonschema.Schema{
+		Type:        "string",
+		Description: "Regular expression pattern that strings must match.",
+	})
+
+	schema.Properties.Set("format", &jsonschema.Schema{
+		Type:        "string",
+		Description: "Format hint for strings (e.g., 'email', 'uri', 'date-time', 'uuid').",
+	})
+
+	schema.Properties.Set("minItems", &jsonschema.Schema{
+		Type:        "integer",
+		Description: "Minimum number of items in arrays.",
+	})
+
+	schema.Properties.Set("maxItems", &jsonschema.Schema{
+		Type:        "integer",
+		Description: "Maximum number of items in arrays.",
+	})
+
+	schema.Properties.Set("uniqueItems", &jsonschema.Schema{
+		Type:        "boolean",
+		Description: "Whether array items must be unique.",
+	})
+
+	schema.Properties.Set("minProperties", &jsonschema.Schema{
+		Type:        "integer",
+		Description: "Minimum number of properties in objects.",
+	})
+
+	schema.Properties.Set("maxProperties", &jsonschema.Schema{
+		Type:        "integer",
+		Description: "Maximum number of properties in objects.",
+	})
+
+	schema.Properties.Set("patternProperties", &jsonschema.Schema{
+		Type:                 "object",
+		Description:          "Schemas for properties matching regex patterns.",
+		AdditionalProperties: jsonschema.TrueSchema,
+	})
+
+	return schema
+}
+
 func main() {
 	// Use a slice to guarantee the processing order.
 	// mcpfile.MCPFile will be processed first.
@@ -172,15 +353,11 @@ func main() {
 
 		// WORKAROUND: Handle google/jsonschema-go Schema type
 		// invopop/jsonschema can't properly reflect google's Schema because it uses
-		// json:"-" tags on the Type field. Instead, we return a simple object schema
-		// that allows any properties (which is what we want for inputSchema/outputSchema).
+		// json:"-" tags on the Type field. Instead, we return a detailed meta-schema
+		// that describes JSON Schema itself, providing better IDE autocomplete.
 		reflector.Mapper = func(t reflect.Type) *jsonschema.Schema {
 			if t == reflect.TypeOf(&googlejsonschema.Schema{}) || t == reflect.TypeOf(googlejsonschema.Schema{}) {
-				return &jsonschema.Schema{
-					Type: "object",
-					// By not setting AdditionalProperties, we allow any properties
-					// This makes inputSchema/outputSchema accept any valid JSON Schema
-				}
+				return createJSONSchemaMetaSchema()
 			}
 			return nil
 		}
