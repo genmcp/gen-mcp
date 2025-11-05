@@ -13,22 +13,17 @@ func TestHttpInvocationConfig_Validate(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name: "valid config with no path parameters",
+			name: "valid GET method",
 			config: &HttpInvocationConfig{
-				PathTemplate: "/api/users",
-				PathIndices:  map[string]int{},
-				Method:       "GET",
+				URL:    "/api/users",
+				Method: "GET",
 			},
 			expectError: false,
 		},
 		{
-			name: "valid config with path parameters",
+			name: "valid POST method",
 			config: &HttpInvocationConfig{
-				PathTemplate: "/api/users/%d/posts/%s",
-				PathIndices: map[string]int{
-					"id":     0,
-					"postId": 1,
-				},
+				URL:    "/api/users/{id}",
 				Method: "POST",
 			},
 			expectError: false,
@@ -36,9 +31,8 @@ func TestHttpInvocationConfig_Validate(t *testing.T) {
 		{
 			name: "invalid method",
 			config: &HttpInvocationConfig{
-				PathTemplate: "/api/users",
-				PathIndices:  map[string]int{},
-				Method:       "INVALID",
+				URL:    "/api/users",
+				Method: "INVALID",
 			},
 			expectError: true,
 		},

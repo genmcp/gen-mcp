@@ -15,12 +15,15 @@ func (f *InvokerFactory) CreateInvoker(config invocation.InvocationConfig, schem
 		return nil, fmt.Errorf("invalid InvocationConfig type for http invoker factory")
 	}
 
+	if hic.ParsedTemplate == nil {
+		return nil, fmt.Errorf("parsed template is nil - parser may not have been run correctly")
+	}
+
 	invoker := &HttpInvoker{
-		PathTemplate: hic.PathTemplate,
-		PathIndeces:  hic.PathIndices,
-		Method:       hic.Method,
-		InputSchema:  schema,
-		URITemplate:  hic.URITemplate,
+		ParsedTemplate: hic.ParsedTemplate,
+		Method:         hic.Method,
+		InputSchema:    schema,
+		URITemplate:    hic.URITemplate,
 	}
 
 	return invoker, nil

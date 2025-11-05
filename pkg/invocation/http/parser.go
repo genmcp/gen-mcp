@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/genmcp/gen-mcp/pkg/invocation"
-	"github.com/genmcp/gen-mcp/pkg/invocation/utils"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+	"github.com/genmcp/gen-mcp/pkg/template"
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/yosida95/uritemplate/v3"
 )
@@ -36,7 +36,7 @@ func (p *Parser) ParseResource(data json.RawMessage, resource *mcpfile.Resource)
 
 	// Validate that static resources don't have path parameters that would never be filled
 	if hic, ok := config.(*HttpInvocationConfig); ok {
-		if len(hic.PathIndices) > 0 {
+		if len(hic.ParsedTemplate.Variables) > 0 {
 			return nil, fmt.Errorf("static resource URL cannot contain path parameters")
 		}
 	}
@@ -65,67 +65,25 @@ func (p *Parser) ParseResourceTemplate(data json.RawMessage, resourceTemplate *m
 }
 
 func (p *Parser) parsePrimitive(data json.RawMessage, primitive primitiveAdapter) (invocation.InvocationConfig, error) {
-	type Doppleganger HttpInvocationConfig
-
 	hic := &HttpInvocationConfig{}
 
-	tmp := struct {
-		URL string `json:"url"`
-		*Doppleganger
-	}{
-		Doppleganger: (*Doppleganger)(hic),
-	}
-
-	err := json.Unmarshal(data, &tmp)
+	err := json.Unmarshal(data, hic)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal http invocation: %w", err)
 	}
 
+	// Normalize method to uppercase
 	hic.Method = strings.ToUpper(hic.Method)
 
-	// iterate ofer the (possible) templated URL string and:
-	// 1. collect any path paramters + their indices
-	// 2. replace each path parameter with the correct string formatter
-
-	chunks := []string{}
-	paramIndices := make(map[string]int)
-	paramIdx := 0
-	var chunk strings.Builder
-	for i := 0; i < len(tmp.URL); {
-		if tmp.URL[i] == '{' {
-			offset := strings.Index(tmp.URL[i:], "}") + i
-			if offset-i == -1 {
-				return nil, fmt.Errorf("unterminated path parameter found in URL")
-			}
-
-			paramName := tmp.URL[i+1 : offset]
-
-			paramIndices[paramName] = paramIdx
-
-			paramIdx++
-
-			formatVar, err := utils.FormatStringForParam(paramName, primitive.InputSchema)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse invocation url: %w", err)
-			}
-
-			chunks = append(chunks, chunk.String(), formatVar)
-			chunk.Reset()
-
-			i = offset + 1
-			continue
-		} else if tmp.URL[i] == '}' {
-			return nil, fmt.Errorf("no opening bracket for a closing bracket in URL")
-		}
-
-		chunk.WriteByte(tmp.URL[i])
-		i++
+	// Parse the URL template using the template package
+	parsedTemplate, err := template.ParseTemplate(hic.URL, template.TemplateParserOptions{
+		InputSchema: primitive.InputSchema,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse URL template: %w", err)
 	}
 
-	chunks = append(chunks, chunk.String())
-	hic.PathTemplate = strings.Join(chunks, "")
-
-	hic.PathIndices = paramIndices
+	hic.ParsedTemplate = parsedTemplate
 
 	return hic, nil
 }

@@ -6,10 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"maps"
 	nethttp "net/http"
 	neturl "net/url"
-	"slices"
 	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -20,19 +18,47 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/genmcp/gen-mcp/pkg/invocation/utils"
 	"github.com/genmcp/gen-mcp/pkg/observability/logging"
+	"github.com/genmcp/gen-mcp/pkg/template"
 )
 
 const contentTypeHeader = "Content-Type"
 
 type HttpInvoker struct {
-	PathTemplate string               // template string for the request path
-	PathIndeces  map[string]int       // map to where each path parameter should go in the path
-	Method       string               // Http request method
-	InputSchema  *jsonschema.Resolved // InputSchema for the tool
-	URITemplate  string               // MCP URI template (for resource templates only)
+	ParsedTemplate *template.ParsedTemplate // Parsed template for the URL path
+	Method         string                   // Http request method
+	InputSchema    *jsonschema.Resolved     // InputSchema for the tool
+	URITemplate    string                   // MCP URI template (for resource templates only)
 }
 
 var _ invocation.Invoker = &HttpInvoker{}
+
+// newUrlBuilder creates a new urlBuilder from the parsed template.
+// A new builder is created for each invocation to avoid sharing state.
+func (hi *HttpInvoker) newUrlBuilder(buildQuery bool) (*urlBuilder, error) {
+	// Create a new TemplateBuilder for this invocation
+	templateBuilder, err := template.NewTemplateBuilder(hi.ParsedTemplate, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create template builder: %w", err)
+	}
+
+	// Create variable names set for routing
+	templateVarNames := make(map[string]bool)
+	for _, varName := range templateBuilder.VariableNames() {
+		templateVarNames[varName] = true
+	}
+
+	ub := &urlBuilder{
+		templateBuilder:  templateBuilder,
+		templateVarNames: templateVarNames,
+		buildQuery:       buildQuery,
+	}
+
+	if buildQuery {
+		ub.queryParams = neturl.Values{}
+	}
+
+	return ub, nil
+}
 
 func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	logger := logging.FromContext(ctx)  // Sent to both server and client
@@ -40,17 +66,14 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 
 	logger.Debug("Starting HTTP tool invocation")
 
-	ub := &urlBuilder{
-		pathTemplate: hi.PathTemplate,
-		pathIndeces:  hi.PathIndeces,
-		pathValues:   make([]any, len(hi.PathIndeces)),
-	}
-
 	hasBody := hi.Method != nethttp.MethodGet && hi.Method != nethttp.MethodDelete && hi.Method != nethttp.MethodHead
 
-	if !hasBody {
-		ub.queryParams = neturl.Values{}
-		ub.buildQuery = len(hi.PathIndeces) > 0
+	buildQuery := !hasBody && len(hi.ParsedTemplate.Variables) > 0
+
+	ub, err := hi.newUrlBuilder(buildQuery)
+	if err != nil {
+		logger.Error("Failed to create URL builder", zap.Error(err))
+		return nil, fmt.Errorf("failed to create URL builder: %w", err)
 	}
 
 	dj := &invocation.DynamicJson{
@@ -73,7 +96,13 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 
 	var reqBody io.Reader
 	if hasBody {
-		bodyJson, err := json.Marshal(deletePathsFromMap(parsed, slices.Collect(maps.Keys(hi.PathIndeces))))
+		// Collect variable names from the template to exclude from body
+		varNames := make([]string, 0, len(hi.ParsedTemplate.Variables))
+		for _, v := range hi.ParsedTemplate.Variables {
+			varNames = append(varNames, v.Name)
+		}
+
+		bodyJson, err := json.Marshal(deletePathsFromMap(parsed, varNames))
 		if err != nil {
 			logger.Error("Failed to marshal HTTP request body", zap.Error(err))
 			return nil, fmt.Errorf("failed to prepare request body: %w", err)
@@ -147,22 +176,22 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 }
 
 type urlBuilder struct {
-	pathTemplate string
-	pathIndeces  map[string]int
-	pathValues   []any
-	queryParams  neturl.Values
-	buildQuery   bool
+	templateBuilder  *template.TemplateBuilder
+	templateVarNames map[string]bool // Set of variable names the template cares about
+	queryParams      neturl.Values
+	buildQuery       bool
 }
 
 var _ invocation.Builder = &urlBuilder{}
 
 func (ub *urlBuilder) SetField(path string, value any) {
-	_, ok := ub.pathIndeces[path]
-	if ok {
-		ub.pathValues[ub.pathIndeces[path]] = value
+	// If this is a variable that the template cares about, propagate to the template
+	if ub.templateVarNames[path] {
+		ub.templateBuilder.SetField(path, value)
 		return
 	}
 
+	// Otherwise, if we're building query params, add it to query
 	if !ub.buildQuery {
 		return
 	}
@@ -175,8 +204,15 @@ func (ub *urlBuilder) SetField(path string, value any) {
 }
 
 func (ub *urlBuilder) GetResult() (any, error) {
+	// Get the formatted URL from the template
+	templateResult, err := ub.templateBuilder.GetResult()
+	if err != nil {
+		return nil, err
+	}
+
+	base := templateResult.(string)
+
 	if ub.buildQuery {
-		base := fmt.Sprintf(ub.pathTemplate, ub.pathValues...)
 		q := ub.queryParams.Encode()
 		if q == "" {
 			return base, nil
@@ -184,7 +220,7 @@ func (ub *urlBuilder) GetResult() (any, error) {
 		return base + "?" + q, nil
 	}
 
-	return fmt.Sprintf(ub.pathTemplate, ub.pathValues...), nil
+	return base, nil
 }
 
 func deletePathsFromMap(m map[string]any, paths []string) map[string]any {
@@ -223,17 +259,14 @@ func (hi *HttpInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReque
 
 	logger.Debug("Starting HTTP prompt invocation")
 
-	ub := &urlBuilder{
-		pathTemplate: hi.PathTemplate,
-		pathIndeces:  hi.PathIndeces,
-		pathValues:   make([]any, len(hi.PathIndeces)),
-	}
-
 	hasBody := hi.Method != nethttp.MethodGet && hi.Method != nethttp.MethodDelete && hi.Method != nethttp.MethodHead
 
-	if !hasBody {
-		ub.queryParams = neturl.Values{}
-		ub.buildQuery = len(hi.PathIndeces) > 0
+	buildQuery := !hasBody && len(hi.ParsedTemplate.Variables) > 0
+
+	ub, err := hi.newUrlBuilder(buildQuery)
+	if err != nil {
+		logger.Error("Failed to create URL builder", zap.Error(err))
+		return nil, fmt.Errorf("failed to create URL builder: %w", err)
 	}
 
 	dj := &invocation.DynamicJson{
@@ -266,7 +299,13 @@ func (hi *HttpInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReque
 
 	var reqBody io.Reader
 	if hasBody {
-		bodyJson, err := json.Marshal(deletePathsFromMap(parsed, slices.Collect(maps.Keys(hi.PathIndeces))))
+		// Collect variable names from the template to exclude from body
+		varNames := make([]string, 0, len(hi.ParsedTemplate.Variables))
+		for _, v := range hi.ParsedTemplate.Variables {
+			varNames = append(varNames, v.Name)
+		}
+
+		bodyJson, err := json.Marshal(deletePathsFromMap(parsed, varNames))
 		if err != nil {
 			logger.Error("Failed to marshal HTTP prompt request body", zap.Error(err))
 			return nil, fmt.Errorf("failed to prepare request body: %w", err)
@@ -355,30 +394,23 @@ func (hi *HttpInvoker) InvokeResource(ctx context.Context, req *mcp.ReadResource
 
 	logger.Debug("Starting HTTP resource invocation", zap.String("uri", req.Params.URI))
 
-	ub := &urlBuilder{
-		pathTemplate: hi.PathTemplate,
-		pathIndeces:  hi.PathIndeces,
-		pathValues:   make([]any, len(hi.PathIndeces)),
-	}
-
-	ub.queryParams = neturl.Values{}
-	ub.buildQuery = len(hi.PathIndeces) > 0
-
-	url, _ := ub.GetResult()
+	// For static resources, the template should have no variables
+	// We can use the template directly as the URL
+	url := hi.ParsedTemplate.Template
 
 	// Server-side only logging with sensitive HTTP details
 	baseLogger.Debug("Executing HTTP resource request",
 		zap.String("method", hi.Method),
-		zap.String("url", url.(string)),
+		zap.String("url", url),
 		zap.String("uri", req.Params.URI))
 
 	var reqBody io.Reader = nil
-	httpReq, err := nethttp.NewRequestWithContext(ctx, hi.Method, url.(string), reqBody)
+	httpReq, err := nethttp.NewRequestWithContext(ctx, hi.Method, url, reqBody)
 	if err != nil {
 		// Log detailed error with sensitive URL server-side only
 		baseLogger.Error("Failed to create HTTP resource request",
 			zap.String("method", hi.Method),
-			zap.String("url", url.(string)),
+			zap.String("url", url),
 			zap.String("uri", req.Params.URI),
 			zap.Error(err))
 		// Log safe details to client
@@ -396,7 +428,7 @@ func (hi *HttpInvoker) InvokeResource(ctx context.Context, req *mcp.ReadResource
 		// Server-side only logging with sensitive URL details
 		baseLogger.Error("HTTP resource request execution failed",
 			zap.String("method", hi.Method),
-			zap.String("url", url.(string)),
+			zap.String("url", url),
 			zap.String("uri", req.Params.URI),
 			zap.Error(err))
 		// Log safe details to client
@@ -419,7 +451,7 @@ func (hi *HttpInvoker) InvokeResource(ctx context.Context, req *mcp.ReadResource
 	// Server-side only logging with sensitive HTTP details
 	baseLogger.Info("HTTP resource request completed",
 		zap.String("method", hi.Method),
-		zap.String("url", url.(string)),
+		zap.String("url", url),
 		zap.String("uri", req.Params.URI),
 		zap.Int("status_code", response.StatusCode),
 		zap.Int("response_length", len(body)))
@@ -428,7 +460,7 @@ func (hi *HttpInvoker) InvokeResource(ctx context.Context, req *mcp.ReadResource
 		// Server-side only logging with sensitive URL details
 		baseLogger.Error("HTTP resource request failed with error status",
 			zap.String("method", hi.Method),
-			zap.String("url", url.(string)),
+			zap.String("url", url),
 			zap.String("uri", req.Params.URI),
 			zap.Int("status_code", response.StatusCode))
 		// Log safe details to client
@@ -465,14 +497,11 @@ func (hi *HttpInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.Read
 	logger.Debug("Starting HTTP resource template invocation",
 		zap.String("uri", req.Params.URI))
 
-	ub := &urlBuilder{
-		pathTemplate: hi.PathTemplate,
-		pathIndeces:  hi.PathIndeces,
-		pathValues:   make([]any, len(hi.PathIndeces)),
+	ub, err := hi.newUrlBuilder(true)
+	if err != nil {
+		logger.Error("Failed to create URL builder", zap.Error(err))
+		return nil, fmt.Errorf("failed to create URL builder: %w", err)
 	}
-
-	ub.queryParams = neturl.Values{}
-	ub.buildQuery = true
 
 	// URI template syntax is validated during parsing, so we can safely use it here
 	argsMap := make(map[string]any)

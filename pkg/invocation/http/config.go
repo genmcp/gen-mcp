@@ -1,12 +1,12 @@
 package http
 
 import (
-	"errors"
 	"fmt"
 	nethttp "net/http"
 	"strings"
 
 	"github.com/genmcp/gen-mcp/pkg/invocation"
+	"github.com/genmcp/gen-mcp/pkg/template"
 )
 
 var validHttpMethods = map[string]struct{}{
@@ -27,15 +27,15 @@ type HttpInvocationData struct {
 
 // The configuration for making an HTTP request.
 type HttpInvocationConfig struct {
-	// The URL template for the HTTP request. It can contain placeholders in the form of '%' which correspond to parameters from the input schema.
-	PathTemplate string `json:"url" jsonschema:"required"`
-
-	// PathIndices maps parameter names to their positional index in the PathTemplate.
-	// This field is for internal use and is not part of the JSON schema.
-	PathIndices map[string]int `json:"-"`
+	// The URL for the HTTP request. It can contain placeholders in the form of {paramName} which correspond to parameters from the input schema.
+	URL string `json:"url" jsonschema:"required"`
 
 	// The HTTP method to be used for the request (e.g., "GET", "POST").
 	Method string `json:"method" jsonschema:"required,enum=GET,enum=POST,enum=PUT,enum=PATCH,enum=DELETE,enum=HEAD"`
+
+	// ParsedTemplate is the parsed template for the URL path.
+	// This field is for internal use and is not part of the JSON schema.
+	ParsedTemplate *template.ParsedTemplate `json:"-"`
 
 	// MCP URI template (for resource templates only).
 	URITemplate string `json:"-"`
@@ -44,18 +44,12 @@ type HttpInvocationConfig struct {
 var _ invocation.InvocationConfig = &HttpInvocationConfig{}
 
 func (hic *HttpInvocationConfig) Validate() error {
-	var err error = nil
-
-	validPathIndicesCount := strings.Count(hic.PathTemplate, "%") == len(hic.PathIndices)
-	if !validPathIndicesCount {
-		err = fmt.Errorf("path indices do not match the number of template variables in the path template. expected %d, received %d", len(hic.PathIndices), strings.Count(hic.PathTemplate, "%"))
-	}
-
+	// URL template validation is handled during template parsing
 	if !IsValidHttpMethod(hic.Method) {
-		err = errors.Join(err, fmt.Errorf("invalid http request method: '%s'", hic.Method))
+		return fmt.Errorf("invalid http request method: '%s'", hic.Method)
 	}
 
-	return err
+	return nil
 }
 
 func IsValidHttpMethod(method string) bool {
