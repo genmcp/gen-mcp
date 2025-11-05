@@ -134,6 +134,45 @@ func TestParseTemplate(t *testing.T) {
 			opts:      TemplateParserOptions{InputSchema: schema},
 			expectErr: true,
 		},
+		{
+			name:     "template with literal percent sign",
+			template: "Progress: 50% {userId}",
+			opts: TemplateParserOptions{
+				InputSchema: schema,
+			},
+			expectedTemplate: "Progress: 50%% %s",
+			expectedVarCount: 1,
+			expectedIndices: map[string][]int{
+				"userId": {0},
+			},
+			expectedVarNames: []string{"userId"},
+		},
+		{
+			name:     "template with multiple percent signs",
+			template: "Rate: 100% complete, {count}% done",
+			opts: TemplateParserOptions{
+				InputSchema: schema,
+			},
+			expectedTemplate: "Rate: 100%% complete, %d%% done",
+			expectedVarCount: 1,
+			expectedIndices: map[string][]int{
+				"count": {0},
+			},
+			expectedVarNames: []string{"count"},
+		},
+		{
+			name:     "template with percent signs before and after variable",
+			template: "Before% {userId} %After",
+			opts: TemplateParserOptions{
+				InputSchema: schema,
+			},
+			expectedTemplate: "Before%% %s %%After",
+			expectedVarCount: 1,
+			expectedIndices: map[string][]int{
+				"userId": {0},
+			},
+			expectedVarNames: []string{"userId"},
+		},
 	}
 
 	for _, tc := range tt {
@@ -228,6 +267,30 @@ func TestTemplateBuilder(t *testing.T) {
 			},
 			expectErr: true,
 		},
+		{
+			name:     "template with literal percent sign",
+			template: "Progress: 50% {userId}",
+			setFields: map[string]any{
+				"userId": "abc123",
+			},
+			expectedResult: "Progress: 50% abc123",
+		},
+		{
+			name:     "template with multiple percent signs and integer",
+			template: "Rate: 100% complete, {count}% done",
+			setFields: map[string]any{
+				"count": 75,
+			},
+			expectedResult: "Rate: 100% complete, 75% done",
+		},
+		{
+			name:     "template with percent signs around variable",
+			template: "Before% {userId} %After",
+			setFields: map[string]any{
+				"userId": "test",
+			},
+			expectedResult: "Before% test %After",
+		},
 	}
 
 	for _, tc := range tt {
@@ -257,10 +320,10 @@ func TestTemplateBuilder(t *testing.T) {
 }
 
 func TestEnvVarFormatter(t *testing.T) {
-	os.Setenv("TEST_API_KEY", "secret123")
-	os.Setenv("TEST_HOST", "api.example.com")
-	defer os.Unsetenv("TEST_API_KEY")
-	defer os.Unsetenv("TEST_HOST")
+	require.NoError(t, os.Setenv("TEST_API_KEY", "secret123"))
+	require.NoError(t, os.Setenv("TEST_HOST", "api.example.com"))
+	defer func() { _ = os.Unsetenv("TEST_API_KEY") }()
+	defer func() { _ = os.Unsetenv("TEST_HOST") }()
 
 	schema := &jsonschema.Schema{
 		Type: "object",

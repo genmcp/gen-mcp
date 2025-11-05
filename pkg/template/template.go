@@ -45,6 +45,12 @@ type TemplateParserOptions struct {
 	Formatters  map[string]VariableFormatter // used to specify specific formatting options for specific variables
 }
 
+// escapePercent escapes literal % characters in template chunks by replacing % with %%
+// so they don't interfere with fmt.Sprintf format verbs.
+func escapePercent(s string) string {
+	return strings.ReplaceAll(s, "%", "%%")
+}
+
 func ParseTemplate(template string, opts TemplateParserOptions) (*ParsedTemplate, error) {
 	variables := make([]Variable, 0)
 	variableIndices := make(map[string][]int)
@@ -70,7 +76,7 @@ func ParseTemplate(template string, opts TemplateParserOptions) (*ParsedTemplate
 
 			variables = append(variables, *variable)
 			variableIndices[variable.Name] = append(variableIndices[variable.Name], paramIdx)
-			chunks = append(chunks, chunk.String(), variable.FormatString())
+			chunks = append(chunks, escapePercent(chunk.String()), variable.FormatString())
 			chunk.Reset()
 			paramIdx++
 			i = offset + 1
@@ -101,7 +107,7 @@ func ParseTemplate(template string, opts TemplateParserOptions) (*ParsedTemplate
 
 			variables = append(variables, *variable)
 			variableIndices[variable.Name] = append(variableIndices[variable.Name], paramIdx)
-			chunks = append(chunks, chunk.String(), variable.FormatString())
+			chunks = append(chunks, escapePercent(chunk.String()), variable.FormatString())
 			chunk.Reset()
 			paramIdx++
 			i = offset + 1
@@ -117,7 +123,7 @@ func ParseTemplate(template string, opts TemplateParserOptions) (*ParsedTemplate
 		i++
 	}
 
-	chunks = append(chunks, chunk.String())
+	chunks = append(chunks, escapePercent(chunk.String()))
 
 	return &ParsedTemplate{
 		Template:        strings.Join(chunks, ""),
