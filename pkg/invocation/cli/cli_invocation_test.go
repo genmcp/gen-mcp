@@ -2,23 +2,31 @@ package cli
 
 import (
 	"context"
-	"strconv"
 	"testing"
 
 	"github.com/genmcp/gen-mcp/pkg/invocation"
+	"github.com/genmcp/gen-mcp/pkg/template"
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// Test formatter implementations
-type stringFormatter struct{}
+// testCliInvoker creates a CliInvoker for testing from a command template
+func testCliInvoker(t *testing.T, commandTemplate string, schema *jsonschema.Resolved, uriTemplate string) CliInvoker {
+	t.Helper()
 
-func (f stringFormatter) FormatValue(v any) string { return v.(string) }
+	parsedTemplate, err := template.ParseTemplate(commandTemplate, template.TemplateParserOptions{
+		InputSchema: schema.Schema(),
+	})
+	require.NoError(t, err, "failed to parse command template")
 
-type intFormatter struct{}
-
-func (f intFormatter) FormatValue(v any) string { return strconv.Itoa(v.(int)) }
+	return CliInvoker{
+		ParsedTemplate: parsedTemplate,
+		InputSchema:    schema,
+		URITemplate:    uriTemplate,
+	}
+}
 
 var (
 	resolvedEmpty, _      = (&jsonschema.Schema{Type: invocation.JsonSchemaTypeObject}).Resolve(nil)
@@ -50,20 +58,17 @@ var (
 
 func TestCliInvocation(t *testing.T) {
 	tt := []struct {
-		name           string
-		cliInvoker     CliInvoker
-		request        *mcp.CallToolRequest
-		expectedResult func(t *testing.T, result *mcp.CallToolResult)
-		expectError    bool
+		name            string
+		commandTemplate string
+		schema          *jsonschema.Resolved
+		request         *mcp.CallToolRequest
+		expectedResult  func(t *testing.T, result *mcp.CallToolResult)
+		expectError     bool
 	}{
 		{
-			name: "simple echo command",
-			cliInvoker: CliInvoker{
-				CommandTemplate:    "echo 'hello, world!'",
-				ArgumentIndices:    make(map[string]int),
-				ArgumentFormatters: make(map[string]Formatter),
-				InputSchema:        resolvedEmpty,
-			},
+			name:            "simple echo command",
+			commandTemplate: "echo 'hello, world!'",
+			schema:          resolvedEmpty,
 			request: &mcp.CallToolRequest{
 				Params: &mcp.CallToolParamsRaw{
 					Arguments: []byte("{}"),
@@ -76,17 +81,9 @@ func TestCliInvocation(t *testing.T) {
 			},
 		},
 		{
-			name: "ls command with path parameter",
-			cliInvoker: CliInvoker{
-				CommandTemplate: "ls %s",
-				ArgumentIndices: map[string]int{
-					"path": 0,
-				},
-				ArgumentFormatters: map[string]Formatter{
-					"path": stringFormatter{},
-				},
-				InputSchema: resolvedWithPath,
-			},
+			name:            "ls command with path parameter",
+			commandTemplate: "ls {path}",
+			schema:          resolvedWithPath,
 			request: &mcp.CallToolRequest{
 				Params: &mcp.CallToolParamsRaw{
 					Arguments: []byte("{\"path\": \"/tmp\"}"),
@@ -100,13 +97,9 @@ func TestCliInvocation(t *testing.T) {
 			},
 		},
 		{
-			name: "echo command with extra args",
-			cliInvoker: CliInvoker{
-				CommandTemplate:    "echo 'base message'",
-				ArgumentIndices:    make(map[string]int),
-				ArgumentFormatters: make(map[string]Formatter),
-				InputSchema:        resolvedWithValues,
-			},
+			name:            "echo command with extra args",
+			commandTemplate: "echo 'base message'",
+			schema:          resolvedWithValues,
 			request: &mcp.CallToolRequest{
 				Params: &mcp.CallToolParamsRaw{
 					Arguments: []byte("{\"all\": true}"),
@@ -120,19 +113,9 @@ func TestCliInvocation(t *testing.T) {
 			},
 		},
 		{
-			name: "head command with multiple parameters",
-			cliInvoker: CliInvoker{
-				CommandTemplate: "head -%s %s",
-				ArgumentIndices: map[string]int{
-					"lines": 0,
-					"file":  1,
-				},
-				ArgumentFormatters: map[string]Formatter{
-					"lines": intFormatter{},
-					"file":  stringFormatter{},
-				},
-				InputSchema: resolvedWithCount,
-			},
+			name:            "head command with multiple parameters",
+			commandTemplate: "head -{lines} {file}",
+			schema:          resolvedWithCount,
 			request: &mcp.CallToolRequest{
 				Params: &mcp.CallToolParamsRaw{
 					Arguments: []byte("{\"lines\": 5, \"file\": \"/etc/passwd\"}"),
@@ -146,13 +129,9 @@ func TestCliInvocation(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid command should fail",
-			cliInvoker: CliInvoker{
-				CommandTemplate:    "nonexistentcommand12345",
-				ArgumentIndices:    make(map[string]int),
-				ArgumentFormatters: make(map[string]Formatter),
-				InputSchema:        resolvedEmpty,
-			},
+			name:            "invalid command should fail",
+			commandTemplate: "nonexistentcommand12345",
+			schema:          resolvedEmpty,
 			request: &mcp.CallToolRequest{
 				Params: &mcp.CallToolParamsRaw{
 					Arguments: []byte("{}"),
@@ -171,7 +150,8 @@ func TestCliInvocation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			res, err := tc.cliInvoker.Invoke(context.Background(), tc.request)
+			invoker := testCliInvoker(t, tc.commandTemplate, tc.schema, "")
+			res, err := invoker.Invoke(context.Background(), tc.request)
 			if tc.expectError {
 				// For validation/parsing errors, expect Go error
 				assert.Error(t, err, "cli invocation should return a Go error for validation/parsing failures")
@@ -192,20 +172,17 @@ func TestCliInvocation(t *testing.T) {
 
 func TestCliPromptInvocation(t *testing.T) {
 	tt := []struct {
-		name           string
-		cliInvoker     CliInvoker
-		request        *mcp.GetPromptRequest
-		expectedResult func(t *testing.T, result *mcp.GetPromptResult)
-		expectError    bool
+		name            string
+		commandTemplate string
+		schema          *jsonschema.Resolved
+		request         *mcp.GetPromptRequest
+		expectedResult  func(t *testing.T, result *mcp.GetPromptResult)
+		expectError     bool
 	}{
 		{
-			name: "simple echo prompt",
-			cliInvoker: CliInvoker{
-				CommandTemplate:    "echo 'Generate analysis for prompt'",
-				ArgumentIndices:    make(map[string]int),
-				ArgumentFormatters: make(map[string]Formatter),
-				InputSchema:        resolvedEmpty,
-			},
+			name:            "simple echo prompt",
+			commandTemplate: "echo 'Generate analysis for prompt'",
+			schema:          resolvedEmpty,
 			request: &mcp.GetPromptRequest{
 				Params: &mcp.GetPromptParams{
 					Name:      "analysis",
@@ -220,17 +197,9 @@ func TestCliPromptInvocation(t *testing.T) {
 			},
 		},
 		{
-			name: "prompt with arguments",
-			cliInvoker: CliInvoker{
-				CommandTemplate: "echo 'Analyzing path: %s'",
-				ArgumentIndices: map[string]int{
-					"path": 0,
-				},
-				ArgumentFormatters: map[string]Formatter{
-					"path": stringFormatter{},
-				},
-				InputSchema: resolvedWithPath,
-			},
+			name:            "prompt with arguments",
+			commandTemplate: "echo 'Analyzing path: {path}'",
+			schema:          resolvedWithPath,
 			request: &mcp.GetPromptRequest{
 				Params: &mcp.GetPromptParams{
 					Name: "path-analysis",
@@ -247,13 +216,9 @@ func TestCliPromptInvocation(t *testing.T) {
 			},
 		},
 		{
-			name: "prompt with extra arguments",
-			cliInvoker: CliInvoker{
-				CommandTemplate:    "echo 'Base prompt'",
-				ArgumentIndices:    make(map[string]int),
-				ArgumentFormatters: make(map[string]Formatter),
-				InputSchema:        resolvedWithAdditional,
-			},
+			name:            "prompt with extra arguments",
+			commandTemplate: "echo 'Base prompt'",
+			schema:          resolvedWithAdditional,
 			request: &mcp.GetPromptRequest{
 				Params: &mcp.GetPromptParams{
 					Name: "detailed-prompt",
@@ -271,13 +236,9 @@ func TestCliPromptInvocation(t *testing.T) {
 			},
 		},
 		{
-			name: "prompt with date command",
-			cliInvoker: CliInvoker{
-				CommandTemplate:    "date '+Current time: %Y-%m-%d %H:%M:%S'",
-				ArgumentIndices:    make(map[string]int),
-				ArgumentFormatters: make(map[string]Formatter),
-				InputSchema:        resolvedEmpty,
-			},
+			name:            "prompt with date command",
+			commandTemplate: "date '+Current time: %Y-%m-%d %H:%M:%S'",
+			schema:          resolvedEmpty,
 			request: &mcp.GetPromptRequest{
 				Params: &mcp.GetPromptParams{
 					Name:      "timestamp",
@@ -292,13 +253,9 @@ func TestCliPromptInvocation(t *testing.T) {
 			},
 		},
 		{
-			name: "prompt with nil arguments",
-			cliInvoker: CliInvoker{
-				CommandTemplate:    "echo 'Prompt with no args'",
-				ArgumentIndices:    make(map[string]int),
-				ArgumentFormatters: make(map[string]Formatter),
-				InputSchema:        resolvedEmpty,
-			},
+			name:            "prompt with nil arguments",
+			commandTemplate: "echo 'Prompt with no args'",
+			schema:          resolvedEmpty,
 			request: &mcp.GetPromptRequest{
 				Params: &mcp.GetPromptParams{
 					Name:      "no-args",
@@ -313,27 +270,19 @@ func TestCliPromptInvocation(t *testing.T) {
 			},
 		},
 		{
-			name: "prompt with validation error - missing required field",
-			cliInvoker: CliInvoker{
-				CommandTemplate: "echo 'Analysis: %s'",
-				ArgumentIndices: map[string]int{
-					"path": 0,
-				},
-				ArgumentFormatters: map[string]Formatter{
-					"path": stringFormatter{},
-				},
-				InputSchema: func() *jsonschema.Resolved {
-					schema := &jsonschema.Schema{
-						Type: invocation.JsonSchemaTypeObject,
-						Properties: map[string]*jsonschema.Schema{
-							"path": {Type: invocation.JsonSchemaTypeString},
-						},
-						Required: []string{"path"}, // path is required
-					}
-					resolved, _ := schema.Resolve(nil)
-					return resolved
-				}(),
-			},
+			name:            "prompt with validation error - missing required field",
+			commandTemplate: "echo 'Analysis: {path}'",
+			schema: func() *jsonschema.Resolved {
+				schema := &jsonschema.Schema{
+					Type: invocation.JsonSchemaTypeObject,
+					Properties: map[string]*jsonschema.Schema{
+						"path": {Type: invocation.JsonSchemaTypeString},
+					},
+					Required: []string{"path"}, // path is required
+				}
+				resolved, _ := schema.Resolve(nil)
+				return resolved
+			}(),
 			request: &mcp.GetPromptRequest{
 				Params: &mcp.GetPromptParams{
 					Name:      "missing-field",
@@ -343,29 +292,19 @@ func TestCliPromptInvocation(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "prompt with multiple string arguments",
-			cliInvoker: CliInvoker{
-				CommandTemplate: "echo 'User: %s, Topic: %s'",
-				ArgumentIndices: map[string]int{
-					"user":  0,
-					"topic": 1,
-				},
-				ArgumentFormatters: map[string]Formatter{
-					"user":  stringFormatter{},
-					"topic": stringFormatter{},
-				},
-				InputSchema: func() *jsonschema.Resolved {
-					schema := &jsonschema.Schema{
-						Type: invocation.JsonSchemaTypeObject,
-						Properties: map[string]*jsonschema.Schema{
-							"user":  {Type: invocation.JsonSchemaTypeString},
-							"topic": {Type: invocation.JsonSchemaTypeString},
-						},
-					}
-					resolved, _ := schema.Resolve(nil)
-					return resolved
-				}(),
-			},
+			name:            "prompt with multiple string arguments",
+			commandTemplate: "echo 'User: {user}, Topic: {topic}'",
+			schema: func() *jsonschema.Resolved {
+				schema := &jsonschema.Schema{
+					Type: invocation.JsonSchemaTypeObject,
+					Properties: map[string]*jsonschema.Schema{
+						"user":  {Type: invocation.JsonSchemaTypeString},
+						"topic": {Type: invocation.JsonSchemaTypeString},
+					},
+				}
+				resolved, _ := schema.Resolve(nil)
+				return resolved
+			}(),
 			request: &mcp.GetPromptRequest{
 				Params: &mcp.GetPromptParams{
 					Name: "multi-arg",
@@ -383,13 +322,9 @@ func TestCliPromptInvocation(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid command should fail",
-			cliInvoker: CliInvoker{
-				CommandTemplate:    "nonexistentcommand54321",
-				ArgumentIndices:    make(map[string]int),
-				ArgumentFormatters: make(map[string]Formatter),
-				InputSchema:        resolvedEmpty,
-			},
+			name:            "invalid command should fail",
+			commandTemplate: "nonexistentcommand54321",
+			schema:          resolvedEmpty,
 			request: &mcp.GetPromptRequest{
 				Params: &mcp.GetPromptParams{
 					Name:      "invalid",
@@ -410,7 +345,8 @@ func TestCliPromptInvocation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			res, err := tc.cliInvoker.InvokePrompt(context.Background(), tc.request)
+			invoker := testCliInvoker(t, tc.commandTemplate, tc.schema, "")
+			res, err := invoker.InvokePrompt(context.Background(), tc.request)
 			if tc.expectError {
 				// For validation/parsing errors, expect Go error
 				assert.Error(t, err, "cli prompt invocation should return a Go error for validation/parsing failures")
@@ -431,20 +367,17 @@ func TestCliPromptInvocation(t *testing.T) {
 
 func TestCliResourceInvocation(t *testing.T) {
 	tt := []struct {
-		name           string
-		cliInvoker     CliInvoker
-		request        *mcp.ReadResourceRequest
-		expectedResult func(t *testing.T, result *mcp.ReadResourceResult)
-		expectError    bool
+		name            string
+		commandTemplate string
+		schema          *jsonschema.Resolved
+		request         *mcp.ReadResourceRequest
+		expectedResult  func(t *testing.T, result *mcp.ReadResourceResult)
+		expectError     bool
 	}{
 		{
-			name: "simple cat command",
-			cliInvoker: CliInvoker{
-				CommandTemplate:    "echo 'Resource content from command'",
-				ArgumentIndices:    make(map[string]int),
-				ArgumentFormatters: make(map[string]Formatter),
-				InputSchema:        resolvedEmpty,
-			},
+			name:            "simple cat command",
+			commandTemplate: "echo 'Resource content from command'",
+			schema:          resolvedEmpty,
 			request: &mcp.ReadResourceRequest{
 				Params: &mcp.ReadResourceParams{
 					URI: "file://test.txt",
@@ -458,13 +391,9 @@ func TestCliResourceInvocation(t *testing.T) {
 			},
 		},
 		{
-			name: "date command as resource",
-			cliInvoker: CliInvoker{
-				CommandTemplate:    "date '+%Y-%m-%d'",
-				ArgumentIndices:    make(map[string]int),
-				ArgumentFormatters: make(map[string]Formatter),
-				InputSchema:        resolvedEmpty,
-			},
+			name:            "date command as resource",
+			commandTemplate: "date '+%Y-%m-%d'",
+			schema:          resolvedEmpty,
 			request: &mcp.ReadResourceRequest{
 				Params: &mcp.ReadResourceParams{
 					URI: "system://date",
@@ -478,13 +407,9 @@ func TestCliResourceInvocation(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid command should fail",
-			cliInvoker: CliInvoker{
-				CommandTemplate:    "nonexistentresourcecmd98765",
-				ArgumentIndices:    make(map[string]int),
-				ArgumentFormatters: make(map[string]Formatter),
-				InputSchema:        resolvedEmpty,
-			},
+			name:            "invalid command should fail",
+			commandTemplate: "nonexistentresourcecmd98765",
+			schema:          resolvedEmpty,
 			request: &mcp.ReadResourceRequest{
 				Params: &mcp.ReadResourceParams{
 					URI: "file://missing.txt",
@@ -498,7 +423,8 @@ func TestCliResourceInvocation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			res, err := tc.cliInvoker.InvokeResource(context.Background(), tc.request)
+			invoker := testCliInvoker(t, tc.commandTemplate, tc.schema, "")
+			res, err := invoker.InvokeResource(context.Background(), tc.request)
 			if tc.expectError {
 				// For validation/parsing errors, expect Go error
 				assert.Error(t, err, "cli resource invocation should return a Go error for validation/parsing failures")
@@ -535,28 +461,20 @@ func TestCliResourceTemplateInvocation(t *testing.T) {
 	}).Resolve(nil)
 
 	tt := []struct {
-		name           string
-		cliInvoker     CliInvoker
-		request        *mcp.ReadResourceRequest
-		expectedResult func(t *testing.T, result *mcp.ReadResourceResult)
-		expectError    bool
-		errorMsg       string
+		name            string
+		commandTemplate string
+		schema          *jsonschema.Resolved
+		uriTemplate     string
+		request         *mcp.ReadResourceRequest
+		expectedResult  func(t *testing.T, result *mcp.ReadResourceResult)
+		expectError     bool
+		errorMsg        string
 	}{
 		{
-			name: "resource template with URI params",
-			cliInvoker: CliInvoker{
-				CommandTemplate: "echo 'Weather for %s on %s'",
-				ArgumentIndices: map[string]int{
-					"city": 0,
-					"date": 1,
-				},
-				ArgumentFormatters: map[string]Formatter{
-					"city": stringFormatter{},
-					"date": stringFormatter{},
-				},
-				InputSchema: resolvedWithCityDate,
-				URITemplate: "weather://forecast/{city}/{date}",
-			},
+			name:            "resource template with URI params",
+			commandTemplate: "echo 'Weather for {city} on {date}'",
+			schema:          resolvedWithCityDate,
+			uriTemplate:     "weather://forecast/{city}/{date}",
 			request: &mcp.ReadResourceRequest{
 				Params: &mcp.ReadResourceParams{
 					URI: "weather://forecast/London/2025-10-07",
@@ -570,17 +488,10 @@ func TestCliResourceTemplateInvocation(t *testing.T) {
 			},
 		},
 		{
-			name: "resource template with extra args",
-			cliInvoker: CliInvoker{
-				CommandTemplate: "echo 'Base command'",
-				ArgumentIndices: make(map[string]int),
-				ArgumentFormatters: map[string]Formatter{
-					"user": stringFormatter{},
-					"file": stringFormatter{},
-				},
-				InputSchema: resolvedWithUserFile,
-				URITemplate: "app://users/{user}/files/{file}",
-			},
+			name:            "resource template with extra args",
+			commandTemplate: "echo 'Base command'",
+			schema:          resolvedWithUserFile,
+			uriTemplate:     "app://users/{user}/files/{file}",
 			request: &mcp.ReadResourceRequest{
 				Params: &mcp.ReadResourceParams{
 					URI: "app://users/alice/files/doc.txt",
@@ -596,17 +507,10 @@ func TestCliResourceTemplateInvocation(t *testing.T) {
 			},
 		},
 		{
-			name: "resource template with invalid URI",
-			cliInvoker: CliInvoker{
-				CommandTemplate: "echo 'Weather data'",
-				ArgumentIndices: make(map[string]int),
-				ArgumentFormatters: map[string]Formatter{
-					"city": stringFormatter{},
-					"date": stringFormatter{},
-				},
-				InputSchema: resolvedWithCityDate,
-				URITemplate: "weather://forecast/{city}/{date}",
-			},
+			name:            "resource template with invalid URI",
+			commandTemplate: "echo 'Weather data'",
+			schema:          resolvedWithCityDate,
+			uriTemplate:     "weather://forecast/{city}/{date}",
 			request: &mcp.ReadResourceRequest{
 				Params: &mcp.ReadResourceParams{
 					URI: "weather://other/path",
@@ -616,17 +520,10 @@ func TestCliResourceTemplateInvocation(t *testing.T) {
 			errorMsg:    "does not match template",
 		},
 		{
-			name: "resource template with missing required param",
-			cliInvoker: CliInvoker{
-				CommandTemplate: "echo 'Weather data'",
-				ArgumentIndices: make(map[string]int),
-				ArgumentFormatters: map[string]Formatter{
-					"city": stringFormatter{},
-					"date": stringFormatter{},
-				},
-				InputSchema: resolvedWithCityDate,
-				URITemplate: "weather://forecast/{city}/{date}",
-			},
+			name:            "resource template with missing required param",
+			commandTemplate: "echo 'Weather data'",
+			schema:          resolvedWithCityDate,
+			uriTemplate:     "weather://forecast/{city}/{date}",
 			request: &mcp.ReadResourceRequest{
 				Params: &mcp.ReadResourceParams{
 					URI: "weather://forecast/London",
@@ -636,28 +533,20 @@ func TestCliResourceTemplateInvocation(t *testing.T) {
 			errorMsg:    "does not match template",
 		},
 		{
-			name: "resource template with command failure",
-			cliInvoker: CliInvoker{
-				CommandTemplate: "nonexistentcmdforresource456 %s",
-				ArgumentIndices: map[string]int{
-					"city": 0,
-				},
-				ArgumentFormatters: map[string]Formatter{
-					"city": stringFormatter{},
-				},
-				InputSchema: func() *jsonschema.Resolved {
-					schema := &jsonschema.Schema{
-						Type: invocation.JsonSchemaTypeObject,
-						Properties: map[string]*jsonschema.Schema{
-							"city": {Type: invocation.JsonSchemaTypeString},
-						},
-						Required: []string{"city"},
-					}
-					resolved, _ := schema.Resolve(nil)
-					return resolved
-				}(),
-				URITemplate: "weather://city/{city}",
-			},
+			name:            "resource template with command failure",
+			commandTemplate: "nonexistentcmdforresource456 {city}",
+			schema: func() *jsonschema.Resolved {
+				schema := &jsonschema.Schema{
+					Type: invocation.JsonSchemaTypeObject,
+					Properties: map[string]*jsonschema.Schema{
+						"city": {Type: invocation.JsonSchemaTypeString},
+					},
+					Required: []string{"city"},
+				}
+				resolved, _ := schema.Resolve(nil)
+				return resolved
+			}(),
+			uriTemplate: "weather://city/{city}",
 			request: &mcp.ReadResourceRequest{
 				Params: &mcp.ReadResourceParams{
 					URI: "weather://city/Paris",
@@ -671,7 +560,8 @@ func TestCliResourceTemplateInvocation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			res, err := tc.cliInvoker.InvokeResourceTemplate(context.Background(), tc.request)
+			invoker := testCliInvoker(t, tc.commandTemplate, tc.schema, tc.uriTemplate)
+			res, err := invoker.InvokeResourceTemplate(context.Background(), tc.request)
 			if tc.expectError {
 				// For validation/parsing errors, expect Go error
 				assert.Error(t, err, "cli resource template invocation should return a Go error for validation/parsing failures")
