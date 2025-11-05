@@ -41,6 +41,38 @@ chmod +x genmcp
 sudo mv genmcp /usr/local/bin
 ```
 
+#### Verify the signed binary
+
+You can cryptographically verify that the downloaded binaries (`.zip` files) are authentic and have not been tampered with. This process uses `cosign` to check the signature and certificate, which were generated securely during our automated build process.
+
+##### Step 1: Install Cosign
+
+You'll need the `cosign` command-line tool. Please see the [Official Cosign Installation Guide](https://docs.sigstore.dev/cosign/installation/).
+
+##### Step 2: Verify the Binary
+
+1.  From the release page, download three files for your platform:
+    * The binary archive (e.g., `genmcp-linux-amd64.zip`)
+    * The certificate (e.g., `genmcp-linux-amd64.zip.pem`)
+    * The signature (e.g., `genmcp-linux-amd64.zip.sig`)
+
+2.  Run the `cosign verify-blob` command in your terminal.
+
+    **Example (for the Linux amd64 CLI):**
+    ```bash
+      cosign verify-blob \
+         --certificate genmcp-linux-amd64.zip.pem \
+         --signature genmcp-linux-amd64.zip.sig \
+         --certificate-identity-regexp "https://github.com/genmcp/gen-mcp/.*" \
+         --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+         genmcp-linux-amd64.zip
+   ```
+
+3.  If the signature is valid, `cosign` will contact the public Sigstore transparency log and print:
+    ```
+    Verified OK
+    ```
+
 **Option B: Build from Source**
 ```bash
 # Clone and build
