@@ -135,10 +135,10 @@ func ParseTemplate(template string, opts TemplateParserOptions) (*ParsedTemplate
 // TemplateBuilder builds the final template string by collecting values
 // for all variables and rendering them into the template.
 type TemplateBuilder struct {
-	template         string
-	formatters       []VariableFormatter
-	indices          map[string][]int
-	omitIfFalse      bool
+	template          string
+	formatters        []VariableFormatter
+	indices           map[string][]int
+	omitIfFalse       bool
 	implicitFormatter *paramFormatter // Used when omitIfFalse=true with 0 variables
 }
 
@@ -287,6 +287,16 @@ func createEnvVariable(varName string, paramIdx int) (*Variable, error) {
 }
 
 func createSchemaVariable(varName string, paramIdx int, opts TemplateParserOptions) (*Variable, error) {
+	if varName == "" {
+		return nil, fmt.Errorf("paramater name cannot be empty")
+	}
+
+	for _, ch := range varName {
+		if unicode.IsControl(ch) {
+			return nil, fmt.Errorf("invalid paramter name '%s': cannot contain control characters", varName)
+		}
+	}
+
 	formatter, ok := opts.Formatters[varName]
 	if !ok {
 		formatString, err := utils.FormatStringForParam(varName, opts.InputSchema)
