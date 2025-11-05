@@ -25,7 +25,7 @@
       "properties": {
         "command": {
           "type": "string",
-          "description": "The command-line string to be executed. It can contain placeholders in the form of '%' which correspond to parameters defined in the input schema."
+          "description": "The command-line string to be executed. It can contain placeholders in the form of '{paramName}' which correspond to parameters defined in the input schema."
         },
         "templateVariables": {
           "additionalProperties": {
@@ -60,7 +60,7 @@
       "properties": {
         "url": {
           "type": "string",
-          "description": "The URL template for the HTTP request. It can contain placeholders in the form of '%' which correspond to parameters from the input schema."
+          "description": "The URL for the HTTP request. It can contain placeholders in the form of {paramName} which correspond to parameters from the input schema."
         },
         "method": {
           "type": "string",
@@ -704,7 +704,7 @@
       "properties": {
         "format": {
           "type": "string",
-          "description": "Template is the format string for the variable. It can be a simple string or a Go format string containing a verb like '%s', '%d', etc.\nFor example, \"--user=%s\" or \"--verbose\"."
+          "description": "Template is the format string for the variable. It can be a simple string or contain template variables like '{paramName}'.\nFor example, \"--user={username}\" or \"--verbose\"."
         },
         "omitIfFalse": {
           "type": "boolean",
