@@ -41,7 +41,7 @@ type Tool struct {
 	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
 
 	// Object describing how to execute the tool.
-	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationData;#/$defs/CliInvocationData"`
+	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationConfig;#/$defs/CliInvocationConfig"`
 
 	// OAuth scopes required to invoke this tool.
 	RequiredScopes []string `json:"requiredScopes,omitempty" jsonschema:"optional"`
@@ -105,7 +105,7 @@ type Prompt struct {
 	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
 
 	// Object describing how to invoke the prompt.
-	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationData;#/$defs/CliInvocationData"`
+	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationConfig;#/$defs/CliInvocationConfig"`
 
 	// OAuth scopes required to invoke this prompt.
 	RequiredScopes []string `json:"requiredScopes,omitempty" jsonschema:"optional"`
@@ -169,7 +169,7 @@ type Resource struct {
 	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
 
 	// Object describing how to invoke the resource.
-	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationData;#/$defs/CliInvocationData"`
+	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationConfig;#/$defs/CliInvocationConfig"`
 
 	// OAuth scopes required to access this resource.
 	RequiredScopes []string `json:"requiredScopes,omitempty" jsonschema:"optional"`
@@ -215,7 +215,7 @@ type ResourceTemplate struct {
 	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
 
 	// Object describing how to invoke the resource template.
-	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationData;#/$defs/CliInvocationData"`
+	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationConfig;#/$defs/CliInvocationConfig"`
 
 	// OAuth scopes required to access this resource template.
 	RequiredScopes []string `json:"requiredScopes,omitempty" jsonschema:"optional"`

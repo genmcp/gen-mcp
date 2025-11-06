@@ -42,20 +42,6 @@
       ],
       "description": "Configuration for executing a command-line tool."
     },
-    "CliInvocationData": {
-      "properties": {
-        "cli": {
-          "$ref": "#/$defs/CliInvocationConfig",
-          "description": "Detailed CLI invocation configuration."
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "required": [
-        "cli"
-      ],
-      "description": "The structure for CLI invocation configuration."
-    },
     "HttpInvocationConfig": {
       "properties": {
         "url": {
@@ -83,19 +69,10 @@
       ],
       "description": "The configuration for making an HTTP request."
     },
-    "HttpInvocationData": {
-      "properties": {
-        "http": {
-          "$ref": "#/$defs/HttpInvocationConfig",
-          "description": "Detailed HTTP invocation configuration."
-        }
-      },
+    "InvocationConfigWrapper": {
+      "properties": {},
       "additionalProperties": false,
-      "type": "object",
-      "required": [
-        "http"
-      ],
-      "description": "The structure for HTTP invocation configuration."
+      "type": "object"
     },
     "LoggingConfig": {
       "properties": {
@@ -157,6 +134,13 @@
         "instructions": {
           "type": "string",
           "description": "A set of instructions provided by the server to the client about how to use the server"
+        },
+        "invocationBases": {
+          "additionalProperties": {
+            "$ref": "#/$defs/InvocationConfigWrapper"
+          },
+          "type": "object",
+          "description": "InvocationBases contains base configs for invocations"
         },
         "tools": {
           "items": {
@@ -532,10 +516,10 @@
         "invocation": {
           "oneOf": [
             {
-              "$ref": "#/$defs/HttpInvocationData"
+              "$ref": "#/$defs/HttpInvocationConfig"
             },
             {
-              "$ref": "#/$defs/CliInvocationData"
+              "$ref": "#/$defs/CliInvocationConfig"
             }
           ],
           "description": "Object describing how to invoke the prompt."
@@ -925,10 +909,10 @@
         "invocation": {
           "oneOf": [
             {
-              "$ref": "#/$defs/HttpInvocationData"
+              "$ref": "#/$defs/HttpInvocationConfig"
             },
             {
-              "$ref": "#/$defs/CliInvocationData"
+              "$ref": "#/$defs/CliInvocationConfig"
             }
           ],
           "description": "Object describing how to invoke the resource."
@@ -1288,10 +1272,10 @@
         "invocation": {
           "oneOf": [
             {
-              "$ref": "#/$defs/HttpInvocationData"
+              "$ref": "#/$defs/HttpInvocationConfig"
             },
             {
-              "$ref": "#/$defs/CliInvocationData"
+              "$ref": "#/$defs/CliInvocationConfig"
             }
           ],
           "description": "Object describing how to invoke the resource template."
@@ -1739,10 +1723,10 @@
         "invocation": {
           "oneOf": [
             {
-              "$ref": "#/$defs/HttpInvocationData"
+              "$ref": "#/$defs/HttpInvocationConfig"
             },
             {
-              "$ref": "#/$defs/CliInvocationData"
+              "$ref": "#/$defs/CliInvocationConfig"
             }
           ],
           "description": "Object describing how to execute the tool."

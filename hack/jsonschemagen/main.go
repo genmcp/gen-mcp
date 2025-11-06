@@ -332,12 +332,12 @@ func main() {
 			Path: "../../pkg/mcpfile",
 		},
 		{
-			Type: &http.HttpInvocationData{},
+			Type: &http.HttpInvocationConfig{},
 			Base: "github.com/genmcp/gen-mcp/pkg/invocation",
 			Path: "../../pkg/invocation",
 		},
 		{
-			Type: &cli.CliInvocationData{},
+			Type: &cli.CliInvocationConfig{},
 			Base: "github.com/genmcp/gen-mcp/pkg/invocation",
 			Path: "../../pkg/invocation",
 		},
