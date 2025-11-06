@@ -2,78 +2,32 @@ package invocation
 
 import (
 	"fmt"
-
-	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 )
 
-func CreateInvoker(tool *mcpfile.Tool) (Invoker, error) {
-	config, err := ParseInvocation(tool.InvocationType, tool.InvocationData, tool)
-	if err != nil {
-		return nil, err
-	}
+func CreateInvoker(primitive Primitive) (Invoker, error) {
+	config := primitive.GetInvocationConfig()
 
 	if err := config.Validate(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
-	factory, exists := globalRegistry.factories[tool.InvocationType]
+	invocationType := primitive.GetInvocationType()
+	factory, exists := globalRegistry.factories[invocationType]
 	if !exists {
-		return nil, fmt.Errorf("no invoker factory for type: '%s'", tool.InvocationType)
+		return nil, fmt.Errorf("no invoker factory for type: '%s'", invocationType)
 	}
 
-	return factory.CreateInvoker(config, tool.ResolvedInputSchema)
+	return factory.CreateInvoker(config, primitive)
 }
 
-func CreatePromptInvoker(prompt *mcpfile.Prompt) (Invoker, error) {
-	config, err := ParsePromptInvocation(prompt.InvocationType, prompt.InvocationData, prompt)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := config.Validate(); err != nil {
-		return nil, err
-	}
-
-	factory, exists := globalRegistry.factories[prompt.InvocationType]
-	if !exists {
-		return nil, fmt.Errorf("no invoker factory for type: '%s'", prompt.InvocationType)
-	}
-
-	return factory.CreateInvoker(config, prompt.ResolvedInputSchema)
+func CreatePromptInvoker(primitive Primitive) (Invoker, error) {
+	return CreateInvoker(primitive)
 }
 
-func CreateResourceInvoker(resource *mcpfile.Resource) (Invoker, error) {
-	config, err := ParseResourceInvocation(resource.InvocationType, resource.InvocationData, resource)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := config.Validate(); err != nil {
-		return nil, err
-	}
-
-	factory, exists := globalRegistry.factories[resource.InvocationType]
-	if !exists {
-		return nil, fmt.Errorf("no invoker factory for type: '%s'", resource.InvocationType)
-	}
-
-	return factory.CreateInvoker(config, resource.ResolvedInputSchema)
+func CreateResourceInvoker(primitive Primitive) (Invoker, error) {
+	return CreateInvoker(primitive)
 }
 
-func CreateResourceTemplateInvoker(resourceTemplate *mcpfile.ResourceTemplate) (Invoker, error) {
-	config, err := ParseResourceTemplateInvocation(resourceTemplate.InvocationType, resourceTemplate.InvocationData, resourceTemplate)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := config.Validate(); err != nil {
-		return nil, err
-	}
-
-	factory, exists := globalRegistry.factories[resourceTemplate.InvocationType]
-	if !exists {
-		return nil, fmt.Errorf("no invoker factory for type: '%s'", resourceTemplate.InvocationType)
-	}
-
-	return factory.CreateInvoker(config, resourceTemplate.ResolvedInputSchema)
+func CreateResourceTemplateInvoker(primitive Primitive) (Invoker, error) {
+	return CreateInvoker(primitive)
 }

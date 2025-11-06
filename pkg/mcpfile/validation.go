@@ -1,13 +1,14 @@
 package mcpfile
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/genmcp/gen-mcp/pkg/invocation"
 )
 
-type InvocationValidator func(invocationType string, data json.RawMessage, primitive Primitive) error
+type InvocationValidator func(primitive invocation.Primitive) error
 
 func (m *MCPFile) Validate(invocationValidator InvocationValidator) error {
 	var err error = nil
@@ -57,9 +58,9 @@ func (t *Tool) Validate(invocationValidator InvocationValidator) error {
 		err = errors.Join(err, fmt.Errorf("invalid tool: inputScheme must be type object at the root"))
 	}
 
-	if t.InvocationData == nil {
+	if t.InvocationConfigWrapper.Config == nil {
 		err = errors.Join(err, fmt.Errorf("invalid tool: invocation is not set for the tool"))
-	} else if invocationErr := invocationValidator(t.InvocationType, t.InvocationData, t); invocationErr != nil {
+	} else if invocationErr := invocationValidator(t); invocationErr != nil {
 		err = errors.Join(err, fmt.Errorf("invalid tool: invocation is not valid: %w", invocationErr))
 	}
 
@@ -89,9 +90,9 @@ func (p *Prompt) Validate(invocationValidator InvocationValidator) error {
 	if p.InputSchema != nil && strings.ToLower(p.InputSchema.Type) != "object" {
 		err = errors.Join(err, fmt.Errorf("invalid prompt: inputScheme must be type object at the root"))
 	}
-	if p.InvocationData == nil {
+	if p.InvocationConfigWrapper.Config == nil {
 		err = errors.Join(err, fmt.Errorf("invalid prompt: invocation is not set for the prompt"))
-	} else if invocationErr := invocationValidator(p.InvocationType, p.InvocationData, p); invocationErr != nil {
+	} else if invocationErr := invocationValidator(p); invocationErr != nil {
 		err = errors.Join(err, fmt.Errorf("invalid prompt: invocation is not valid: %w", invocationErr))
 	}
 	return err
@@ -111,9 +112,9 @@ func (r *Resource) Validate(invocationValidator InvocationValidator) error {
 	if r.InputSchema != nil && strings.ToLower(r.InputSchema.Type) != "object" {
 		err = errors.Join(err, fmt.Errorf("invalid resource: inputScheme must be type object at the root"))
 	}
-	if r.InvocationData == nil {
+	if r.InvocationConfigWrapper.Config == nil {
 		err = errors.Join(err, fmt.Errorf("invalid resource: invocation is not set for the resource"))
-	} else if invocationErr := invocationValidator(r.InvocationType, r.InvocationData, r); invocationErr != nil {
+	} else if invocationErr := invocationValidator(r); invocationErr != nil {
 		err = errors.Join(err, fmt.Errorf("invalid resource: invocation is not valid: %w", invocationErr))
 	}
 	return err
@@ -143,9 +144,9 @@ func (rt *ResourceTemplate) Validate(invocationValidator InvocationValidator) er
 	if rt.InputSchema != nil && strings.ToLower(rt.InputSchema.Type) != "object" {
 		err = errors.Join(err, fmt.Errorf("invalid resource template: inputScheme must be type object at the root"))
 	}
-	if rt.InvocationData == nil {
+	if rt.InvocationConfigWrapper.Config == nil {
 		err = errors.Join(err, fmt.Errorf("invalid resource template: invocation is not set for the resource template"))
-	} else if invocationErr := invocationValidator(rt.InvocationType, rt.InvocationData, rt); invocationErr != nil {
+	} else if invocationErr := invocationValidator(rt); invocationErr != nil {
 		err = errors.Join(err, fmt.Errorf("invalid resource template: invocation is not valid: %w", invocationErr))
 	}
 	return err

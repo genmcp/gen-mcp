@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/genmcp/gen-mcp/pkg/observability/logging"
 	"github.com/google/jsonschema-go/jsonschema"
 	"go.uber.org/zap"
@@ -22,19 +23,6 @@ const (
 	PrimitiveTypeResource           = "resource"
 	PrimitiveTypeResourceTemplate   = "resourceTemplate"
 )
-
-// Primitive represents a tool-like entity that can be invoked (Tool, Prompt, Resource, or ResourceTemplate).
-type Primitive interface {
-	GetName() string
-	GetDescription() string
-	GetInputSchema() *jsonschema.Schema
-	GetOutputSchema() *jsonschema.Schema
-	GetInvocationData() json.RawMessage
-	GetInvocationType() string
-	GetRequiredScopes() []string
-	GetResolvedInputSchema() *jsonschema.Resolved
-	PrimitiveType() string
-}
 
 // Tool represents an executable capability of the MCP server.
 type Tool struct {
@@ -54,10 +42,7 @@ type Tool struct {
 	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
 
 	// Object describing how to execute the tool.
-	InvocationData json.RawMessage `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationData;#/$defs/CliInvocationData"`
-
-	// Invocation type ("http" or "cli"). Populated internally.
-	InvocationType string `json:"-"`
+	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationData;#/$defs/CliInvocationData"`
 
 	// OAuth scopes required to invoke this tool.
 	RequiredScopes []string `json:"requiredScopes,omitempty" jsonschema:"optional"`
@@ -87,15 +72,16 @@ type ToolAnnotations struct {
 	ReadOnlyHint *bool `json:"readOnlyHint,omitempty" jsonschema:"optional"`
 }
 
-func (t Tool) GetName() string                              { return t.Name }
-func (t Tool) GetDescription() string                       { return t.Description }
-func (t Tool) PrimitiveType() string                        { return PrimitiveTypeTool }
-func (t Tool) GetInputSchema() *jsonschema.Schema           { return t.InputSchema }
-func (t Tool) GetOutputSchema() *jsonschema.Schema          { return t.OutputSchema }
-func (t Tool) GetInvocationData() json.RawMessage           { return t.InvocationData }
-func (t Tool) GetInvocationType() string                    { return t.InvocationType }
-func (t Tool) GetRequiredScopes() []string                  { return t.RequiredScopes }
-func (t Tool) GetResolvedInputSchema() *jsonschema.Resolved { return t.ResolvedInputSchema }
+func (t Tool) GetName() string                                 { return t.Name }
+func (t Tool) GetDescription() string                          { return t.Description }
+func (t Tool) PrimitiveType() string                           { return PrimitiveTypeTool }
+func (t Tool) GetInputSchema() *jsonschema.Schema              { return t.InputSchema }
+func (t Tool) GetOutputSchema() *jsonschema.Schema             { return t.OutputSchema }
+func (t Tool) GetInvocationConfig() invocation.InvocationConfig { return t.InvocationConfigWrapper.Config }
+func (t Tool) GetInvocationType() string                       { return t.InvocationConfigWrapper.Type }
+func (t Tool) GetRequiredScopes() []string                     { return t.RequiredScopes }
+func (t Tool) GetResolvedInputSchema() *jsonschema.Resolved    { return t.ResolvedInputSchema }
+func (t Tool) GetURITemplate() string                          { return "" }
 
 // Prompt represents a natural-language or LLM-style function invocation.
 type Prompt struct {
@@ -118,10 +104,7 @@ type Prompt struct {
 	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
 
 	// Object describing how to invoke the prompt.
-	InvocationData json.RawMessage `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationData;#/$defs/CliInvocationData"`
-
-	// Invocation type ("http" or "cli"). Determined dynamically.
-	InvocationType string `json:"-"`
+	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationData;#/$defs/CliInvocationData"`
 
 	// OAuth scopes required to invoke this prompt.
 	RequiredScopes []string `json:"requiredScopes,omitempty" jsonschema:"optional"`
@@ -130,15 +113,16 @@ type Prompt struct {
 	ResolvedInputSchema *jsonschema.Resolved `json:"-"`
 }
 
-func (p Prompt) GetName() string                              { return p.Name }
-func (p Prompt) GetDescription() string                       { return p.Description }
-func (p Prompt) PrimitiveType() string                        { return PrimitiveTypePrompt }
-func (p Prompt) GetInputSchema() *jsonschema.Schema           { return p.InputSchema }
-func (p Prompt) GetOutputSchema() *jsonschema.Schema          { return p.OutputSchema }
-func (p Prompt) GetInvocationData() json.RawMessage           { return p.InvocationData }
-func (p Prompt) GetInvocationType() string                    { return p.InvocationType }
-func (p Prompt) GetRequiredScopes() []string                  { return p.RequiredScopes }
-func (p Prompt) GetResolvedInputSchema() *jsonschema.Resolved { return p.ResolvedInputSchema }
+func (p Prompt) GetName() string                                 { return p.Name }
+func (p Prompt) GetDescription() string                          { return p.Description }
+func (p Prompt) PrimitiveType() string                           { return PrimitiveTypePrompt }
+func (p Prompt) GetInputSchema() *jsonschema.Schema              { return p.InputSchema }
+func (p Prompt) GetOutputSchema() *jsonschema.Schema             { return p.OutputSchema }
+func (p Prompt) GetInvocationConfig() invocation.InvocationConfig { return p.InvocationConfigWrapper.Config }
+func (p Prompt) GetInvocationType() string                       { return p.InvocationConfigWrapper.Type }
+func (p Prompt) GetRequiredScopes() []string                     { return p.RequiredScopes }
+func (p Prompt) GetResolvedInputSchema() *jsonschema.Resolved    { return p.ResolvedInputSchema }
+func (p Prompt) GetURITemplate() string                          { return "" }
 
 // PromptArgument defines a variable that can be substituted into a prompt template.
 type PromptArgument struct {
@@ -182,10 +166,7 @@ type Resource struct {
 	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
 
 	// Object describing how to invoke the resource.
-	InvocationData json.RawMessage `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationData;#/$defs/CliInvocationData"`
-
-	// Invocation type ("http" or "cli"). Determined dynamically.
-	InvocationType string `json:"-"`
+	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationData;#/$defs/CliInvocationData"`
 
 	// OAuth scopes required to access this resource.
 	RequiredScopes []string `json:"requiredScopes,omitempty" jsonschema:"optional"`
@@ -194,15 +175,16 @@ type Resource struct {
 	ResolvedInputSchema *jsonschema.Resolved `json:"-"`
 }
 
-func (r Resource) GetName() string                              { return r.Name }
-func (r Resource) GetDescription() string                       { return r.Description }
-func (r Resource) PrimitiveType() string                        { return PrimitiveTypeResource }
-func (r Resource) GetInputSchema() *jsonschema.Schema           { return r.InputSchema }
-func (r Resource) GetOutputSchema() *jsonschema.Schema          { return r.OutputSchema }
-func (r Resource) GetInvocationData() json.RawMessage           { return r.InvocationData }
-func (r Resource) GetInvocationType() string                    { return r.InvocationType }
-func (r Resource) GetRequiredScopes() []string                  { return r.RequiredScopes }
-func (r Resource) GetResolvedInputSchema() *jsonschema.Resolved { return r.ResolvedInputSchema }
+func (r Resource) GetName() string                                 { return r.Name }
+func (r Resource) GetDescription() string                          { return r.Description }
+func (r Resource) PrimitiveType() string                           { return PrimitiveTypeResource }
+func (r Resource) GetInputSchema() *jsonschema.Schema              { return r.InputSchema }
+func (r Resource) GetOutputSchema() *jsonschema.Schema             { return r.OutputSchema }
+func (r Resource) GetInvocationConfig() invocation.InvocationConfig { return r.InvocationConfigWrapper.Config }
+func (r Resource) GetInvocationType() string                       { return r.InvocationConfigWrapper.Type }
+func (r Resource) GetRequiredScopes() []string                     { return r.RequiredScopes }
+func (r Resource) GetResolvedInputSchema() *jsonschema.Resolved    { return r.ResolvedInputSchema }
+func (r Resource) GetURITemplate() string                          { return "" }
 
 // ResourceTemplate represents a reusable URI-based template for resources.
 type ResourceTemplate struct {
@@ -228,10 +210,7 @@ type ResourceTemplate struct {
 	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
 
 	// Object describing how to invoke the resource template.
-	InvocationData json.RawMessage `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationData;#/$defs/CliInvocationData"`
-
-	// Invocation type ("http" or "cli"). Determined dynamically.
-	InvocationType string `json:"-"`
+	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationData;#/$defs/CliInvocationData"`
 
 	// OAuth scopes required to access this resource template.
 	RequiredScopes []string `json:"requiredScopes,omitempty" jsonschema:"optional"`
@@ -240,15 +219,16 @@ type ResourceTemplate struct {
 	ResolvedInputSchema *jsonschema.Resolved `json:"-"`
 }
 
-func (r ResourceTemplate) GetName() string                              { return r.Name }
-func (r ResourceTemplate) GetDescription() string                       { return r.Description }
-func (r ResourceTemplate) PrimitiveType() string                        { return PrimitiveTypeResourceTemplate }
-func (r ResourceTemplate) GetInputSchema() *jsonschema.Schema           { return r.InputSchema }
-func (r ResourceTemplate) GetOutputSchema() *jsonschema.Schema          { return r.OutputSchema }
-func (r ResourceTemplate) GetInvocationData() json.RawMessage           { return r.InvocationData }
-func (r ResourceTemplate) GetInvocationType() string                    { return r.InvocationType }
-func (r ResourceTemplate) GetRequiredScopes() []string                  { return r.RequiredScopes }
-func (r ResourceTemplate) GetResolvedInputSchema() *jsonschema.Resolved { return r.ResolvedInputSchema }
+func (r ResourceTemplate) GetName() string                                 { return r.Name }
+func (r ResourceTemplate) GetDescription() string                          { return r.Description }
+func (r ResourceTemplate) PrimitiveType() string                           { return PrimitiveTypeResourceTemplate }
+func (r ResourceTemplate) GetInputSchema() *jsonschema.Schema              { return r.InputSchema }
+func (r ResourceTemplate) GetOutputSchema() *jsonschema.Schema             { return r.OutputSchema }
+func (r ResourceTemplate) GetInvocationConfig() invocation.InvocationConfig { return r.InvocationConfigWrapper.Config }
+func (r ResourceTemplate) GetInvocationType() string                       { return r.InvocationConfigWrapper.Type }
+func (r ResourceTemplate) GetRequiredScopes() []string                     { return r.RequiredScopes }
+func (r ResourceTemplate) GetResolvedInputSchema() *jsonschema.Resolved    { return r.ResolvedInputSchema }
+func (r ResourceTemplate) GetURITemplate() string                          { return r.URITemplate }
 
 // StreamableHTTPConfig defines configuration for the HTTP-based runtime.
 type StreamableHTTPConfig struct {
@@ -349,6 +329,9 @@ type MCPServer struct {
 	// A set of instructions provided by the server to the client about how to use the server
 	Instructions string `json:"instructions,omitempty" jsonschema:"optional"`
 
+	// InvocationBases contains base configs for invocations
+	InvocationBases map[string]json.RawMessage `json:"invocationBases,omitempty" jsonschema:"optional"`
+
 	// List of tools provided by the server.
 	Tools []*Tool `json:"tools,omitempty" jsonschema:"optional"`
 
@@ -370,3 +353,8 @@ type MCPFile struct {
 	// MCP server definition.
 	MCPServer `json:",inline"`
 }
+
+var _ invocation.Primitive = (*Tool)(nil)
+var _ invocation.Primitive = (*Prompt)(nil)
+var _ invocation.Primitive = (*Resource)(nil)
+var _ invocation.Primitive = (*ResourceTemplate)(nil)

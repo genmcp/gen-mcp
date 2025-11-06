@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/google/jsonschema-go/jsonschema"
 )
@@ -93,13 +94,17 @@ func convertCommandItemToTool(commandItem CommandItem) (*mcpfile.Tool, error) {
 	// Create tool name from command (replace spaces and special chars with underscores)
 	toolName := strings.ReplaceAll(strings.ReplaceAll(commandItem.Command, " ", "_"), "-", "_")
 
+	wrapper := &invocation.InvocationConfigWrapper{}
+	if err := json.Unmarshal(invocationData, wrapper); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal invocation data: %w", err)
+	}
+
 	tool := &mcpfile.Tool{
-		Name:           toolName,
-		Title:          commandItem.Command,
-		Description:    commandItem.Data.Description,
-		InputSchema:    inputSchema,
-		InvocationData: invocationData,
-		InvocationType: mcpfile.InvocationTypeCli,
+		Name:                    toolName,
+		Title:                   commandItem.Command,
+		Description:             commandItem.Data.Description,
+		InputSchema:             inputSchema,
+		InvocationConfigWrapper: wrapper,
 	}
 
 	return tool, nil

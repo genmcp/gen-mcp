@@ -1,7 +1,6 @@
 package openapi
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -99,15 +98,6 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 				continue
 			}
 
-			invocationData, marshalErr := json.Marshal(map[string]any{
-				"url":    fmt.Sprintf("%s%s", baseUrl, pathName),
-				"method": strings.ToUpper(operationMethod),
-			})
-			if marshalErr != nil {
-				err = errors.Join(err, fmt.Errorf("failed to marshal http invocation config for %s: %w", toolName(pathName, operationMethod), marshalErr))
-				continue
-			}
-
 			tool := &mcpfile.Tool{
 				Name:        toolName(pathName, operationMethod),
 				Title:       operation.Summary,
@@ -117,8 +107,13 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 					Properties: make(map[string]*jsonschema.Schema),
 					Required:   []string{},
 				},
-				InvocationData: invocationData,
-				InvocationType: mcpfile.InvocationTypeHttp,
+				InvocationConfigWrapper: &invocation.InvocationConfigWrapper{
+					Type: ihttps.InvocationType,
+					Config: &ihttps.HttpInvocationConfig{
+						URL:    fmt.Sprintf("%s/%s", baseUrl, pathName),
+						Method: strings.ToUpper(operationMethod),
+					},
+				},
 			}
 
 			numPathParams := 0
@@ -249,15 +244,6 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 				continue
 			}
 
-			invocationData, marshalErr := json.Marshal(map[string]any{
-				"url":    fmt.Sprintf("%s%s", baseUrl, pathName),
-				"method": strings.ToUpper(operationMethod),
-			})
-			if marshalErr != nil {
-				err = errors.Join(err, fmt.Errorf("failed to marshal http invocation config for %s: %w", toolName(pathName, operationMethod), marshalErr))
-				continue
-			}
-
 			tool := &mcpfile.Tool{
 				Name:        toolName(pathName, operationMethod),
 				Title:       operation.Summary,
@@ -267,8 +253,13 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 					Properties: make(map[string]*jsonschema.Schema),
 					Required:   []string{},
 				},
-				InvocationData: invocationData,
-				InvocationType: mcpfile.InvocationTypeHttp,
+				InvocationConfigWrapper: &invocation.InvocationConfigWrapper{
+					Type: ihttps.InvocationType,
+					Config: &ihttps.HttpInvocationConfig{
+						URL:    fmt.Sprintf("%s%s", baseUrl, pathName),
+						Method: strings.ToUpper(operationMethod),
+					},
+				},
 			}
 
 			visited := make(map[*highbase.SchemaProxy]*jsonschema.Schema)
