@@ -38,6 +38,13 @@ func (hic *HttpInvocationConfig) Validate() error {
 	return nil
 }
 
+func (hic *HttpInvocationConfig) DeepCopy() invocation.InvocationConfig {
+	return &HttpInvocationConfig{
+		URL:    hic.URL,
+		Method: hic.Method,
+	}
+}
+
 func IsValidHttpMethod(method string) bool {
 	_, ok := validHttpMethods[strings.ToUpper(method)]
 	return ok

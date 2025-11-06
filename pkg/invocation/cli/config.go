@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"maps"
+
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 )
 
@@ -20,6 +22,16 @@ var _ invocation.InvocationConfig = &CliInvocationConfig{}
 func (c *CliInvocationConfig) Validate() error {
 	// Validation is handled during template parsing
 	return nil
+}
+
+func (c *CliInvocationConfig) DeepCopy() invocation.InvocationConfig {
+	cp := &CliInvocationConfig{
+		Command:           c.Command,
+		TemplateVariables: make(map[string]*TemplateVariable, len(c.TemplateVariables)),
+	}
+	maps.Copy(cp.TemplateVariables, c.TemplateVariables)
+
+	return cp
 }
 
 // The formatting for a single parameter in the command template

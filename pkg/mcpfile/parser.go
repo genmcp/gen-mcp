@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/genmcp/gen-mcp/pkg/invocation/extends"
 	"github.com/google/jsonschema-go/jsonschema"
 	"sigs.k8s.io/yaml"
 )
@@ -73,6 +74,10 @@ func (s *MCPServer) UnmarshalJSON(data []byte) error {
 	err := json.Unmarshal(data, &tmp)
 	if err != nil {
 		return err
+	}
+
+	if len(s.InvocationBases) > 0 {
+		extends.SetBases(s.InvocationBases)
 	}
 
 	// Only set defaults if we have a server defined (name or version present)

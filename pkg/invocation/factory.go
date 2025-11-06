@@ -31,3 +31,9 @@ func CreateResourceInvoker(primitive Primitive) (Invoker, error) {
 func CreateResourceTemplateInvoker(primitive Primitive) (Invoker, error) {
 	return CreateInvoker(primitive)
 }
+
+func GetFactory(invocationType string) (InvokerFactory, bool) {
+	factory, exists := globalRegistry.factories[invocationType]
+
+	return factory, exists
+}

@@ -1,7 +1,6 @@
 package mcpfile
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"sync"
@@ -72,16 +71,18 @@ type ToolAnnotations struct {
 	ReadOnlyHint *bool `json:"readOnlyHint,omitempty" jsonschema:"optional"`
 }
 
-func (t Tool) GetName() string                                 { return t.Name }
-func (t Tool) GetDescription() string                          { return t.Description }
-func (t Tool) PrimitiveType() string                           { return PrimitiveTypeTool }
-func (t Tool) GetInputSchema() *jsonschema.Schema              { return t.InputSchema }
-func (t Tool) GetOutputSchema() *jsonschema.Schema             { return t.OutputSchema }
-func (t Tool) GetInvocationConfig() invocation.InvocationConfig { return t.InvocationConfigWrapper.Config }
-func (t Tool) GetInvocationType() string                       { return t.InvocationConfigWrapper.Type }
-func (t Tool) GetRequiredScopes() []string                     { return t.RequiredScopes }
-func (t Tool) GetResolvedInputSchema() *jsonschema.Resolved    { return t.ResolvedInputSchema }
-func (t Tool) GetURITemplate() string                          { return "" }
+func (t Tool) GetName() string                     { return t.Name }
+func (t Tool) GetDescription() string              { return t.Description }
+func (t Tool) PrimitiveType() string               { return PrimitiveTypeTool }
+func (t Tool) GetInputSchema() *jsonschema.Schema  { return t.InputSchema }
+func (t Tool) GetOutputSchema() *jsonschema.Schema { return t.OutputSchema }
+func (t Tool) GetInvocationConfig() invocation.InvocationConfig {
+	return t.InvocationConfigWrapper.Config
+}
+func (t Tool) GetInvocationType() string                    { return t.InvocationConfigWrapper.Type }
+func (t Tool) GetRequiredScopes() []string                  { return t.RequiredScopes }
+func (t Tool) GetResolvedInputSchema() *jsonschema.Resolved { return t.ResolvedInputSchema }
+func (t Tool) GetURITemplate() string                       { return "" }
 
 // Prompt represents a natural-language or LLM-style function invocation.
 type Prompt struct {
@@ -113,16 +114,18 @@ type Prompt struct {
 	ResolvedInputSchema *jsonschema.Resolved `json:"-"`
 }
 
-func (p Prompt) GetName() string                                 { return p.Name }
-func (p Prompt) GetDescription() string                          { return p.Description }
-func (p Prompt) PrimitiveType() string                           { return PrimitiveTypePrompt }
-func (p Prompt) GetInputSchema() *jsonschema.Schema              { return p.InputSchema }
-func (p Prompt) GetOutputSchema() *jsonschema.Schema             { return p.OutputSchema }
-func (p Prompt) GetInvocationConfig() invocation.InvocationConfig { return p.InvocationConfigWrapper.Config }
-func (p Prompt) GetInvocationType() string                       { return p.InvocationConfigWrapper.Type }
-func (p Prompt) GetRequiredScopes() []string                     { return p.RequiredScopes }
-func (p Prompt) GetResolvedInputSchema() *jsonschema.Resolved    { return p.ResolvedInputSchema }
-func (p Prompt) GetURITemplate() string                          { return "" }
+func (p Prompt) GetName() string                     { return p.Name }
+func (p Prompt) GetDescription() string              { return p.Description }
+func (p Prompt) PrimitiveType() string               { return PrimitiveTypePrompt }
+func (p Prompt) GetInputSchema() *jsonschema.Schema  { return p.InputSchema }
+func (p Prompt) GetOutputSchema() *jsonschema.Schema { return p.OutputSchema }
+func (p Prompt) GetInvocationConfig() invocation.InvocationConfig {
+	return p.InvocationConfigWrapper.Config
+}
+func (p Prompt) GetInvocationType() string                    { return p.InvocationConfigWrapper.Type }
+func (p Prompt) GetRequiredScopes() []string                  { return p.RequiredScopes }
+func (p Prompt) GetResolvedInputSchema() *jsonschema.Resolved { return p.ResolvedInputSchema }
+func (p Prompt) GetURITemplate() string                       { return "" }
 
 // PromptArgument defines a variable that can be substituted into a prompt template.
 type PromptArgument struct {
@@ -175,16 +178,18 @@ type Resource struct {
 	ResolvedInputSchema *jsonschema.Resolved `json:"-"`
 }
 
-func (r Resource) GetName() string                                 { return r.Name }
-func (r Resource) GetDescription() string                          { return r.Description }
-func (r Resource) PrimitiveType() string                           { return PrimitiveTypeResource }
-func (r Resource) GetInputSchema() *jsonschema.Schema              { return r.InputSchema }
-func (r Resource) GetOutputSchema() *jsonschema.Schema             { return r.OutputSchema }
-func (r Resource) GetInvocationConfig() invocation.InvocationConfig { return r.InvocationConfigWrapper.Config }
-func (r Resource) GetInvocationType() string                       { return r.InvocationConfigWrapper.Type }
-func (r Resource) GetRequiredScopes() []string                     { return r.RequiredScopes }
-func (r Resource) GetResolvedInputSchema() *jsonschema.Resolved    { return r.ResolvedInputSchema }
-func (r Resource) GetURITemplate() string                          { return "" }
+func (r Resource) GetName() string                     { return r.Name }
+func (r Resource) GetDescription() string              { return r.Description }
+func (r Resource) PrimitiveType() string               { return PrimitiveTypeResource }
+func (r Resource) GetInputSchema() *jsonschema.Schema  { return r.InputSchema }
+func (r Resource) GetOutputSchema() *jsonschema.Schema { return r.OutputSchema }
+func (r Resource) GetInvocationConfig() invocation.InvocationConfig {
+	return r.InvocationConfigWrapper.Config
+}
+func (r Resource) GetInvocationType() string                    { return r.InvocationConfigWrapper.Type }
+func (r Resource) GetRequiredScopes() []string                  { return r.RequiredScopes }
+func (r Resource) GetResolvedInputSchema() *jsonschema.Resolved { return r.ResolvedInputSchema }
+func (r Resource) GetURITemplate() string                       { return "" }
 
 // ResourceTemplate represents a reusable URI-based template for resources.
 type ResourceTemplate struct {
@@ -219,16 +224,18 @@ type ResourceTemplate struct {
 	ResolvedInputSchema *jsonschema.Resolved `json:"-"`
 }
 
-func (r ResourceTemplate) GetName() string                                 { return r.Name }
-func (r ResourceTemplate) GetDescription() string                          { return r.Description }
-func (r ResourceTemplate) PrimitiveType() string                           { return PrimitiveTypeResourceTemplate }
-func (r ResourceTemplate) GetInputSchema() *jsonschema.Schema              { return r.InputSchema }
-func (r ResourceTemplate) GetOutputSchema() *jsonschema.Schema             { return r.OutputSchema }
-func (r ResourceTemplate) GetInvocationConfig() invocation.InvocationConfig { return r.InvocationConfigWrapper.Config }
-func (r ResourceTemplate) GetInvocationType() string                       { return r.InvocationConfigWrapper.Type }
-func (r ResourceTemplate) GetRequiredScopes() []string                     { return r.RequiredScopes }
-func (r ResourceTemplate) GetResolvedInputSchema() *jsonschema.Resolved    { return r.ResolvedInputSchema }
-func (r ResourceTemplate) GetURITemplate() string                          { return r.URITemplate }
+func (r ResourceTemplate) GetName() string                     { return r.Name }
+func (r ResourceTemplate) GetDescription() string              { return r.Description }
+func (r ResourceTemplate) PrimitiveType() string               { return PrimitiveTypeResourceTemplate }
+func (r ResourceTemplate) GetInputSchema() *jsonschema.Schema  { return r.InputSchema }
+func (r ResourceTemplate) GetOutputSchema() *jsonschema.Schema { return r.OutputSchema }
+func (r ResourceTemplate) GetInvocationConfig() invocation.InvocationConfig {
+	return r.InvocationConfigWrapper.Config
+}
+func (r ResourceTemplate) GetInvocationType() string                    { return r.InvocationConfigWrapper.Type }
+func (r ResourceTemplate) GetRequiredScopes() []string                  { return r.RequiredScopes }
+func (r ResourceTemplate) GetResolvedInputSchema() *jsonschema.Resolved { return r.ResolvedInputSchema }
+func (r ResourceTemplate) GetURITemplate() string                       { return r.URITemplate }
 
 // StreamableHTTPConfig defines configuration for the HTTP-based runtime.
 type StreamableHTTPConfig struct {
@@ -330,7 +337,7 @@ type MCPServer struct {
 	Instructions string `json:"instructions,omitempty" jsonschema:"optional"`
 
 	// InvocationBases contains base configs for invocations
-	InvocationBases map[string]json.RawMessage `json:"invocationBases,omitempty" jsonschema:"optional"`
+	InvocationBases map[string]*invocation.InvocationConfigWrapper `json:"invocationBases,omitempty" jsonschema:"optional"`
 
 	// List of tools provided by the server.
 	Tools []*Tool `json:"tools,omitempty" jsonschema:"optional"`

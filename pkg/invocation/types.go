@@ -32,6 +32,7 @@ type ConfigMetadata interface {
 
 type InvocationConfig interface {
 	Validate() error
+	DeepCopy() InvocationConfig
 }
 
 type Primitive interface {
