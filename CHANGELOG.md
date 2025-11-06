@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.0]
+
+### Added
+- `extends` invocation type for composing and extending existing invocation configurations
+
+### Changed
+- Refactored invocation configuration parsing to use generic factory pattern instead of custom parsers per type
+
+### Removed
+- Custom invocation config parsers for CLI and HTTP types in favor of unified factory approach
+
 ## [v0.1.0]
 
 ### Added
