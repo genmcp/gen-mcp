@@ -20,9 +20,12 @@ func (f *InvokerFactory) CreateInvoker(config invocation.InvocationConfig, primi
 		return nil, fmt.Errorf("invalid InvocationConfig for cli invoker factory")
 	}
 
+	// Create source factories for template parsing
+	sources := template.CreateHeadersSourceFactory()
+
 	formatters := make(map[string]template.VariableFormatter)
 	for tvName, tv := range cic.TemplateVariables {
-		formatter, err := template.NewTemplateFormatter(tv.Template, primitive.GetInputSchema(), tv.OmitIfFalse)
+		formatter, err := template.NewTemplateFormatter(tv.Template, primitive.GetInputSchema(), tv.OmitIfFalse, sources)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create template formatter for '%s': %w", tvName, err)
 		}
@@ -32,6 +35,7 @@ func (f *InvokerFactory) CreateInvoker(config invocation.InvocationConfig, primi
 	parsedTemplate, err := template.ParseTemplate(cic.Command, template.TemplateParserOptions{
 		InputSchema: primitive.GetInputSchema(),
 		Formatters:  formatters,
+		Sources:     sources,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse command template: %w", err)

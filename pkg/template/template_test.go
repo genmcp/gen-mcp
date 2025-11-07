@@ -504,7 +504,7 @@ func TestConditionalFormatting(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			formatter, err := NewTemplateFormatter(tc.templateStr, schema, tc.omitIfFalse)
+			formatter, err := NewTemplateFormatter(tc.templateStr, schema, tc.omitIfFalse, nil)
 			require.NoError(t, err)
 
 			for path, value := range tc.setFields {
@@ -528,7 +528,7 @@ func TestNestedTemplateFormatters(t *testing.T) {
 		},
 	}
 
-	authFormatter, err := NewTemplateFormatter("--auth={user}:{token}", schema, false)
+	authFormatter, err := NewTemplateFormatter("--auth={user}:{token}", schema, false, nil)
 	require.NoError(t, err)
 
 	pt, err := ParseTemplate("curl {url} {auth}", TemplateParserOptions{
