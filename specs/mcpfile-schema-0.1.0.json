@@ -45,14 +45,28 @@
     "ExtendsConfig": {
       "properties": {
         "from": {
-          "type": "string"
+          "type": "string",
+          "description": "From specifies the invocation base to extend from."
         },
-        "extend": true,
-        "override": true,
-        "remove": true
+        "extend": {
+          "type": "object",
+          "description": "Extend adds or merges new fields into the base configuration (e.g., append to arrays, merge maps)."
+        },
+        "override": {
+          "type": "object",
+          "description": "Override replaces fields in the base configuration with new values."
+        },
+        "remove": {
+          "type": "object",
+          "description": "Remove deletes specific fields from the base configuration (e.g., remove map keys, clear strings)."
+        }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "required": [
+        "from"
+      ],
+      "description": "ExtendsConfig allows extending an invocation base with modifications."
     },
     "HttpInvocationConfig": {
       "properties": {
@@ -82,9 +96,48 @@
       "description": "The configuration for making an HTTP request."
     },
     "InvocationConfigWrapper": {
-      "properties": {},
-      "additionalProperties": false,
-      "type": "object"
+      "oneOf": [
+        {
+          "properties": {
+            "http": {
+              "$ref": "#/$defs/HttpInvocationConfig"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "http"
+          ],
+          "description": "An invocation configuration using HTTP."
+        },
+        {
+          "properties": {
+            "cli": {
+              "$ref": "#/$defs/CliInvocationConfig"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "cli"
+          ],
+          "description": "An invocation configuration using CLI."
+        },
+        {
+          "properties": {
+            "extends": {
+              "$ref": "#/$defs/ExtendsConfig"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "extends"
+          ],
+          "description": "An invocation configuration that extends a base configuration."
+        }
+      ],
+      "description": "A wrapper for invocation configurations. Must contain exactly one invocation type key (http, cli, or extends) with its corresponding configuration."
     },
     "LoggingConfig": {
       "properties": {

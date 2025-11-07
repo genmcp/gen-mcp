@@ -9,11 +9,16 @@ import (
 
 const InvocationType = "extends"
 
+// ExtendsConfig allows extending an invocation base with modifications.
 type ExtendsConfig struct {
-	From     string          `json:"from"`
-	Extend   json.RawMessage `json:"extend,omitempty"`
-	Override json.RawMessage `json:"override,omitempty"`
-	Remove   json.RawMessage `json:"remove,omitempty"`
+	// From specifies the invocation base to extend from.
+	From string `json:"from" jsonschema:"required"`
+	// Extend adds or merges new fields into the base configuration (e.g., append to arrays, merge maps).
+	Extend json.RawMessage `json:"extend,omitempty" jsonschema:"optional"`
+	// Override replaces fields in the base configuration with new values.
+	Override json.RawMessage `json:"override,omitempty" jsonschema:"optional"`
+	// Remove deletes specific fields from the base configuration (e.g., remove map keys, clear strings).
+	Remove json.RawMessage `json:"remove,omitempty" jsonschema:"optional"`
 }
 
 func (ec *ExtendsConfig) Validate() error {

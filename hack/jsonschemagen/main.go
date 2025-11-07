@@ -360,13 +360,19 @@ func main() {
 		// Don't automatically require all properties - we'll use struct tags to determine this
 		reflector.RequiredFromJSONSchemaTags = true
 
-		// WORKAROUND: Handle google/jsonschema-go Schema type
+		// WORKAROUND: Handle google/jsonschema-go Schema type and json.RawMessage
 		// invopop/jsonschema can't properly reflect google's Schema because it uses
 		// json:"-" tags on the Type field. Instead, we return a detailed meta-schema
 		// that describes JSON Schema itself, providing better IDE autocomplete.
+		// json.RawMessage should be mapped to an object type to allow any JSON value.
 		reflector.Mapper = func(t reflect.Type) *jsonschema.Schema {
 			if t == reflect.TypeOf(&googlejsonschema.Schema{}) || t == reflect.TypeOf(googlejsonschema.Schema{}) {
 				return createJSONSchemaMetaSchema()
+			}
+			if t == reflect.TypeOf(json.RawMessage{}) {
+				return &jsonschema.Schema{
+					Type: "object",
+				}
 			}
 			return nil
 		}

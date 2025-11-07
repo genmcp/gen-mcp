@@ -158,7 +158,7 @@ func applyRemove(base, remove any) error {
 
 		case reflect.Map:
 			if removeField.Kind() != reflect.Map {
-				return fmt.Errorf("remove for map field '%s' must be a slice of keys", field.Name)
+				return fmt.Errorf("remove for map field '%s' must be a map of keys", field.Name)
 			}
 
 			iter := removeField.MapRange()

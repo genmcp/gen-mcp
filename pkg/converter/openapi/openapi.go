@@ -120,7 +120,8 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 
 			extendRaw, marshalErr := json.Marshal(extend)
 			if marshalErr != nil {
-				err = errors.Join(err, fmt.Errorf("failed to marshal tool extension: %w", err))
+				err = errors.Join(err, fmt.Errorf("failed to marshal tool extension: %w", marshalErr))
+				continue
 			}
 
 			override := &ihttps.HttpInvocationConfig{
@@ -129,7 +130,8 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 
 			overrideRaw, marshalErr := json.Marshal(override)
 			if marshalErr != nil {
-				err = errors.Join(err, fmt.Errorf("failed to marshal tool override: %w", err))
+				err = errors.Join(err, fmt.Errorf("failed to marshal tool override: %w", marshalErr))
+				continue
 			}
 
 			tool := &mcpfile.Tool{
@@ -296,7 +298,8 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 
 			extendRaw, marshalErr := json.Marshal(extend)
 			if marshalErr != nil {
-				err = errors.Join(err, fmt.Errorf("failed to marshal tool extension: %w", err))
+				err = errors.Join(err, fmt.Errorf("failed to marshal tool extension: %w", marshalErr))
+				continue
 			}
 
 			override := &ihttps.HttpInvocationConfig{
@@ -305,7 +308,8 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 
 			overrideRaw, marshalErr := json.Marshal(override)
 			if marshalErr != nil {
-				err = errors.Join(err, fmt.Errorf("failed to marshal tool override: %w", err))
+				err = errors.Join(err, fmt.Errorf("failed to marshal tool override: %w", marshalErr))
+				continue
 			}
 
 			tool := &mcpfile.Tool{

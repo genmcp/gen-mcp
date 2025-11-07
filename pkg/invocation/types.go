@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/jsonschema-go/jsonschema"
+	invopopschema "github.com/invopop/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -53,6 +54,10 @@ type InvokerFactory interface {
 	CreateInvoker(config InvocationConfig, primitive Primitive) (Invoker, error)
 }
 
+// InvocationConfigWrapper wraps an invocation configuration with its type.
+// In JSON, this is represented as an object with a single key indicating the type
+// (one of "http", "cli", or "extends") and the value being the configuration.
+// Example: {"http": {...}} or {"cli": {...}} or {"extends": {...}}
 type InvocationConfigWrapper struct {
 	Type   string           `json:"-"`
 	Config InvocationConfig `json:"-"`
@@ -107,4 +112,50 @@ func (w InvocationConfigWrapper) GetType() string {
 
 func (w InvocationConfigWrapper) GetConfig() InvocationConfig {
 	return w.Config
+}
+
+// JSONSchema provides a custom JSON Schema for InvocationConfigWrapper.
+// This defines it as a oneOf discriminated union where exactly one invocation type key must be present.
+func (w InvocationConfigWrapper) JSONSchema() *invopopschema.Schema {
+	httpProps := invopopschema.NewProperties()
+	httpProps.Set("http", &invopopschema.Schema{
+		Ref: "#/$defs/HttpInvocationConfig",
+	})
+
+	cliProps := invopopschema.NewProperties()
+	cliProps.Set("cli", &invopopschema.Schema{
+		Ref: "#/$defs/CliInvocationConfig",
+	})
+
+	extendsProps := invopopschema.NewProperties()
+	extendsProps.Set("extends", &invopopschema.Schema{
+		Ref: "#/$defs/ExtendsConfig",
+	})
+
+	return &invopopschema.Schema{
+		OneOf: []*invopopschema.Schema{
+			{
+				Type:                 "object",
+				Properties:           httpProps,
+				Required:             []string{"http"},
+				AdditionalProperties: invopopschema.FalseSchema,
+				Description:          "An invocation configuration using HTTP.",
+			},
+			{
+				Type:                 "object",
+				Properties:           cliProps,
+				Required:             []string{"cli"},
+				AdditionalProperties: invopopschema.FalseSchema,
+				Description:          "An invocation configuration using CLI.",
+			},
+			{
+				Type:                 "object",
+				Properties:           extendsProps,
+				Required:             []string{"extends"},
+				AdditionalProperties: invopopschema.FalseSchema,
+				Description:          "An invocation configuration that extends a base configuration.",
+			},
+		},
+		Description: "A wrapper for invocation configurations. Must contain exactly one invocation type key (http, cli, or extends) with its corresponding configuration.",
+	}
 }

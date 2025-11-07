@@ -30,6 +30,10 @@ type HttpInvocationConfig struct {
 var _ invocation.InvocationConfig = &HttpInvocationConfig{}
 
 func (hic *HttpInvocationConfig) Validate() error {
+	if hic.URL == "" {
+		return fmt.Errorf("URL is required")
+	}
+
 	// URL template validation is handled during template parsing
 	if !IsValidHttpMethod(hic.Method) {
 		return fmt.Errorf("invalid http request method: '%s'", hic.Method)

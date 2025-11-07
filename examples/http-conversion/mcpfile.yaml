@@ -1,21 +1,32 @@
-# yaml-language-server: $schema=../../specs/mcpfile-schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/mcpfile-schema-0.1.0.json
+
+invocationBases:
+  baseApi:
+    http:
+      url: http://localhost:9090
 mcpFileVersion: 0.1.0
 name: Feature Request API
 runtime:
+  loggingConfig: null
   streamableHttpConfig:
     port: 8080
   transportProtocol: streamablehttp
 tools:
-- description: Returns a list of all features sorted by upvotes (highest first)
+- annotations: null
+  description: Returns a list of all features sorted by upvotes (highest first)
   inputSchema:
     type: object
   invocation:
-    http:
-      method: GET
-      url: http://localhost:9090/features
+    extends:
+      extend:
+        url: /features
+      from: baseApi
+      override:
+        method: GET
   name: get_features
   title: Get all features
-- description: Create a new feature request
+- annotations: null
+  description: Create a new feature request
   inputSchema:
     properties:
       description:
@@ -27,23 +38,33 @@ tools:
       title:
         description: Feature title
         type: string
+    required:
+    - title
     type: object
   invocation:
-    http:
-      method: POST
-      url: http://localhost:9090/features
+    extends:
+      extend:
+        url: /features
+      from: baseApi
+      override:
+        method: POST
   name: post_features
   title: Add new feature
-- description: Returns the feature with the most upvotes. Always call get_features-id after, to give the user the full details of this feature.
+- annotations: null
+  description: Returns the feature with the most upvotes
   inputSchema:
     type: object
   invocation:
-    http:
-      method: GET
-      url: http://localhost:9090/features/top
+    extends:
+      extend:
+        url: /features/top
+      from: baseApi
+      override:
+        method: GET
   name: get_features-top
   title: Get top feature
-- description: Returns detailed information about a specific feature
+- annotations: null
+  description: Returns detailed information about a specific feature
   inputSchema:
     properties:
       id:
@@ -52,35 +73,68 @@ tools:
     - id
     type: object
   invocation:
-    http:
-      method: GET
-      url: http://localhost:9090/features/{id}
+    extends:
+      extend:
+        url: /features/{id}
+      from: baseApi
+      override:
+        method: GET
   name: get_features-id
   title: Get feature details
-- description: Increment the upvote count for a specific feature
+- annotations: null
+  description: Delete a specific feature request
+  inputSchema:
+    properties:
+      id:
+        type: integer
+    required:
+    - id
+    type: object
+  invocation:
+    extends:
+      extend:
+        url: /features/{id}
+      from: baseApi
+      override:
+        method: DELETE
+  name: delete_features-id
+  title: Delete feature
+- annotations: null
+  description: Increment the upvote count for a specific feature
   inputSchema:
     properties:
       feature_id:
         description: ID of the feature to vote for
         type: integer
+    required:
+    - feature_id
     type: object
   invocation:
-    http:
-      method: POST
-      url: http://localhost:9090/features/vote
+    extends:
+      extend:
+        url: /features/vote
+      from: baseApi
+      override:
+        method: POST
   name: post_features-vote
   title: Vote for feature
-- description: Mark a specific feature request as completed
+- annotations: null
+  description: Mark a specific feature request as completed
   inputSchema:
     properties:
       feature_id:
         description: ID of the feature to mark as completed
         type: integer
+    required:
+    - feature_id
     type: object
   invocation:
-    http:
-      method: POST
-      url: http://localhost:9090/features/complete
+    extends:
+      extend:
+        url: /features/complete
+      from: baseApi
+      override:
+        method: POST
   name: post_features-complete
   title: Mark feature as completed
 version: 0.0.1
