@@ -15,7 +15,19 @@ type VariableType int
 const (
 	VariableTypeParam VariableType = iota
 	VariableTypeEnv
+	VariableTypeSource
 )
+
+// SourceResolver resolves field values from a runtime data source.
+// Implementations adapt different data structures (http.Header, maps, etc.)
+// to provide string values for named fields.
+type SourceResolver interface {
+	Resolve(fieldName string) (string, error)
+}
+
+// SourceFactory creates a VariableFormatter for a specific field within a source.
+// Called during template parsing when encountering syntax like {source.fieldName}.
+type SourceFactory func(fieldName string) VariableFormatter
 
 // VariableFormatter formats template variables into their final values.
 // It implements a builder pattern where values are set via SetField and
@@ -43,6 +55,7 @@ type ParsedTemplate struct {
 type TemplateParserOptions struct {
 	InputSchema *jsonschema.Schema           // used to validate parameters and determine their type
 	Formatters  map[string]VariableFormatter // used to specify specific formatting options for specific variables
+	Sources     map[string]SourceFactory     // factories for creating formatters for custom sources (e.g., headers, secrets)
 }
 
 // escapePercent escapes literal % characters in template chunks by replacing % with %%
@@ -98,6 +111,16 @@ func ParseTemplate(template string, opts TemplateParserOptions) (*ParsedTemplate
 			var err error
 			if envVarName, found := strings.CutPrefix(varName, "env."); found {
 				variable, err = createEnvVariable(envVarName, paramIdx)
+			} else if dotIdx := strings.Index(varName, "."); dotIdx != -1 {
+				sourceName := varName[:dotIdx]
+				fieldName := varName[dotIdx+1:]
+				// Only treat as source if the prefix is a registered source
+				if _, isSource := opts.Sources[sourceName]; isSource {
+					variable, err = createSourceVariable(sourceName, fieldName, paramIdx, opts)
+				} else {
+					// Otherwise treat as normal schema variable (e.g., user.name)
+					variable, err = createSchemaVariable(varName, paramIdx, opts)
+				}
 			} else {
 				variable, err = createSchemaVariable(varName, paramIdx, opts)
 			}
@@ -140,13 +163,19 @@ type TemplateBuilder struct {
 	indices           map[string][]int
 	omitIfFalse       bool
 	implicitFormatter *paramFormatter // Used when omitIfFalse=true with 0 variables
+	sourceFormatters  map[string][]*SourceFormatter
 }
 
 // NewTemplateBuilder creates a new builder from a parsed template.
 func NewTemplateBuilder(pt *ParsedTemplate, omitIfFalse bool) (*TemplateBuilder, error) {
 	formatters := make([]VariableFormatter, len(pt.Variables))
+	sourceFormatters := make(map[string][]*SourceFormatter)
+
 	for i, v := range pt.Variables {
 		formatters[i] = v.VariableFormatter
+		if sf, ok := v.VariableFormatter.(*SourceFormatter); ok {
+			sourceFormatters[sf.sourceName] = append(sourceFormatters[sf.sourceName], sf)
+		}
 	}
 
 	var implicitFormatter *paramFormatter
@@ -196,6 +225,7 @@ func NewTemplateBuilder(pt *ParsedTemplate, omitIfFalse bool) (*TemplateBuilder,
 		indices:           indices,
 		omitIfFalse:       omitIfFalse,
 		implicitFormatter: implicitFormatter,
+		sourceFormatters:  sourceFormatters,
 	}, nil
 }
 
@@ -211,6 +241,19 @@ func (tb *TemplateBuilder) SetField(path string, value any) {
 
 	for _, idx := range indices {
 		tb.formatters[idx].SetField(path, value)
+	}
+}
+
+// SetSourceResolver sets the resolver for all formatters using the specified source.
+// The resolver will be used to resolve field values when GetResult is called.
+func (tb *TemplateBuilder) SetSourceResolver(sourceName string, resolver SourceResolver) {
+	formatters, ok := tb.sourceFormatters[sourceName]
+	if !ok {
+		return
+	}
+
+	for _, formatter := range formatters {
+		formatter.setResolver(resolver)
 	}
 }
 
@@ -317,6 +360,29 @@ func createSchemaVariable(varName string, paramIdx int, opts TemplateParserOptio
 	}, nil
 }
 
+func createSourceVariable(sourceName, fieldName string, paramIdx int, opts TemplateParserOptions) (*Variable, error) {
+	if sourceName == "" {
+		return nil, fmt.Errorf("source name cannot be empty")
+	}
+	if fieldName == "" {
+		return nil, fmt.Errorf("field name cannot be empty")
+	}
+
+	factory, ok := opts.Sources[sourceName]
+	if !ok {
+		return nil, fmt.Errorf("unknown source '%s'", sourceName)
+	}
+
+	formatter := factory(fieldName)
+
+	return &Variable{
+		Name:              sourceName + "." + fieldName,
+		Type:              VariableTypeSource,
+		Index:             paramIdx,
+		VariableFormatter: formatter,
+	}, nil
+}
+
 type envVarFormatter struct {
 	envVarName string
 }
@@ -372,6 +438,62 @@ func (f *paramFormatter) VariableNames() []string {
 		return []string{}
 	}
 	return []string{f.paramName}
+}
+
+// SourceFormatter is a formatter that resolves values from a runtime data source.
+// It's used internally by the template system when parsing source references like {headers.Token}.
+type SourceFormatter struct {
+	sourceName string
+	fieldName  string
+	resolver   SourceResolver
+}
+
+func (sf *SourceFormatter) SetField(path string, value any) {
+}
+
+func (sf *SourceFormatter) GetResult() (any, error) {
+	if sf.resolver == nil {
+		return "", fmt.Errorf("source '%s' not set", sf.sourceName)
+	}
+	return sf.resolver.Resolve(sf.fieldName)
+}
+
+func (sf *SourceFormatter) FormatString() string {
+	return "%s"
+}
+
+func (sf *SourceFormatter) VariableNames() []string {
+	return []string{}
+}
+
+func (sf *SourceFormatter) setResolver(r SourceResolver) {
+	sf.resolver = r
+}
+
+// NewSourceFactory creates a SourceFactory for a given source name.
+// This allows users to easily create custom sources for their templates.
+//
+// Example usage:
+//
+//	sources := map[string]template.SourceFactory{
+//	    "secrets": template.NewSourceFactory("secrets"),
+//	    "config":  template.NewSourceFactory("config"),
+//	}
+func NewSourceFactory(sourceName string) SourceFactory {
+	return func(fieldName string) VariableFormatter {
+		return &SourceFormatter{
+			sourceName: sourceName,
+			fieldName:  fieldName,
+		}
+	}
+}
+
+// CreateHeadersSourceFactory creates a source factory map with the "headers" source.
+// This is a convenience function for creating templates that can reference HTTP headers.
+func CreateHeadersSourceFactory() map[string]SourceFactory {
+	return map[string]SourceFactory{
+		"headers": NewSourceFactory("headers"),
+	}
 }
 
 // NewTemplateFormatter creates a formatter from a template string.
