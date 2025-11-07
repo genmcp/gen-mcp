@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v0.2.0]
 
 ### Added
-- `extends` invocation type for composing and extending existing invocation configurations
+- `invocationBases` schema field and `extends` invocation type for defining reusable base configurations that can be extended by multiple invocations, enabling configuration composition and reducing duplication across tools, prompts, and resources (backward compatible with existing mcpfiles)
 
 ### Changed
 - Refactored invocation configuration parsing to use generic factory pattern instead of custom parsers per type
