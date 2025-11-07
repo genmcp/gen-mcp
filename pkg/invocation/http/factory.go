@@ -23,8 +23,12 @@ func (f *InvokerFactory) CreateInvoker(config invocation.InvocationConfig, primi
 
 	hic.Method = strings.ToUpper(hic.Method)
 
+	// Create source factories for template parsing
+	sources := template.CreateHeadersSourceFactory()
+
 	parsedTemplate, err := template.ParseTemplate(hic.URL, template.TemplateParserOptions{
 		InputSchema: primitive.GetInputSchema(),
+		Sources:     sources,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse URL template: %w", err)
@@ -44,11 +48,25 @@ func (f *InvokerFactory) CreateInvoker(config invocation.InvocationConfig, primi
 		}
 	}
 
+	// Parse header templates
+	headerTemplates := make(map[string]*template.ParsedTemplate)
+	for headerName, headerTemplate := range hic.Headers {
+		pt, err := template.ParseTemplate(headerTemplate, template.TemplateParserOptions{
+			InputSchema: primitive.GetInputSchema(),
+			Sources:     sources,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse header template for '%s': %w", headerName, err)
+		}
+		headerTemplates[headerName] = pt
+	}
+
 	invoker := &HttpInvoker{
-		ParsedTemplate: parsedTemplate,
-		Method:         hic.Method,
-		InputSchema:    primitive.GetResolvedInputSchema(),
-		URITemplate:    uriTemplate,
+		ParsedTemplate:  parsedTemplate,
+		HeaderTemplates: headerTemplates,
+		Method:          hic.Method,
+		InputSchema:     primitive.GetResolvedInputSchema(),
+		URITemplate:     uriTemplate,
 	}
 
 	return invoker, nil

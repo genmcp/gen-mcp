@@ -18,19 +18,33 @@ import (
 )
 
 // testHttpInvoker creates an HttpInvoker for testing from a URL template
-func testHttpInvoker(t *testing.T, urlTemplate string, schema *jsonschema.Resolved, method string, uriTemplate string) HttpInvoker {
+func testHttpInvoker(t *testing.T, urlTemplate string, headerTemplates map[string]string, schema *jsonschema.Resolved, method string, uriTemplate string) HttpInvoker {
 	t.Helper()
+
+	sources := template.CreateHeadersSourceFactory()
 
 	parsedTemplate, err := template.ParseTemplate(urlTemplate, template.TemplateParserOptions{
 		InputSchema: schema.Schema(),
+		Sources:     sources,
 	})
 	require.NoError(t, err, "failed to parse URL template")
 
+	parsedHeaders := make(map[string]*template.ParsedTemplate)
+	for headerName, headerTemplate := range headerTemplates {
+		pt, err := template.ParseTemplate(headerTemplate, template.TemplateParserOptions{
+			InputSchema: schema.Schema(),
+			Sources:     sources,
+		})
+		require.NoError(t, err, "failed to parse header template for '%s'", headerName)
+		parsedHeaders[headerName] = pt
+	}
+
 	return HttpInvoker{
-		ParsedTemplate: parsedTemplate,
-		InputSchema:    schema,
-		Method:         method,
-		URITemplate:    uriTemplate,
+		ParsedTemplate:  parsedTemplate,
+		HeaderTemplates: parsedHeaders,
+		InputSchema:     schema,
+		Method:          method,
+		URITemplate:     uriTemplate,
 	}
 }
 
@@ -58,6 +72,7 @@ func TestHttpInvocation(t *testing.T) {
 		responseCode      int
 		responseBody      func() []byte
 		urlTemplate       string
+		headerTemplates   map[string]string
 		schema            *jsonschema.Resolved
 		method            string
 		request           *mcp.CallToolRequest
@@ -66,6 +81,7 @@ func TestHttpInvocation(t *testing.T) {
 		expectedPath      string
 		expectedQuery     neturl.Values
 		expectedBody      map[string]any
+		expectedHeaders   nethttp.Header
 		expectError       bool
 	}{
 		{
@@ -144,6 +160,137 @@ func TestHttpInvocation(t *testing.T) {
 			},
 			expectedPath: "/hello/1/world",
 		},
+		{
+			name:         "GET request with static header",
+			responseCode: 200,
+			responseBody: func() []byte { return []byte("authenticated!") },
+			urlTemplate:  "/secure",
+			headerTemplates: map[string]string{
+				"Authorization": "Bearer secret-token",
+				"X-Custom":      "static-value",
+			},
+			schema: resolvedEmpty,
+			method: "GET",
+			request: &mcp.CallToolRequest{
+				Params: &mcp.CallToolParamsRaw{
+					Arguments: []byte("{}"),
+				},
+			},
+			expectedResult: &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "authenticated!",
+					},
+				},
+			},
+			expectedReqMethod: "GET",
+			expectedQuery:     make(neturl.Values),
+			expectedPath:      "/secure",
+			expectedHeaders: nethttp.Header{
+				"Authorization": []string{"Bearer secret-token"},
+				"X-Custom":      []string{"static-value"},
+			},
+		},
+		{
+			name:         "POST request with header from request params",
+			responseCode: 200,
+			responseBody: func() []byte { return []byte("created!") },
+			urlTemplate:  "/items",
+			headerTemplates: map[string]string{
+				"X-User-Id": "{path.part1}",
+			},
+			schema: resolvedWithPath,
+			method: "POST",
+			request: &mcp.CallToolRequest{
+				Params: &mcp.CallToolParamsRaw{
+					Arguments: []byte(`{"path": {"part1": 42, "part2": "test"}}`),
+				},
+			},
+			expectedResult: &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "created!",
+					},
+				},
+			},
+			expectedReqMethod: "POST",
+			expectedQuery:     make(neturl.Values),
+			expectedPath:      "/items",
+			expectedBody: map[string]any{
+				"path": map[string]any{
+					"part1": float64(42),
+					"part2": "test",
+				},
+			},
+			expectedHeaders: nethttp.Header{
+				"X-User-Id": []string{"42"},
+			},
+		},
+		{
+			name:         "GET request with header from incoming request headers",
+			responseCode: 200,
+			responseBody: func() []byte { return []byte("proxied!") },
+			urlTemplate:  "/proxy",
+			headerTemplates: map[string]string{
+				"X-Forwarded-Auth": "{headers.Authorization}",
+				"X-Request-Id":     "{headers.X-Request-Id}",
+			},
+			schema: resolvedEmpty,
+			method: "GET",
+			request: &mcp.CallToolRequest{
+				Params: &mcp.CallToolParamsRaw{
+					Arguments: []byte("{}"),
+				},
+				Extra: &mcp.RequestExtra{
+					Header: nethttp.Header{
+						"Authorization": []string{"Bearer incoming-token"},
+						"X-Request-Id":  []string{"req-123"},
+					},
+				},
+			},
+			expectedResult: &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "proxied!",
+					},
+				},
+			},
+			expectedReqMethod: "GET",
+			expectedQuery:     make(neturl.Values),
+			expectedPath:      "/proxy",
+			expectedHeaders: nethttp.Header{
+				"X-Forwarded-Auth": []string{"Bearer incoming-token"},
+				"X-Request-Id":     []string{"req-123"},
+			},
+		},
+		{
+			name:         "GET request with header source in URL template",
+			responseCode: 200,
+			responseBody: func() []byte { return []byte("url from header!") },
+			urlTemplate:  "/users/{headers.X-User-Name}",
+			schema:       resolvedEmpty,
+			method:       "GET",
+			request: &mcp.CallToolRequest{
+				Params: &mcp.CallToolParamsRaw{
+					Arguments: []byte("{}"),
+				},
+				Extra: &mcp.RequestExtra{
+					Header: nethttp.Header{
+						"X-User-Name": []string{"alice"},
+					},
+				},
+			},
+			expectedResult: &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "url from header!",
+					},
+				},
+			},
+			expectedReqMethod: "GET",
+			expectedQuery:     make(neturl.Values),
+			expectedPath:      "/users/alice",
+		},
 	}
 
 	for _, tc := range tt {
@@ -154,10 +301,12 @@ func TestHttpInvocation(t *testing.T) {
 			var receivedBody map[string]any
 			var receievedMethod string
 			var receivedPath string
+			var receivedHeaders nethttp.Header
 			s := httptest.NewServer(nethttp.HandlerFunc(func(w nethttp.ResponseWriter, r *nethttp.Request) {
 				receievedMethod = r.Method
 				receivedQuery = r.URL.Query()
 				receivedPath = r.URL.Path
+				receivedHeaders = r.Header.Clone()
 				if r.ContentLength > 0 {
 					defer func() {
 						_ = r.Body.Close()
@@ -175,7 +324,7 @@ func TestHttpInvocation(t *testing.T) {
 			}))
 			defer s.Close()
 
-			httpInvoker := testHttpInvoker(t, s.URL+tc.urlTemplate, tc.schema, tc.method, "")
+			httpInvoker := testHttpInvoker(t, s.URL+tc.urlTemplate, tc.headerTemplates, tc.schema, tc.method, "")
 
 			res, err := httpInvoker.Invoke(context.Background(), tc.request)
 			if tc.expectError {
@@ -193,6 +342,12 @@ func TestHttpInvocation(t *testing.T) {
 			assert.Equal(t, tc.expectedBody, receivedBody, "http body should match")
 			assert.Equal(t, tc.expectedResult, res, "mcp tool call result should match")
 			assert.Equal(t, tc.expectedPath, receivedPath, "http path should match")
+
+			if tc.expectedHeaders != nil {
+				for headerName, expectedValues := range tc.expectedHeaders {
+					assert.Equal(t, expectedValues, receivedHeaders[headerName], "header %s should match", headerName)
+				}
+			}
 		})
 	}
 }
@@ -347,7 +502,7 @@ func TestHttpPromptInvocation(t *testing.T) {
 			}))
 			defer s.Close()
 
-			httpInvoker := testHttpInvoker(t, s.URL+tc.urlTemplate, tc.schema, tc.method, "")
+			httpInvoker := testHttpInvoker(t, s.URL+tc.urlTemplate, nil, tc.schema, tc.method, "")
 
 			res, err := httpInvoker.InvokePrompt(context.Background(), tc.request)
 			if tc.expectError {
@@ -428,7 +583,7 @@ func TestHttpPromptInvocationErrors(t *testing.T) {
 			}))
 			defer s.Close()
 
-			httpInvoker := testHttpInvoker(t, s.URL+tc.urlTemplate, tc.schema, tc.method, "")
+			httpInvoker := testHttpInvoker(t, s.URL+tc.urlTemplate, nil, tc.schema, tc.method, "")
 
 			_, err := httpInvoker.InvokePrompt(context.Background(), tc.request)
 			if tc.expectError {
@@ -532,7 +687,7 @@ func TestHttpResourceInvocation(t *testing.T) {
 			}))
 			defer s.Close()
 
-			httpInvoker := testHttpInvoker(t, s.URL+tc.urlTemplate, tc.schema, tc.method, "")
+			httpInvoker := testHttpInvoker(t, s.URL+tc.urlTemplate, nil, tc.schema, tc.method, "")
 
 			res, err := httpInvoker.InvokeResource(context.Background(), tc.request)
 			if tc.expectError {
@@ -713,7 +868,7 @@ func TestHttpResourceTemplateInvocation(t *testing.T) {
 			}))
 			defer s.Close()
 
-			httpInvoker := testHttpInvoker(t, s.URL+tc.urlTemplate, tc.schema, tc.method, tc.uriTemplate)
+			httpInvoker := testHttpInvoker(t, s.URL+tc.urlTemplate, nil, tc.schema, tc.method, tc.uriTemplate)
 
 			res, err := httpInvoker.InvokeResourceTemplate(context.Background(), tc.request)
 			if tc.expectError {
