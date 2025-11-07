@@ -24,6 +24,9 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Fetch all tags
+        run: git fetch --tags --force
+
       - name: Validate release branch format
         run: |
           if [[ ! "${{ inputs.release_branch }}" =~ ^release/v[0-9]+\.[0-9]+$ ]]; then
@@ -136,6 +139,9 @@ jobs:
           ref: ${{ inputs.release_branch }}
           fetch-depth: 0
           fetch-tags: true
+
+      - name: Fetch all tags
+        run: git fetch --tags --force
 
       - name: Set up go
         uses: actions/setup-go@v6
