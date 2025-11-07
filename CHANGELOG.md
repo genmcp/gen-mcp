@@ -5,17 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.2.0]
+## [v0.1.1]
 
 ### Added
 - `invocationBases` schema field and `extends` invocation type for defining reusable base configurations that can be extended by multiple invocations, enabling configuration composition and reducing duplication across tools, prompts, and resources (backward compatible with existing mcpfiles) (#203)
 - HTTP header support for `http` invocations, allowing static and templated headers with support for input parameters, incoming request headers (streamablehttp only), and environment variables (#204)
+- Request header support for `cli` invocations, allowing input parameters to reference incoming request headers (streamablehttp only) (#205)
 
 ### Changed
-- Refactored invocation configuration parsing to use generic factory pattern instead of custom parsers per type
+- Refactored invocation configuration parsing to use generic factory pattern instead of custom parsers per type (#203)
+- `genmcp build` now defaults to building multi-arch images (linux/amd64 and linux/arm64), with the `--platform` flag allowing single-platform builds for faster iteration (#196)
 
 ### Removed
-- Custom invocation config parsers for CLI and HTTP types in favor of unified factory approach
+- Custom invocation config parsers for CLI and HTTP types in favor of unified factory approach (#203)
 
 ## [v0.1.0]
 
@@ -34,7 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - gRPC integration demo showcasing GenMCP with gRPC services (#153)
 
 ### Changed
-- `genmcp build` now defaults to building multi-arch images (linux/amd64 and linux/arm64), with the `--platform` flag allowing single-platform builds for faster iteration
 - **BREAKING**: Simplified mcpfile format by embedding server fields directly, migrated format version to v0.1.0 (#137)
 - GenMCP now uses the official [Model Context Protocol Go SDK](https://github.com/modelcontextprotocol/go-sdk) (#90)
 - Bumped MCP Go-SDK to v1.0.0 release (#134)
