@@ -351,7 +351,11 @@ func (hi *HttpInvoker) executeHTTPRequest(
 		logger.Error("HTTP request execution failed")
 		return nil, nil, err
 	}
-	defer response.Body.Close()
+	defer func() {
+		if cerr := response.Body.Close(); cerr != nil {
+			baseLogger.Warn("Failed to close HTTP response body", append(logFields, zap.Error(cerr))...)
+		}
+	}()
 
 	responseBody, readErr := io.ReadAll(response.Body)
 	if readErr != nil {
@@ -367,7 +371,6 @@ func (hi *HttpInvoker) executeHTTPRequest(
 
 	return response, responseBody, nil
 }
-
 
 // prepareRequestBody creates a JSON body from the parsed arguments,
 // excluding any variables that are used in the URL template.
@@ -631,4 +634,3 @@ func deletePathFromMap(m map[string]any, path string) {
 		delete(parentMap, keys[len(keys)-2])
 	}
 }
-

@@ -34,7 +34,7 @@ type HttpInvocationConfig struct {
 	// Values can contain placeholders in the form of {headers.paramName} which correspond to headers from the incoming
 	// http request (won't work in stdio).
 	// Values can contain placeholders in the form of ${ENV_VAR_NAME} or {env.ENV_VAR_NAME} which correspond to env vars
-	Headers map[string]string
+	Headers map[string]string `json:"headers,omitempty" jsonschema:"optional"`
 
 	// The HTTP method to be used for the request (e.g., "GET", "POST").
 	Method string `json:"method,omitempty" jsonschema:"required,enum=GET,enum=POST,enum=PUT,enum=PATCH,enum=DELETE,enum=HEAD"`

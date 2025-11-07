@@ -74,7 +74,7 @@
           "type": "string",
           "description": "The URL for the HTTP request.\n\nIt can contain placeholders in the form of {paramName} which correspond to parameters from the input schema.\nIt can contain placeholders in the form of {headers.paramName} which correspond to headers from the incoming\nhttp request (won't work in stdio).\nIt can contain placeholders in the form of ${ENV_VAR_NAME} or {env.ENV_VAR_NAME} which correspond to env vars"
         },
-        "Headers": {
+        "headers": {
           "additionalProperties": {
             "type": "string"
           },
