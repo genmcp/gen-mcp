@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
 	"github.com/genmcp/gen-mcp/pkg/invocation"
@@ -16,8 +17,11 @@ import (
 func testCliInvoker(t *testing.T, commandTemplate string, schema *jsonschema.Resolved, uriTemplate string) CliInvoker {
 	t.Helper()
 
+	sources := template.CreateHeadersSourceFactory()
+
 	parsedTemplate, err := template.ParseTemplate(commandTemplate, template.TemplateParserOptions{
 		InputSchema: schema.Schema(),
+		Sources:     sources,
 	})
 	require.NoError(t, err, "failed to parse command template")
 
@@ -142,6 +146,47 @@ func TestCliInvocation(t *testing.T) {
 				assert.Len(t, result.Content, 1)
 				textContent := result.Content[0].(*mcp.TextContent)
 				assert.Contains(t, textContent.Text, "Command execution failed")
+			},
+		},
+		{
+			name:            "command with header from incoming request headers",
+			commandTemplate: "echo 'User: {headers.X-User-Name}, ID: {headers.X-Request-Id}'",
+			schema:          resolvedEmpty,
+			request: &mcp.CallToolRequest{
+				Params: &mcp.CallToolParamsRaw{
+					Arguments: []byte("{}"),
+				},
+				Extra: &mcp.RequestExtra{
+					Header: http.Header{
+						"X-User-Name":  []string{"alice"},
+						"X-Request-Id": []string{"req-123"},
+					},
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.CallToolResult) {
+				assert.Len(t, result.Content, 1)
+				textContent := result.Content[0].(*mcp.TextContent)
+				assert.Equal(t, "User: alice, ID: req-123\n", textContent.Text)
+			},
+		},
+		{
+			name:            "command with header and path parameter",
+			commandTemplate: "echo 'Path: {path}, Auth: {headers.Authorization}'",
+			schema:          resolvedWithPath,
+			request: &mcp.CallToolRequest{
+				Params: &mcp.CallToolParamsRaw{
+					Arguments: []byte("{\"path\": \"/tmp\"}"),
+				},
+				Extra: &mcp.RequestExtra{
+					Header: http.Header{
+						"Authorization": []string{"Bearer token-123"},
+					},
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.CallToolResult) {
+				assert.Len(t, result.Content, 1)
+				textContent := result.Content[0].(*mcp.TextContent)
+				assert.Equal(t, "Path: /tmp, Auth: Bearer token-123\n", textContent.Text)
 			},
 		},
 	}
@@ -337,6 +382,52 @@ func TestCliPromptInvocation(t *testing.T) {
 				assert.Equal(t, mcp.Role("assistant"), result.Messages[0].Role)
 				textContent := result.Messages[0].Content.(*mcp.TextContent)
 				assert.Contains(t, textContent.Text, "Command execution failed")
+			},
+		},
+		{
+			name:            "prompt with header from incoming request headers",
+			commandTemplate: "echo 'Auth: {headers.Authorization}'",
+			schema:          resolvedEmpty,
+			request: &mcp.GetPromptRequest{
+				Params: &mcp.GetPromptParams{
+					Name:      "auth-prompt",
+					Arguments: map[string]string{},
+				},
+				Extra: &mcp.RequestExtra{
+					Header: http.Header{
+						"Authorization": []string{"Bearer prompt-token"},
+					},
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.GetPromptResult) {
+				assert.Len(t, result.Messages, 1)
+				assert.Equal(t, mcp.Role("assistant"), result.Messages[0].Role)
+				textContent := result.Messages[0].Content.(*mcp.TextContent)
+				assert.Equal(t, "Auth: Bearer prompt-token\n", textContent.Text)
+			},
+		},
+		{
+			name:            "prompt with header and argument",
+			commandTemplate: "echo 'Path: {path}, User: {headers.X-User-Name}'",
+			schema:          resolvedWithPath,
+			request: &mcp.GetPromptRequest{
+				Params: &mcp.GetPromptParams{
+					Name: "path-user-prompt",
+					Arguments: map[string]string{
+						"path": "/data",
+					},
+				},
+				Extra: &mcp.RequestExtra{
+					Header: http.Header{
+						"X-User-Name": []string{"bob"},
+					},
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.GetPromptResult) {
+				assert.Len(t, result.Messages, 1)
+				assert.Equal(t, mcp.Role("assistant"), result.Messages[0].Role)
+				textContent := result.Messages[0].Content.(*mcp.TextContent)
+				assert.Equal(t, "Path: /data, User: bob\n", textContent.Text)
 			},
 		},
 	}
@@ -553,6 +644,61 @@ func TestCliResourceTemplateInvocation(t *testing.T) {
 				},
 			},
 			expectError: true,
+		},
+		{
+			name:            "resource template with header from incoming request headers",
+			commandTemplate: "echo 'City: {city}, Auth: {headers.Authorization}'",
+			schema: func() *jsonschema.Resolved {
+				schema := &jsonschema.Schema{
+					Type: invocation.JsonSchemaTypeObject,
+					Properties: map[string]*jsonschema.Schema{
+						"city": {Type: invocation.JsonSchemaTypeString},
+					},
+					Required: []string{"city"},
+				}
+				resolved, _ := schema.Resolve(nil)
+				return resolved
+			}(),
+			uriTemplate: "weather://city/{city}",
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "weather://city/Tokyo",
+				},
+				Extra: &mcp.RequestExtra{
+					Header: http.Header{
+						"Authorization": []string{"Bearer resource-token"},
+					},
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.ReadResourceResult) {
+				assert.NotNil(t, result)
+				assert.Len(t, result.Contents, 1)
+				assert.Equal(t, "weather://city/Tokyo", result.Contents[0].URI)
+				assert.Contains(t, result.Contents[0].Text, "City: Tokyo")
+				assert.Contains(t, result.Contents[0].Text, "Auth: Bearer resource-token")
+			},
+		},
+		{
+			name:            "resource template with URI params and headers",
+			commandTemplate: "echo 'City: {city}, Date: {date}, User: {headers.X-User-Name}'",
+			schema:          resolvedWithCityDate,
+			uriTemplate:     "weather://forecast/{city}/{date}",
+			request: &mcp.ReadResourceRequest{
+				Params: &mcp.ReadResourceParams{
+					URI: "weather://forecast/Paris/2025-11-08",
+				},
+				Extra: &mcp.RequestExtra{
+					Header: http.Header{
+						"X-User-Name": []string{"charlie"},
+					},
+				},
+			},
+			expectedResult: func(t *testing.T, result *mcp.ReadResourceResult) {
+				assert.NotNil(t, result)
+				assert.Len(t, result.Contents, 1)
+				assert.Equal(t, "weather://forecast/Paris/2025-11-08", result.Contents[0].URI)
+				assert.Equal(t, "City: Paris, Date: 2025-11-08, User: charlie\n", result.Contents[0].Text)
+			},
 		},
 	}
 
