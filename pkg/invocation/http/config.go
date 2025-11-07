@@ -21,10 +21,10 @@ var validHttpMethods = map[string]struct{}{
 // This is a pure data structure with no parsing logic - all struct tags only.
 type HttpInvocationConfig struct {
 	// The URL for the HTTP request. It can contain placeholders in the form of {paramName} which correspond to parameters from the input schema.
-	URL string `json:"url" jsonschema:"required"`
+	URL string `json:"url,omitempty" jsonschema:"required"` // even though this is required for the type, we don't require it on every nested extends instance of this struct, so we have omitempty
 
 	// The HTTP method to be used for the request (e.g., "GET", "POST").
-	Method string `json:"method" jsonschema:"required,enum=GET,enum=POST,enum=PUT,enum=PATCH,enum=DELETE,enum=HEAD"`
+	Method string `json:"method,omitempty" jsonschema:"required,enum=GET,enum=POST,enum=PUT,enum=PATCH,enum=DELETE,enum=HEAD"`
 }
 
 var _ invocation.InvocationConfig = &HttpInvocationConfig{}
