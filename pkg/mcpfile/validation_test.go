@@ -1,14 +1,14 @@
 package mcpfile
 
 import (
-	"encoding/json"
 	"testing"
 
+	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMCPFileValidate(t *testing.T) {
-	mockValidator := func(invocationType string, data json.RawMessage, primitive Primitive) error {
+	mockValidator := func(primitive invocation.Primitive) error {
 		return nil
 	}
 

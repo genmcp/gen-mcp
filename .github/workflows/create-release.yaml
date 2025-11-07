@@ -106,6 +106,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write  # Permission for keyless signing
     strategy:
       matrix:
         goos: [linux, windows, darwin]
@@ -119,7 +120,10 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
-      - name: Build genmcp
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4
+
+      - name: Build genmcp CLI
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
@@ -136,13 +140,50 @@ jobs:
 
           zip "${CLI_NAME}-${GOOS}-${GOARCH}.zip" "${OUTPUT_NAME}"
 
-      - name: Upload assets to release
+      - name: Build genmcp-server
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          make build-server-platform GOOS=${GOOS} GOARCH=${GOARCH}
+
+          SERVER_NAME="genmcp-server"
+          if [ "${GOOS}" == "windows" ]; then
+            OUTPUT_NAME="${SERVER_NAME}-${GOOS}-${GOARCH}.exe"
+          else
+            OUTPUT_NAME="${SERVER_NAME}-${GOOS}-${GOARCH}"
+          fi
+
+          zip "${SERVER_NAME}-${GOOS}-${GOARCH}.zip" "${OUTPUT_NAME}"
+
+      - name: Sign CLI and Server ZIP files  # Step to sign artifacts
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          # Define file names
+          CLI_ZIP="genmcp-${GOOS}-${GOARCH}.zip"
+          SERVER_ZIP="genmcp-server-${GOOS}-${GOARCH}.zip"
+
+          echo "Signing ${CLI_ZIP}..."
+          # Sign the blob, outputting a signature and certificate
+          cosign sign-blob --yes "${CLI_ZIP}" \
+            --output-signature "${CLI_ZIP}.sig" \
+            --output-certificate "${CLI_ZIP}.pem"
+
+          echo "Signing ${SERVER_ZIP}..."
+          cosign sign-blob --yes "${SERVER_ZIP}" \
+            --output-signature "${SERVER_ZIP}.sig" \
+            --output-certificate "${SERVER_ZIP}.pem"
+
+      - name: Upload assets to release  # Upload all artifacts
         run: |
           VERSION="${{ needs.determine-version.outputs.prerelease_version }}"
           
-          # Upload assets
-          for file in *.zip; do
+          # Upload all zips, signatures (.sig), and certificates (.pem)
+          for file in *.zip *.sig *.pem; do
             if [ -f "$file" ]; then
+              echo "Uploading $file..."
               gh release upload "$VERSION" "$file" --clobber
             fi
           done

@@ -9,77 +9,63 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/genmcp/gen-mcp/pkg/invocation/utils"
 	"github.com/genmcp/gen-mcp/pkg/observability/logging"
+	"github.com/genmcp/gen-mcp/pkg/template"
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/yosida95/uritemplate/v3"
 	"go.uber.org/zap"
 )
 
-type Formatter interface {
-	FormatValue(v any) string
-}
-
 type CliInvoker struct {
-	CommandTemplate    string               // template string for the command to execute
-	ArgumentIndices    map[string]int       // map to where each argument should go in the command
-	ArgumentFormatters map[string]Formatter // map to the functions to format each variable
-	InputSchema        *jsonschema.Resolved // InputSchema for the tool
-	URITemplate        string               // MCP URI template (for resource templates only)
+	ParsedTemplate *template.ParsedTemplate // Parsed template for the command
+	InputSchema    *jsonschema.Resolved     // InputSchema for the tool
+	URITemplate    string                   // MCP URI template (for resource templates only)
 }
 
 var _ invocation.Invoker = &CliInvoker{}
 
+// newCommandBuilder creates a new commandBuilder from the parsed template.
+// A new builder is created for each invocation to avoid sharing state.
+func (ci *CliInvoker) newCommandBuilder() (*commandBuilder, error) {
+	// Create a new TemplateBuilder for this invocation
+	// Note: omitIfFalse is handled by the formatters created during parsing
+	templateBuilder, err := template.NewTemplateBuilder(ci.ParsedTemplate, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create template builder: %w", err)
+	}
+
+	// Create variable names set for routing
+	templateVarNames := make(map[string]bool)
+	for _, varName := range templateBuilder.VariableNames() {
+		templateVarNames[varName] = true
+	}
+
+	return &commandBuilder{
+		templateBuilder:  templateBuilder,
+		templateVarNames: templateVarNames,
+		extraArgs:        make(map[string]any),
+	}, nil
+}
+
 func (ci *CliInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	logger := logging.FromContext(ctx)
-	baseLogger := logging.BaseFromContext(ctx) // Server-side only for sensitive details
-
 	logger.Debug("Starting CLI tool invocation")
 
-	cb := &commandBuilder{
-		commandTemplate: ci.CommandTemplate,
-		argIndices:      ci.ArgumentIndices,
-		argFormatters:   ci.ArgumentFormatters,
-		argValues:       make([]any, len(ci.ArgumentIndices)),
-		extraArgs:       make(map[string]any),
+	// Extract incoming headers from request
+	var incomingHeaders map[string][]string
+	if req.Extra != nil {
+		incomingHeaders = req.Extra.Header
 	}
 
-	dj := &invocation.DynamicJson{
-		Builders: []invocation.Builder{cb},
-	}
-
-	parsed, err := dj.ParseJson(req.Params.Arguments, ci.InputSchema.Schema())
+	command, _, err := ci.buildCommandFromArgs(ctx, req.Params.Arguments, incomingHeaders)
 	if err != nil {
-		logger.Error("Failed to parse CLI tool call request", zap.Error(err))
-		return nil, fmt.Errorf("failed to parse tool call request: %w", err)
+		return nil, err
 	}
 
-	err = ci.InputSchema.Validate(parsed)
+	output, err := ci.executeCommand(ctx, command, nil)
 	if err != nil {
-		logger.Error("Failed to validate CLI tool call request", zap.Error(err))
-		return nil, fmt.Errorf("failed to validate tool call request: %w", err)
-	}
-
-	command, _ := cb.GetResult()
-
-	// Server-side only logging with sensitive command details
-	baseLogger.Debug("Executing CLI command", zap.String("command", command.(string)))
-
-	cmd := exec.Command("bash", "-c", command.(string))
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		baseLogger.Error("CLI command execution failed",
-			zap.String("command", command.(string)),
-			zap.String("output", string(output)),
-			zap.Error(err))
-		logger.Error("CLI command execution failed")
 		return utils.McpTextError("Command execution failed:\n%s", string(output)), nil
 	}
-
-	// Server-side only logging with sensitive command details
-	baseLogger.Info("CLI command executed successfully",
-		zap.String("command", command.(string)),
-		zap.Int("output_length", len(output)))
 
 	logger.Info("CLI tool invocation completed successfully")
 
@@ -92,52 +78,111 @@ func (ci *CliInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*mc
 	}, nil
 }
 
-type commandBuilder struct {
-	commandTemplate string
-	argIndices      map[string]int
-	argFormatters   map[string]Formatter
-	argValues       []any
-	extraArgs       map[string]any
-}
-
-func (cb *commandBuilder) SetField(path string, value any) {
-	idx, ok := cb.argIndices[path]
-	if ok {
-		cb.argValues[idx] = value
-	} else {
-		cb.extraArgs[path] = value
-	}
-}
-
-func (cb *commandBuilder) GetResult() (any, error) {
-	for argName, argIdx := range cb.argIndices {
-		cb.argValues[argIdx] = cb.argFormatters[argName].FormatValue(cb.argValues[argIdx])
-	}
-
-	formattedParts := make([]string, 0, len(cb.extraArgs)+1)
-	formattedParts = append(formattedParts, fmt.Sprintf(cb.commandTemplate, cb.argValues...))
-	for argName, argVal := range cb.extraArgs {
-		formattedParts = append(formattedParts, fmt.Sprintf("--%s=%v", argName, argVal))
-	}
-
-	return strings.Join(formattedParts, " "), nil
-}
-
-func (ci *CliInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+// executeCommand handles the common command execution cycle.
+// It centralizes command creation, execution, output reading, and logging.
+// Returns the output bytes and error. Logs sensitive command details to baseLogger only.
+func (ci *CliInvoker) executeCommand(
+	ctx context.Context,
+	command string,
+	contextInfo map[string]string, // additional context for logging (e.g., "uri", "template")
+) ([]byte, error) {
 	logger := logging.FromContext(ctx)
-	baseLogger := logging.BaseFromContext(ctx) // Server-side only for sensitive details
+	baseLogger := logging.BaseFromContext(ctx)
 
-	logger.Debug("Starting CLI prompt invocation")
-
-	cb := &commandBuilder{
-		commandTemplate: ci.CommandTemplate,
-		argIndices:      ci.ArgumentIndices,
-		argFormatters:   ci.ArgumentFormatters,
-		argValues:       make([]any, len(ci.ArgumentIndices)),
-		extraArgs:       make(map[string]any),
+	// Build log fields with sensitive command details
+	logFields := []zap.Field{
+		zap.String("command", command),
+	}
+	for k, v := range contextInfo {
+		logFields = append(logFields, zap.String(k, v))
 	}
 
-	promptArgs := req.Params.Arguments
+	baseLogger.Debug("Executing CLI command", logFields...)
+
+	cmd := exec.Command("bash", "-c", command)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		baseLogger.Error("CLI command execution failed", append(logFields,
+			zap.String("output", string(output)),
+			zap.Error(err))...)
+		logger.Error("CLI command execution failed")
+		return output, err
+	}
+
+	// Server-side only logging with sensitive command details
+	baseLogger.Info("CLI command executed successfully", append(logFields,
+		zap.Int("output_length", len(output)))...)
+
+	return output, nil
+}
+
+// buildCommandFromArgs creates a command builder, parses and validates arguments,
+// and returns the built command string along with the parsed argument map.
+func (ci *CliInvoker) buildCommandFromArgs(
+	ctx context.Context,
+	argsBytes []byte,
+	incomingHeaders map[string][]string,
+) (string, map[string]any, error) {
+	logger := logging.FromContext(ctx)
+
+	cb, err := ci.newCommandBuilder()
+	if err != nil {
+		logger.Error("Failed to create command builder", zap.Error(err))
+		return "", nil, fmt.Errorf("failed to create command builder: %w", err)
+	}
+
+	// Set up source resolver for incoming headers if provided
+	if incomingHeaders != nil {
+		headerResolver := template.NewHttpHeaderResolver(incomingHeaders)
+		cb.SetSourceResolver("headers", headerResolver)
+	}
+
+	dj := &invocation.DynamicJson{
+		Builders: []invocation.Builder{cb},
+	}
+
+	parsed, err := dj.ParseJson(argsBytes, ci.InputSchema.Schema())
+	if err != nil {
+		logger.Error("Failed to parse request arguments", zap.Error(err))
+		return "", nil, fmt.Errorf("failed to parse request: %w", err)
+	}
+
+	if err := ci.InputSchema.Validate(parsed); err != nil {
+		logger.Error("Failed to validate request arguments", zap.Error(err))
+		return "", nil, fmt.Errorf("failed to validate request: %w", err)
+	}
+
+	command, err := cb.GetResult()
+	if err != nil {
+		logger.Error("Failed to build command", zap.Error(err))
+		return "", nil, fmt.Errorf("failed to build command: %w", err)
+	}
+
+	return command.(string), parsed, nil
+}
+
+// buildCommandFromPromptArgs creates a command builder from prompt arguments (map[string]string),
+// validates them, and returns the built command string.
+func (ci *CliInvoker) buildCommandFromPromptArgs(
+	ctx context.Context,
+	promptArgs map[string]string,
+	incomingHeaders map[string][]string,
+) (string, error) {
+	logger := logging.FromContext(ctx)
+
+	cb, err := ci.newCommandBuilder()
+	if err != nil {
+		logger.Error("Failed to create command builder", zap.Error(err))
+		return "", fmt.Errorf("failed to create command builder: %w", err)
+	}
+
+	// Set up source resolver for incoming headers if provided
+	if incomingHeaders != nil {
+		headerResolver := template.NewHttpHeaderResolver(incomingHeaders)
+		cb.SetSourceResolver("headers", headerResolver)
+	}
+
 	if promptArgs == nil {
 		promptArgs = make(map[string]string)
 	}
@@ -150,35 +195,97 @@ func (ci *CliInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReques
 	}
 
 	if err := ci.InputSchema.Validate(argsForValidation); err != nil {
-		logger.Error("Failed to validate CLI prompt request arguments", zap.Error(err))
-		return nil, fmt.Errorf("failed to validate prompt request: %w", err)
+		logger.Error("Failed to validate prompt request arguments", zap.Error(err))
+		return "", fmt.Errorf("failed to validate prompt request: %w", err)
 	}
 
 	command, err := cb.GetResult()
 	if err != nil {
-		logger.Error("Failed to build CLI prompt command", zap.Error(err))
-		return nil, fmt.Errorf("failed to build command: %w", err)
+		logger.Error("Failed to build command", zap.Error(err))
+		return "", fmt.Errorf("failed to build command: %w", err)
 	}
 
-	// Server-side only logging with sensitive command details
-	baseLogger.Debug("Executing CLI prompt command", zap.String("command", command.(string)))
+	return command.(string), nil
+}
 
-	cmd := exec.Command("bash", "-c", command.(string))
+// extractArgsFromURI extracts argument values from a URI by matching it against the URI template.
+// Returns a map of argument names to values and the command builder populated with those values.
+func (ci *CliInvoker) extractArgsFromURI(
+	ctx context.Context,
+	uri string,
+	incomingHeaders map[string][]string,
+) (*commandBuilder, map[string]any, error) {
+	logger := logging.FromContext(ctx)
 
-	output, err := cmd.CombinedOutput()
+	cb, err := ci.newCommandBuilder()
 	if err != nil {
-		baseLogger.Error("CLI prompt command execution failed",
-			zap.String("command", command.(string)),
-			zap.String("output", string(output)),
+		logger.Error("Failed to create command builder", zap.Error(err))
+		return nil, nil, fmt.Errorf("failed to create command builder: %w", err)
+	}
+
+	// Set up source resolver for incoming headers if provided
+	if incomingHeaders != nil {
+		headerResolver := template.NewHttpHeaderResolver(incomingHeaders)
+		cb.SetSourceResolver("headers", headerResolver)
+	}
+
+	// URI template syntax is validated during parsing, so we can safely use it here
+	uriTmpl, _ := uritemplate.New(ci.URITemplate)
+
+	// Match the incoming URI against the template to extract argument values
+	matches := uriTmpl.Match(uri)
+	if matches == nil {
+		logger.Error("URI does not match CLI resource template",
+			zap.String("uri", uri),
+			zap.String("template", ci.URITemplate))
+		return nil, nil, fmt.Errorf("URI does not match template")
+	}
+
+	// Extract arguments and populate command builder
+	argsMap := make(map[string]any)
+	for _, paramName := range uriTmpl.Varnames() {
+		if val := matches.Get(paramName); val.Valid() {
+			argValue := val.String()
+			cb.SetField(paramName, argValue)
+			argsMap[paramName] = argValue
+		} else {
+			logger.Error("Missing required parameter in resource template",
+				zap.String("parameter", paramName),
+				zap.String("uri", uri),
+				zap.String("template", ci.URITemplate))
+			return nil, nil, fmt.Errorf("missing required parameter: %s", paramName)
+		}
+	}
+
+	if err := ci.InputSchema.Validate(argsMap); err != nil {
+		logger.Error("Failed to validate resource template request",
+			zap.String("uri", uri),
 			zap.Error(err))
-		logger.Error("CLI prompt command execution failed")
+		return nil, nil, fmt.Errorf("failed to validate resource template request: %w", err)
+	}
+
+	return cb, argsMap, nil
+}
+
+func (ci *CliInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+	logger := logging.FromContext(ctx)
+	logger.Debug("Starting CLI prompt invocation")
+
+	// Extract incoming headers from request
+	var incomingHeaders map[string][]string
+	if req.Extra != nil {
+		incomingHeaders = req.Extra.Header
+	}
+
+	command, err := ci.buildCommandFromPromptArgs(ctx, req.Params.Arguments, incomingHeaders)
+	if err != nil {
+		return nil, err
+	}
+
+	output, err := ci.executeCommand(ctx, command, nil)
+	if err != nil {
 		return utils.McpPromptTextError("Command execution failed:\n%s", string(output)), nil
 	}
-
-	// Server-side only logging with sensitive command details
-	baseLogger.Info("CLI prompt command executed successfully",
-		zap.String("command", command.(string)),
-		zap.Int("output_length", len(output)))
 
 	logger.Info("CLI prompt invocation completed successfully")
 
@@ -194,31 +301,19 @@ func (ci *CliInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReques
 
 func (ci *CliInvoker) InvokeResource(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 	logger := logging.FromContext(ctx)
-	baseLogger := logging.BaseFromContext(ctx) // Server-side only for sensitive details
-
 	logger.Debug("Starting CLI resource invocation", zap.String("uri", req.Params.URI))
 
-	// Server-side only logging with sensitive command details
-	baseLogger.Debug("Executing CLI resource command", zap.String("command", ci.CommandTemplate))
+	// For static resources, the template should have no variables
+	// We can use the template directly as the command
+	command := ci.ParsedTemplate.Template
 
-	cmd := exec.Command("bash", "-c", ci.CommandTemplate)
+	// Note: Static resources don't use headers since they have no template variables
 
-	output, err := cmd.CombinedOutput()
+	output, err := ci.executeCommand(ctx, command, map[string]string{"uri": req.Params.URI})
 	if err != nil {
-		baseLogger.Error("CLI resource command execution failed",
-			zap.String("command", ci.CommandTemplate),
-			zap.String("uri", req.Params.URI),
-			zap.String("output", string(output)),
-			zap.Error(err))
 		logger.Error("CLI resource command execution failed", zap.String("uri", req.Params.URI))
 		return nil, mcp.ResourceNotFoundError(req.Params.URI)
 	}
-
-	// Server-side only logging with sensitive command details
-	baseLogger.Info("CLI resource command executed successfully",
-		zap.String("command", ci.CommandTemplate),
-		zap.String("uri", req.Params.URI),
-		zap.Int("output_length", len(output)))
 
 	logger.Info("CLI resource invocation completed successfully", zap.String("uri", req.Params.URI))
 
@@ -235,85 +330,35 @@ func (ci *CliInvoker) InvokeResource(ctx context.Context, req *mcp.ReadResourceR
 
 func (ci *CliInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
 	logger := logging.FromContext(ctx)
-	baseLogger := logging.BaseFromContext(ctx) // Server-side only for sensitive details
-
 	logger.Debug("Starting CLI resource template invocation", zap.String("uri", req.Params.URI))
 
-	cb := &commandBuilder{
-		commandTemplate: ci.CommandTemplate,
-		argIndices:      ci.ArgumentIndices,
-		argFormatters:   ci.ArgumentFormatters,
-		argValues:       make([]any, len(ci.ArgumentIndices)),
-		extraArgs:       make(map[string]any),
+	// Extract incoming headers from request
+	var incomingHeaders map[string][]string
+	if req.Extra != nil {
+		incomingHeaders = req.Extra.Header
 	}
 
-	//  URI template syntax is validated during parsing, so we can safely use it here
-	uriTmpl, _ := uritemplate.New(ci.URITemplate)
-
-	// Match the incoming URI against the template to extract argument values
-	matches := uriTmpl.Match(req.Params.URI)
-	if matches == nil {
-		logger.Error("URI does not match CLI resource template",
-			zap.String("uri", req.Params.URI),
-			zap.String("template", ci.URITemplate))
-		return nil, fmt.Errorf("URI does not match template")
-	}
-
-	// Extract arguments and populate command builder
-	argsMap := make(map[string]any)
-	for _, paramName := range uriTmpl.Varnames() {
-		if val := matches.Get(paramName); val.Valid() {
-			argValue := val.String()
-			cb.SetField(paramName, argValue)
-			argsMap[paramName] = argValue
-		} else {
-			logger.Error("Missing required parameter in resource template",
-				zap.String("parameter", paramName),
-				zap.String("uri", req.Params.URI),
-				zap.String("template", ci.URITemplate))
-			return nil, fmt.Errorf("missing required parameter: %s", paramName)
-		}
-	}
-
-	if err := ci.InputSchema.Validate(argsMap); err != nil {
-		logger.Error("Failed to validate CLI resource template request",
-			zap.String("uri", req.Params.URI),
-			zap.Error(err))
-		return nil, fmt.Errorf("failed to validate resource template request: %w", err)
+	cb, _, err := ci.extractArgsFromURI(ctx, req.Params.URI, incomingHeaders)
+	if err != nil {
+		return nil, err
 	}
 
 	command, err := cb.GetResult()
 	if err != nil {
-		logger.Error("Failed to build CLI resource template command",
+		logger.Error("Failed to build command",
 			zap.String("uri", req.Params.URI),
 			zap.Error(err))
 		return nil, fmt.Errorf("failed to build command: %w", err)
 	}
 
-	// Server-side only logging with sensitive command details
-	baseLogger.Debug("Executing CLI resource template command",
-		zap.String("command", command.(string)),
-		zap.String("uri", req.Params.URI),
-		zap.String("template", ci.URITemplate))
-
-	cmd := exec.Command("bash", "-c", command.(string))
-
-	output, err := cmd.CombinedOutput()
+	output, err := ci.executeCommand(ctx, command.(string), map[string]string{
+		"uri":      req.Params.URI,
+		"template": ci.URITemplate,
+	})
 	if err != nil {
-		baseLogger.Error("CLI resource template command execution failed",
-			zap.String("command", command.(string)),
-			zap.String("uri", req.Params.URI),
-			zap.String("output", string(output)),
-			zap.Error(err))
 		logger.Error("CLI resource template command execution failed", zap.String("uri", req.Params.URI))
 		return nil, mcp.ResourceNotFoundError(req.Params.URI)
 	}
-
-	// Server-side only logging with sensitive command details
-	baseLogger.Info("CLI resource template command executed successfully",
-		zap.String("command", command.(string)),
-		zap.String("uri", req.Params.URI),
-		zap.Int("output_length", len(output)))
 
 	logger.Info("CLI resource template invocation completed successfully", zap.String("uri", req.Params.URI))
 
@@ -326,4 +371,45 @@ func (ci *CliInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.ReadR
 			},
 		},
 	}, nil
+}
+
+type commandBuilder struct {
+	templateBuilder  *template.TemplateBuilder
+	templateVarNames map[string]bool // Set of variable names the template cares about
+	extraArgs        map[string]any
+}
+
+var _ invocation.Builder = &commandBuilder{}
+
+func (cb *commandBuilder) SetField(path string, value any) {
+	// If this is a variable that the template cares about, propagate to the template
+	if cb.templateVarNames[path] {
+		cb.templateBuilder.SetField(path, value)
+	} else {
+		// Otherwise, store it in extra args
+		cb.extraArgs[path] = value
+	}
+}
+
+func (cb *commandBuilder) GetResult() (any, error) {
+	// Get the formatted command from the template
+	templateResult, err := cb.templateBuilder.GetResult()
+	if err != nil {
+		return nil, err
+	}
+
+	// Build the full command with extra args
+	formattedParts := make([]string, 0, len(cb.extraArgs)+1)
+	formattedParts = append(formattedParts, templateResult.(string))
+
+	for argName, argVal := range cb.extraArgs {
+		formattedParts = append(formattedParts, fmt.Sprintf("--%s=%v", argName, argVal))
+	}
+
+	return strings.Join(formattedParts, " "), nil
+}
+
+// SetSourceResolver sets the resolver for the command template to access source data (e.g., headers).
+func (cb *commandBuilder) SetSourceResolver(sourceName string, resolver template.SourceResolver) {
+	cb.templateBuilder.SetSourceResolver(sourceName, resolver)
 }

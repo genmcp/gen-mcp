@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/genmcp/gen-mcp/pkg/invocation"
+	"github.com/genmcp/gen-mcp/pkg/invocation/extends"
 	ihttps "github.com/genmcp/gen-mcp/pkg/invocation/http"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/google/jsonschema-go/jsonschema"
@@ -17,6 +18,10 @@ import (
 	highbase "github.com/pb33f/libopenapi/datamodel/high/base"
 	v2high "github.com/pb33f/libopenapi/datamodel/high/v2"
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
+)
+
+const (
+	baseApiInvocationName = "baseApi"
 )
 
 func DocumentToMcpFile(document []byte, host string) (*mcpfile.MCPFile, error) {
@@ -56,8 +61,9 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 					Port: 8080,
 				},
 			},
-			Tools:   []*mcpfile.Tool{},
-			Version: "0.0.1",
+			Tools:           []*mcpfile.Tool{},
+			Version:         "0.0.1",
+			InvocationBases: map[string]*invocation.InvocationConfigWrapper{},
 		},
 	}
 
@@ -88,6 +94,15 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 
 	baseUrl := fmt.Sprintf("%s://%s%s", scheme, urlHost, model.BasePath)
 
+	baseInvocation := &invocation.InvocationConfigWrapper{
+		Type: ihttps.InvocationType,
+		Config: &ihttps.HttpInvocationConfig{
+			URL: baseUrl,
+		},
+	}
+
+	server.InvocationBases[baseApiInvocationName] = baseInvocation
+
 	if model.Paths == nil || model.Paths.PathItems == nil {
 		return nil, fmt.Errorf("no valid paths on the openapi document")
 	}
@@ -99,12 +114,23 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 				continue
 			}
 
-			invocationData, marshalErr := json.Marshal(map[string]any{
-				"url":    fmt.Sprintf("%s%s", baseUrl, pathName),
-				"method": strings.ToUpper(operationMethod),
-			})
+			extend := &ihttps.HttpInvocationConfig{
+				URL: pathName,
+			}
+
+			extendRaw, marshalErr := json.Marshal(extend)
 			if marshalErr != nil {
-				err = errors.Join(err, fmt.Errorf("failed to marshal http invocation config for %s: %w", toolName(pathName, operationMethod), marshalErr))
+				err = errors.Join(err, fmt.Errorf("failed to marshal tool extension: %w", marshalErr))
+				continue
+			}
+
+			override := &ihttps.HttpInvocationConfig{
+				Method: strings.ToUpper(operationMethod),
+			}
+
+			overrideRaw, marshalErr := json.Marshal(override)
+			if marshalErr != nil {
+				err = errors.Join(err, fmt.Errorf("failed to marshal tool override: %w", marshalErr))
 				continue
 			}
 
@@ -117,8 +143,14 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 					Properties: make(map[string]*jsonschema.Schema),
 					Required:   []string{},
 				},
-				InvocationData: invocationData,
-				InvocationType: mcpfile.InvocationTypeHttp,
+				InvocationConfigWrapper: &invocation.InvocationConfigWrapper{
+					Type: extends.InvocationType,
+					Config: &extends.ExtendsConfig{
+						From:     baseApiInvocationName,
+						Extend:   extendRaw,
+						Override: overrideRaw,
+					},
+				},
 			}
 
 			numPathParams := 0
@@ -192,6 +224,7 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 	}
 
 	// the only errors we should see at this point are from the tools themselves - let's validate them and filter out invalid tools
+	extends.SetBases(server.InvocationBases)
 	validTools := make([]*mcpfile.Tool, 0, len(server.Tools))
 	for _, t := range server.Tools {
 		toolErr := t.Validate(invocation.InvocationValidator)
@@ -219,8 +252,9 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 					Port: 8080,
 				},
 			},
-			Tools:   []*mcpfile.Tool{},
-			Version: "0.0.1",
+			Tools:           []*mcpfile.Tool{},
+			Version:         "0.0.1",
+			InvocationBases: map[string]*invocation.InvocationConfigWrapper{},
 		},
 	}
 
@@ -240,6 +274,15 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 		baseUrl = host
 	}
 
+	baseInvocation := &invocation.InvocationConfigWrapper{
+		Type: ihttps.InvocationType,
+		Config: &ihttps.HttpInvocationConfig{
+			URL: baseUrl,
+		},
+	}
+
+	server.InvocationBases[baseApiInvocationName] = baseInvocation
+
 	var err error
 
 	for pathName, pathItem := range model.Paths.PathItems.FromOldest() {
@@ -249,12 +292,23 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 				continue
 			}
 
-			invocationData, marshalErr := json.Marshal(map[string]any{
-				"url":    fmt.Sprintf("%s%s", baseUrl, pathName),
-				"method": strings.ToUpper(operationMethod),
-			})
+			extend := &ihttps.HttpInvocationConfig{
+				URL: pathName,
+			}
+
+			extendRaw, marshalErr := json.Marshal(extend)
 			if marshalErr != nil {
-				err = errors.Join(err, fmt.Errorf("failed to marshal http invocation config for %s: %w", toolName(pathName, operationMethod), marshalErr))
+				err = errors.Join(err, fmt.Errorf("failed to marshal tool extension: %w", marshalErr))
+				continue
+			}
+
+			override := &ihttps.HttpInvocationConfig{
+				Method: strings.ToUpper(operationMethod),
+			}
+
+			overrideRaw, marshalErr := json.Marshal(override)
+			if marshalErr != nil {
+				err = errors.Join(err, fmt.Errorf("failed to marshal tool override: %w", marshalErr))
 				continue
 			}
 
@@ -267,8 +321,14 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 					Properties: make(map[string]*jsonschema.Schema),
 					Required:   []string{},
 				},
-				InvocationData: invocationData,
-				InvocationType: mcpfile.InvocationTypeHttp,
+				InvocationConfigWrapper: &invocation.InvocationConfigWrapper{
+					Type: extends.InvocationType,
+					Config: &extends.ExtendsConfig{
+						From:     baseApiInvocationName,
+						Extend:   extendRaw,
+						Override: overrideRaw,
+					},
+				},
 			}
 
 			visited := make(map[*highbase.SchemaProxy]*jsonschema.Schema)
@@ -316,6 +376,7 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 	}
 
 	// the only errors we should see at this point are from the tools themselves - let's validate them and filter out invalid tools
+	extends.SetBases(server.InvocationBases)
 	validTools := make([]*mcpfile.Tool, 0, len(server.Tools))
 	for _, t := range server.Tools {
 		toolErr := t.Validate(invocation.InvocationValidator)

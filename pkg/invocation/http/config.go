@@ -1,7 +1,6 @@
 package http
 
 import (
-	"errors"
 	"fmt"
 	nethttp "net/http"
 	"strings"
@@ -18,44 +17,55 @@ var validHttpMethods = map[string]struct{}{
 	nethttp.MethodDelete: {},
 }
 
-// The structure for HTTP invocation configuration.
-// It is used to parse the raw JSON data that specifies how to make an HTTP request.
-type HttpInvocationData struct {
-	// Detailed HTTP invocation configuration.
-	Http HttpInvocationConfig `json:"http" jsonschema:"required"`
-}
-
 // The configuration for making an HTTP request.
+// This is a pure data structure with no parsing logic - all struct tags only.
 type HttpInvocationConfig struct {
-	// The URL template for the HTTP request. It can contain placeholders in the form of '%' which correspond to parameters from the input schema.
-	PathTemplate string `json:"url" jsonschema:"required"`
+	// The URL for the HTTP request.
+	//
+	// It can contain placeholders in the form of {paramName} which correspond to parameters from the input schema.
+	// It can contain placeholders in the form of {headers.paramName} which correspond to headers from the incoming
+	// http request (won't work in stdio).
+	// It can contain placeholders in the form of ${ENV_VAR_NAME} or {env.ENV_VAR_NAME} which correspond to env vars
+	URL string `json:"url,omitempty" jsonschema:"required"` // even though this is required for the type, we don't require it on every nested extends instance of this struct, so we have omitempty
 
-	// PathIndices maps parameter names to their positional index in the PathTemplate.
-	// This field is for internal use and is not part of the JSON schema.
-	PathIndices map[string]int `json:"-"`
+	// The headers for the HTTP request.
+	//
+	// Values can contain placeholders in the form of {paramName} which correspond to parameters from the input schema.
+	// Values can contain placeholders in the form of {headers.paramName} which correspond to headers from the incoming
+	// http request (won't work in stdio).
+	// Values can contain placeholders in the form of ${ENV_VAR_NAME} or {env.ENV_VAR_NAME} which correspond to env vars
+	Headers map[string]string `json:"headers,omitempty" jsonschema:"optional"`
 
 	// The HTTP method to be used for the request (e.g., "GET", "POST").
-	Method string `json:"method" jsonschema:"required,enum=GET,enum=POST,enum=PUT,enum=PATCH,enum=DELETE,enum=HEAD"`
-
-	// MCP URI template (for resource templates only).
-	URITemplate string `json:"-"`
+	Method string `json:"method,omitempty" jsonschema:"required,enum=GET,enum=POST,enum=PUT,enum=PATCH,enum=DELETE,enum=HEAD"`
 }
 
 var _ invocation.InvocationConfig = &HttpInvocationConfig{}
 
 func (hic *HttpInvocationConfig) Validate() error {
-	var err error = nil
-
-	validPathIndicesCount := strings.Count(hic.PathTemplate, "%") == len(hic.PathIndices)
-	if !validPathIndicesCount {
-		err = fmt.Errorf("path indices do not match the number of template variables in the path template. expected %d, received %d", len(hic.PathIndices), strings.Count(hic.PathTemplate, "%"))
+	if hic.URL == "" {
+		return fmt.Errorf("URL is required")
 	}
 
+	// URL template validation is handled during template parsing
 	if !IsValidHttpMethod(hic.Method) {
-		err = errors.Join(err, fmt.Errorf("invalid http request method: '%s'", hic.Method))
+		return fmt.Errorf("invalid http request method: '%s'", hic.Method)
 	}
 
-	return err
+	return nil
+}
+
+func (hic *HttpInvocationConfig) DeepCopy() invocation.InvocationConfig {
+	headers := make(map[string]string, len(hic.Headers))
+	for k, v := range hic.Headers {
+		headers[k] = v
+	}
+
+	return &HttpInvocationConfig{
+		URL:     hic.URL,
+		Headers: headers,
+		Method:  hic.Method,
+	}
 }
 
 func IsValidHttpMethod(method string) bool {

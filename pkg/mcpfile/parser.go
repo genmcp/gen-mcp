@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
+	"github.com/genmcp/gen-mcp/pkg/invocation/extends"
 	"github.com/google/jsonschema-go/jsonschema"
 	"sigs.k8s.io/yaml"
 )
@@ -76,6 +76,10 @@ func (s *MCPServer) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	if len(s.InvocationBases) > 0 {
+		extends.SetBases(s.InvocationBases)
+	}
+
 	// Only set defaults if we have a server defined (name or version present)
 	if s.Name != "" || s.Version != "" {
 		if s.Runtime == nil {
@@ -105,14 +109,9 @@ func (s *MCPServer) UnmarshalJSON(data []byte) error {
 func (t *Tool) UnmarshalJSON(data []byte) error {
 	type Doppleganger Tool
 
-	tmp := struct {
-		Invocation map[string]json.RawMessage `json:"invocation"`
-		*Doppleganger
-	}{
-		Doppleganger: (*Doppleganger)(t),
-	}
+	tmp := (*Doppleganger)(t)
 
-	err := json.Unmarshal(data, &tmp)
+	err := json.Unmarshal(data, tmp)
 	if err != nil {
 		return err
 	}
@@ -129,17 +128,7 @@ func (t *Tool) UnmarshalJSON(data []byte) error {
 	}
 
 	if t.InputSchema.Type == "" {
-		// ensure that this is object
 		t.InputSchema.Type = "object"
-	}
-
-	if len(tmp.Invocation) != 1 {
-		return fmt.Errorf("only one invocation handler should be defined per tool")
-	}
-
-	for k, v := range tmp.Invocation {
-		t.InvocationType = strings.ToLower(k)
-		t.InvocationData = v
 	}
 
 	return nil
@@ -148,14 +137,9 @@ func (t *Tool) UnmarshalJSON(data []byte) error {
 func (p *Prompt) UnmarshalJSON(data []byte) error {
 	type Doppleganger Prompt
 
-	tmp := struct {
-		Invocation map[string]json.RawMessage `json:"invocation"`
-		*Doppleganger
-	}{
-		Doppleganger: (*Doppleganger)(p),
-	}
+	tmp := (*Doppleganger)(p)
 
-	err := json.Unmarshal(data, &tmp)
+	err := json.Unmarshal(data, tmp)
 	if err != nil {
 		return err
 	}
@@ -163,15 +147,6 @@ func (p *Prompt) UnmarshalJSON(data []byte) error {
 	if p.InputSchema != nil && p.InputSchema.Properties == nil {
 		// set the properties to be not nil so that it serializes as {} (required for some clients to properly parse the tool)
 		p.InputSchema.Properties = make(map[string]*jsonschema.Schema)
-	}
-
-	if len(tmp.Invocation) != 1 {
-		return fmt.Errorf("only one invocation handler should be defined per prompt")
-	}
-
-	for k, v := range tmp.Invocation {
-		p.InvocationType = strings.ToLower(k)
-		p.InvocationData = v
 	}
 
 	return nil
@@ -180,14 +155,9 @@ func (p *Prompt) UnmarshalJSON(data []byte) error {
 func (p *Resource) UnmarshalJSON(data []byte) error {
 	type Doppleganger Resource
 
-	tmp := struct {
-		Invocation map[string]json.RawMessage `json:"invocation"`
-		*Doppleganger
-	}{
-		Doppleganger: (*Doppleganger)(p),
-	}
+	tmp := (*Doppleganger)(p)
 
-	err := json.Unmarshal(data, &tmp)
+	err := json.Unmarshal(data, tmp)
 	if err != nil {
 		return err
 	}
@@ -195,15 +165,6 @@ func (p *Resource) UnmarshalJSON(data []byte) error {
 	if p.InputSchema != nil && p.InputSchema.Properties == nil {
 		// set the properties to be not nil so that it serializes as {} (required for some clients to properly parse the tool)
 		p.InputSchema.Properties = make(map[string]*jsonschema.Schema)
-	}
-
-	if len(tmp.Invocation) != 1 {
-		return fmt.Errorf("only one invocation handler should be defined per resource")
-	}
-
-	for k, v := range tmp.Invocation {
-		p.InvocationType = strings.ToLower(k)
-		p.InvocationData = v
 	}
 
 	return nil
@@ -212,14 +173,9 @@ func (p *Resource) UnmarshalJSON(data []byte) error {
 func (p *ResourceTemplate) UnmarshalJSON(data []byte) error {
 	type Doppleganger ResourceTemplate
 
-	tmp := struct {
-		Invocation map[string]json.RawMessage `json:"invocation"`
-		*Doppleganger
-	}{
-		Doppleganger: (*Doppleganger)(p),
-	}
+	tmp := (*Doppleganger)(p)
 
-	err := json.Unmarshal(data, &tmp)
+	err := json.Unmarshal(data, tmp)
 	if err != nil {
 		return err
 	}
@@ -227,15 +183,6 @@ func (p *ResourceTemplate) UnmarshalJSON(data []byte) error {
 	if p.InputSchema != nil && p.InputSchema.Properties == nil {
 		// set the properties to be not nil so that it serializes as {} (required for some clients to properly parse the tool)
 		p.InputSchema.Properties = make(map[string]*jsonschema.Schema)
-	}
-
-	if len(tmp.Invocation) != 1 {
-		return fmt.Errorf("only one invocation handler should be defined per resource template")
-	}
-
-	for k, v := range tmp.Invocation {
-		p.InvocationType = strings.ToLower(k)
-		p.InvocationData = v
 	}
 
 	return nil

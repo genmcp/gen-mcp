@@ -60,5 +60,21 @@ build-cli-platform: build-server-binaries
 		GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o "$$OUTPUT_NAME" ./cmd/genmcp; \
 	fi
 
+.PHONY: build-server-platform
+build-server-platform:
+	@if [ -z "$(GOOS)" ] || [ -z "$(GOARCH)" ]; then \
+		echo "Error: GOOS and GOARCH must be set"; \
+		echo "Usage: make build-server-platform GOOS=linux GOARCH=amd64"; \
+		exit 1; \
+	fi
+	@SERVER_NAME="$(SERVER_BINARY_NAME)"; \
+	if [ "$(GOOS)" = "windows" ]; then \
+		OUTPUT_NAME="$${SERVER_NAME}-$(GOOS)-$(GOARCH).exe"; \
+	else \
+		OUTPUT_NAME="$${SERVER_NAME}-$(GOOS)-$(GOARCH)"; \
+	fi; \
+	echo "Building $$OUTPUT_NAME with GOOS=$(GOOS) GOARCH=$(GOARCH)"; \
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o "$$OUTPUT_NAME" $(SERVER_CMD)
+
 .PHONY: build
 build: build-server-binaries build-cli

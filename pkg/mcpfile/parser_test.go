@@ -1,10 +1,12 @@
 package mcpfile
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
+	cliInv "github.com/genmcp/gen-mcp/pkg/invocation/cli"
+	httpInv "github.com/genmcp/gen-mcp/pkg/invocation/http"
+	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/utils/ptr"
@@ -90,8 +92,13 @@ func TestParseMcpFile(t *testing.T) {
 								},
 								Required: []string{"companyName"},
 							},
-							InvocationData: json.RawMessage(`{"method":"POST","url":"http://localhost:5000"}`),
-							InvocationType: "http",
+							InvocationConfigWrapper: &invocation.InvocationConfigWrapper{
+								Type: "http",
+								Config: &httpInv.HttpInvocationConfig{
+									URL:    "http://localhost:5000",
+									Method: "POST",
+								},
+							},
 							Annotations: &ToolAnnotations{
 								IdempotentHint:  ptr.To(false),
 								ReadOnlyHint:    ptr.To(true),
@@ -133,8 +140,13 @@ func TestParseMcpFile(t *testing.T) {
 								},
 								Required: []string{"companyName"},
 							},
-							InvocationData: json.RawMessage(`{"method":"GET","url":"http://localhost:5000/{companyName}/users"}`),
-							InvocationType: "http",
+							InvocationConfigWrapper: &invocation.InvocationConfigWrapper{
+								Type: "http",
+								Config: &httpInv.HttpInvocationConfig{
+									URL:    "http://localhost:5000/{companyName}/users",
+									Method: "GET",
+								},
+							},
 						},
 					},
 				},
@@ -178,8 +190,22 @@ func TestParseMcpFile(t *testing.T) {
 								},
 								Required: []string{"repoUrl"},
 							},
-							InvocationData: json.RawMessage(`{"command":"git clone {repoUrl} {depth} {verbose}","templateVariables":{"depth":{"format":"--depth {depth}"},"verbose":{"format":"--verbose","omitIfFalse":true}}}`),
-							InvocationType: "cli",
+							InvocationConfigWrapper: &invocation.InvocationConfigWrapper{
+								Type: "cli",
+								Config: &cliInv.CliInvocationConfig{
+									Command: "git clone {repoUrl} {depth} {verbose}",
+									TemplateVariables: map[string]*cliInv.TemplateVariable{
+										"depth": {
+											Template:    "--depth {depth}",
+											OmitIfFalse: false,
+										},
+										"verbose": {
+											Template:    "--verbose",
+											OmitIfFalse: true,
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -223,8 +249,22 @@ func TestParseMcpFile(t *testing.T) {
 								},
 								Required: []string{"repoUrl"},
 							},
-							InvocationData: json.RawMessage(`{"command":"git clone {repoUrl} {depth} {verbose}","templateVariables":{"depth":{"format":"--depth {depth}"},"verbose":{"format":"--verbose","omitIfFalse":true}}}`),
-							InvocationType: "cli",
+							InvocationConfigWrapper: &invocation.InvocationConfigWrapper{
+								Type: "cli",
+								Config: &cliInv.CliInvocationConfig{
+									Command: "git clone {repoUrl} {depth} {verbose}",
+									TemplateVariables: map[string]*cliInv.TemplateVariable{
+										"depth": {
+											Template:    "--depth {depth}",
+											OmitIfFalse: false,
+										},
+										"verbose": {
+											Template:    "--verbose",
+											OmitIfFalse: true,
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -263,8 +303,22 @@ func TestParseMcpFile(t *testing.T) {
 								},
 								Required: []string{"repoUrl"},
 							},
-							InvocationData: json.RawMessage(`{"command":"git clone {repoUrl} {depth} {verbose}","templateVariables":{"depth":{"format":"--depth {depth}"},"verbose":{"format":"--verbose","omitIfFalse":true}}}`),
-							InvocationType: "cli",
+							InvocationConfigWrapper: &invocation.InvocationConfigWrapper{
+								Type: "cli",
+								Config: &cliInv.CliInvocationConfig{
+									Command: "git clone {repoUrl} {depth} {verbose}",
+									TemplateVariables: map[string]*cliInv.TemplateVariable{
+										"depth": {
+											Template:    "--depth {depth}",
+											OmitIfFalse: false,
+										},
+										"verbose": {
+											Template:    "--verbose",
+											OmitIfFalse: true,
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -308,8 +362,13 @@ func TestParseMcpFile(t *testing.T) {
 								},
 								Required: []string{"code"},
 							},
-							InvocationData: json.RawMessage(`{"method":"POST","url":"http://localhost:5000"}`),
-							InvocationType: "http",
+							InvocationConfigWrapper: &invocation.InvocationConfigWrapper{
+								Type: "http",
+								Config: &httpInv.HttpInvocationConfig{
+									URL:    "http://localhost:5000",
+									Method: "POST",
+								},
+							},
 						},
 					},
 				},
@@ -337,8 +396,13 @@ func TestParseMcpFile(t *testing.T) {
 							MIMEType:       "text/plain",
 							Size:           1024,
 							URI:            "http://localhost:5000/access.log",
-							InvocationData: json.RawMessage(`{"method":"GET","url":"http://localhost:5000"}`),
-							InvocationType: "http",
+							InvocationConfigWrapper: &invocation.InvocationConfigWrapper{
+								Type: "http",
+								Config: &httpInv.HttpInvocationConfig{
+									URL:    "http://localhost:5000",
+									Method: "GET",
+								},
+							},
 						},
 					},
 				},
@@ -380,8 +444,13 @@ func TestParseMcpFile(t *testing.T) {
 								},
 								Required: []string{"city", "date"},
 							},
-							InvocationData: json.RawMessage(`{"method":"GET","url":"http://localhost:5000/forecast"}`),
-							InvocationType: "http",
+							InvocationConfigWrapper: &invocation.InvocationConfigWrapper{
+								Type: "http",
+								Config: &httpInv.HttpInvocationConfig{
+									URL:    "http://localhost:5000/forecast",
+									Method: "GET",
+								},
+							},
 						},
 					},
 				},
@@ -428,8 +497,22 @@ func TestParseMcpFile(t *testing.T) {
 								},
 								Required: []string{"repoUrl"},
 							},
-							InvocationData: json.RawMessage(`{"command":"git clone {depth} {verbose} {repoUrl} {path}","templateVariables":{"depth":{"format":"--depth {depth}"},"verbose":{"format":"--verbose","omitIfFalse":true}}}`),
-							InvocationType: "cli",
+							InvocationConfigWrapper: &invocation.InvocationConfigWrapper{
+								Type: "cli",
+								Config: &cliInv.CliInvocationConfig{
+									Command: "git clone {depth} {verbose} {repoUrl} {path}",
+									TemplateVariables: map[string]*cliInv.TemplateVariable{
+										"depth": {
+											Template:    "--depth {depth}",
+											OmitIfFalse: false,
+										},
+										"verbose": {
+											Template:    "--verbose",
+											OmitIfFalse: true,
+										},
+									},
+								},
+							},
 						},
 						{
 							Name:        "ensure_dir_exists",
@@ -445,8 +528,12 @@ func TestParseMcpFile(t *testing.T) {
 								},
 								Required: []string{"path"},
 							},
-							InvocationData: json.RawMessage(`{"command":"mkdir -p {path}"}`),
-							InvocationType: "cli",
+							InvocationConfigWrapper: &invocation.InvocationConfigWrapper{
+								Type: "cli",
+								Config: &cliInv.CliInvocationConfig{
+									Command: "mkdir -p {path}",
+								},
+							},
 						},
 						{
 							Name:        "get_repo_url",
@@ -470,8 +557,13 @@ func TestParseMcpFile(t *testing.T) {
 								},
 								Required: []string{"org", "repoName"},
 							},
-							InvocationData: json.RawMessage(`{"method":"GET","url":"http://localhost:9090/repos/{org}/{repoName}"}`),
-							InvocationType: "http",
+							InvocationConfigWrapper: &invocation.InvocationConfigWrapper{
+								Type: "http",
+								Config: &httpInv.HttpInvocationConfig{
+									URL:    "http://localhost:9090/repos/{org}/{repoName}",
+									Method: "GET",
+								},
+							},
 						},
 					},
 				},
@@ -510,8 +602,13 @@ func TestParseMcpFile(t *testing.T) {
 								},
 								Required: []string{"companyName"},
 							},
-							InvocationData: json.RawMessage(`{"method":"POST","url":"http://localhost:5000"}`),
-							InvocationType: "http",
+							InvocationConfigWrapper: &invocation.InvocationConfigWrapper{
+								Type: "http",
+								Config: &httpInv.HttpInvocationConfig{
+									URL:    "http://localhost:5000",
+									Method: "POST",
+								},
+							},
 						},
 					},
 				},

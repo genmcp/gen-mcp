@@ -1,0 +1,20 @@
+kind: Eval
+metadata:
+  name: startup-issue-tracker-evals
+config:
+  agentFile: claude-code.yaml
+  mcpConfigFile: mcp-config.yaml
+  llmJudge:
+    env:
+      baseUrlKey: MODEL_BASE_URL
+      apiKeyKey: MODEL_API_KEY
+      modelNameKey: MODEL_NAME
+  taskSets:
+    - path: ./tasks/most-requested-feature/most-requested-feature.yaml
+      assertions:
+        toolsUsed:
+          - server: features
+            tool: get_features-top
+          - server: features
+            tool: get_features-id
+

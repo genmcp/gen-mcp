@@ -15,6 +15,7 @@ The root of the configuration is a single top-level object with the following fi
 | `version` | string | The semantic version of the server's toolset. | Yes |
 | `runtime` | `ServerRuntime` | The runtime settings for the server. If omitted, it defaults to `streamablehttp` on port `3000`. | No |
 | `instructions` | string | A set of instructions provided by the server to the client about how to use the server. | No |
+| `invocationBases` | object | A set of reusable base configurations for invocations. Each key is a unique identifier, and each value is an invocation configuration (either `http` or `cli`). See [Section 6.3](#63-invocation-bases) for details. | No |
 | `tools` | array of `Tool` | The tools provided by this server. | No |
 | `prompts` | array of `Prompt` | The prompts provided by this server. | No |
 | `resources` | array of `Resource` | The resources provided by this server. | No |
@@ -36,6 +37,11 @@ instructions: |
   2. Then use get_commit_history to analyze the repository's history
   3. Use get_file_contents to examine specific files
   4. Finally, use generate_report to create a summary
+invocationBases:
+  baseGitApi:
+    http:
+      method: GET
+      url: https://api.github.com/repos/{owner}/{repo}
 tools:
   # ... tool definitions
 ```
@@ -110,7 +116,7 @@ A `Tool` object describes a specific, invokable function.
 | `description` | string | A detailed description of what the tool does, intended for an LLM to understand its function. | Yes |
 | `inputSchema` | `JsonSchema` | A JSON Schema object defining the parameters the tool accepts. | Yes |
 | `outputSchema` | `JsonSchema` | A JSON Schema object defining the structure of the tool's output. | No |
-| `invocation` | `Invocation` | An object describing how to execute the tool. Must contain a single key: either `http` or `cli`. | Yes |
+| `invocation` | `Invocation` | An object describing how to execute the tool. Can be `http`, `cli`, or `extends`. | Yes |
 | `requiredScopes` | array of string | OAuth 2.0 scopes required to execute this tool. Only relevant when the server uses OAuth authentication. | No |
 
 ### 4.2. Prompt Object
@@ -125,7 +131,7 @@ A `Prompt` object describes a natural-language or LLM-style function invocation.
 | `arguments` | array of `PromptArgument` | List of template arguments for the prompt. | No |
 | `inputSchema` | `JsonSchema` | A JSON Schema object defining the parameters the prompt accepts. | Yes |
 | `outputSchema` | `JsonSchema` | A JSON Schema object defining the structure of the prompt's output. | No |
-| `invocation` | `Invocation` | An object describing how to execute the prompt. Must contain a single key: either `http` or `cli`. | Yes |
+| `invocation` | `Invocation` | An object describing how to execute the prompt. Can be `http`, `cli`, or `extends`. | Yes |
 | `requiredScopes` | array of string | OAuth 2.0 scopes required to execute this prompt. Only relevant when the server uses OAuth authentication. | No |
 
 #### 4.2.1. PromptArgument Object
@@ -151,7 +157,7 @@ A `Resource` object represents a retrievable or executable resource.
 | `uri` | string | The URI of this resource. | Yes |
 | `inputSchema` | `JsonSchema` | A JSON Schema object defining the parameters the resource accepts. | Yes |
 | `outputSchema` | `JsonSchema` | A JSON Schema object defining the structure of the resource's output. | No |
-| `invocation` | `Invocation` | An object describing how to invoke the resource. Must contain a single key: either `http` or `cli`. | Yes |
+| `invocation` | `Invocation` | An object describing how to invoke the resource. Can be `http`, `cli`, or `extends`. | Yes |
 | `requiredScopes` | array of string | OAuth 2.0 scopes required to access this resource. Only relevant when the server uses OAuth authentication. | No |
 
 ### 4.4. ResourceTemplate Object
@@ -167,7 +173,7 @@ A `ResourceTemplate` object represents a reusable URI-based template for resourc
 | `uriTemplate` | string | URI template (RFC 6570) used to construct resource URIs. | Yes |
 | `inputSchema` | `JsonSchema` | A JSON Schema object defining the parameters the resource template accepts. | Yes |
 | `outputSchema` | `JsonSchema` | A JSON Schema object defining the structure of the resource template's output. | No |
-| `invocation` | `Invocation` | An object describing how to invoke the resource template. Must contain a single key: either `http` or `cli`. | Yes |
+| `invocation` | `Invocation` | An object describing how to invoke the resource template. Can be `http`, `cli`, or `extends`. | Yes |
 | `requiredScopes` | array of string | OAuth 2.0 scopes required to access this resource template. Only relevant when the server uses OAuth authentication. | No |
 
 ## 5. JsonSchema Object
@@ -198,7 +204,7 @@ inputSchema:
 
 ## 6. Invocation Object
 
-The `invocation` object specifies how a tool is executed. It must contain exactly one of the following keys.
+The `invocation` object specifies how a tool, prompt, resource, or resource template is executed. It must contain exactly one of the following types: `http`, `cli`, or `extends`.
 
 ### 6.1. HTTP Invocation
 
@@ -207,15 +213,61 @@ The `http` invocation type is used for tools that are called via an HTTP request
 | Field | Type | Description | Required |
 |---|---|---|---|
 | `method` | string | The HTTP method (e.g., `GET`, `POST`). | Yes |
-| `url` | string | The URL to send the request to. It can be a template. Input parameters from the `inputSchema` are substituted into placeholders like `{paramName}`. | Yes |
+| `url` | string | The URL to send the request to. It can be a template. Input parameters from the `inputSchema` are substituted into placeholders like `{paramName}`. Can also use `{headers.HeaderName}` to access incoming HTTP headers (streamablehttp only) or `${ENV_VAR_NAME}` / `{env.ENV_VAR_NAME}` for environment variables. | Yes |
+| `headers` | map[string]string | HTTP headers to include in the request. Values can use the same templating as `url`, supporting `{paramName}` for input schema parameters, `{headers.HeaderName}` for incoming headers (streamablehttp only), and `${ENV_VAR_NAME}` / `{env.ENV_VAR_NAME}` for environment variables. | No |
 
-#### Example
+#### Example: Basic Usage
 
 ```yaml
 invocation:
   http:
     method: GET
     url: http://localhost:8080/users/{userId}
+```
+
+#### Example: With Static Headers
+
+```yaml
+invocation:
+  http:
+    method: POST
+    url: http://localhost:8080/api/data
+    headers:
+      Authorization: Bearer secret-token
+      X-Custom-Header: static-value
+```
+
+#### Example: With Template Headers
+
+```yaml
+invocation:
+  http:
+    method: POST
+    url: http://localhost:8080/users
+    headers:
+      X-User-Id: "{userId}"
+      X-Tenant: "{tenant}"
+```
+
+#### Example: Forwarding Incoming Headers (streamablehttp only)
+
+```yaml
+invocation:
+  http:
+    method: GET
+    url: http://localhost:8080/proxy
+    headers:
+      Authorization: "{headers.Authorization}"
+      X-Request-Id: "{headers.X-Request-Id}"
+```
+
+#### Example: Using Headers in URL Template (streamablehttp only)
+
+```yaml
+invocation:
+  http:
+    method: GET
+    url: http://localhost:8080/users/{headers.X-User-Id}
 ```
 
 ### 6.2. CLI Invocation
@@ -250,6 +302,156 @@ invocation:
       verbose:
         format: "--verbose"
         omitIfFalse: true
+```
+
+### 6.3. Invocation Bases
+
+Invocation bases allow you to define reusable configurations that can be referenced by multiple tools, prompts, resources, or resource templates. This reduces duplication and makes it easier to maintain consistent configuration across primitives.
+
+The `invocationBases` field is defined at the top level of the MCP file and contains named base configurations:
+
+```yaml
+invocationBases:
+  baseHttpConfig:
+    http:
+      method: GET
+      url: https://api.example.com/base
+  baseCLIConfig:
+    cli:
+      command: "git {operation}"
+      templateVariables:
+        operation:
+          format: "{operation}"
+```
+
+Each key in `invocationBases` is a unique identifier for the base configuration, and the value is an invocation configuration (either `http` or `cli`).
+
+### 6.4. Extends Invocation
+
+The `extends` invocation type allows you to reference and modify a base configuration defined in `invocationBases`. This provides a powerful way to compose configurations by reusing common settings and making targeted modifications.
+
+| Field | Type | Description | Required |
+|---|---|---|---|
+| `from` | string | The identifier of the base configuration in `invocationBases` to extend. | Yes |
+| `extend` | object | Fields to add or merge with the base configuration. For strings, values are concatenated. For maps, keys are merged. For arrays, items are appended. | No |
+| `override` | object | Fields to completely replace in the base configuration. | No |
+| `remove` | object | Fields to remove from the base configuration. For maps, specify keys to remove. For arrays, specify values to remove. For strings, sets the field to empty. | No |
+
+#### Operations Behavior
+
+- **extend**: Merges new values with existing ones
+  - Strings: Concatenates values (e.g., `"hello"` + `" world"` = `"hello world"`)
+  - Maps: Merges keys (new keys are added, existing keys are updated with new values)
+  - Arrays: Appends items to the end
+
+- **override**: Completely replaces values
+  - Any field specified in `override` will replace the entire value from the base configuration
+  - Zero values (empty strings, 0, false) are skipped
+
+- **remove**: Removes values
+  - Strings: Sets to empty string
+  - Maps: Removes specified keys (specify keys as an array or as a map with empty values)
+  - Arrays: Removes all occurrences of specified values
+
+**Important**: You cannot use multiple operations (`extend`, `override`, `remove`) on the same field. Each field can only be modified by one operation.
+
+#### Example: HTTP Extension
+
+```yaml
+invocationBases:
+  baseUserApi:
+    http:
+      method: GET
+      url: https://api.example.com/users
+
+tools:
+  - name: get_user_by_id
+    description: "Get a specific user by ID"
+    inputSchema:
+      type: object
+      properties:
+        userId:
+          type: string
+      required:
+        - userId
+    invocation:
+      extends:
+        from: baseUserApi
+        extend:
+          url: "/{userId}"  # Concatenated to base URL
+
+  - name: create_user
+    description: "Create a new user"
+    inputSchema:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+    invocation:
+      extends:
+        from: baseUserApi
+        override:
+          method: POST  # Changes GET to POST
+```
+
+#### Example: CLI Extension
+
+```yaml
+invocationBases:
+  baseGitCommand:
+    cli:
+      command: "git {operation} {verbose}"
+      templateVariables:
+        verbose:
+          format: "--verbose"
+          omitIfFalse: true
+
+tools:
+  - name: git_clone
+    description: "Clone a repository"
+    inputSchema:
+      type: object
+      properties:
+        repoUrl:
+          type: string
+        verbose:
+          type: boolean
+      required:
+        - repoUrl
+    invocation:
+      extends:
+        from: baseGitCommand
+        extend:
+          command: " {repoUrl}"  # Appends to base command
+        override:
+          templateVariables:
+            operation:
+              format: "clone"
+```
+
+#### Example: Remove Operation
+
+```yaml
+invocationBases:
+  baseApiCall:
+    http:
+      method: GET
+      url: https://api.example.com/{endpoint}
+
+tools:
+  - name: simple_call
+    description: "Simple API call without endpoint parameter"
+    inputSchema:
+      type: object
+    invocation:
+      extends:
+        from: baseApiCall
+        remove:
+          url: "{endpoint}"  # Removes the {endpoint} placeholder
+        extend:
+          url: "/simple"  # Adds the fixed endpoint
 ```
 
 ## 7. Complete Examples
@@ -342,6 +544,105 @@ tools:
       http:
         method: POST
         url: http://localhost:8080/process
+```
+
+### 7.4. Using Invocation Bases and Extends
+
+This example demonstrates how to use `invocationBases` and the `extends` invocation type to reduce configuration duplication:
+
+```yaml
+mcpFileVersion: "0.1.0"
+name: user-management-api
+version: "1.0.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8080
+
+invocationBases:
+  # Base configuration for user API calls
+  baseUserApi:
+    http:
+      method: GET
+      url: https://api.example.com/v1/users
+
+  # Base configuration for admin API calls
+  baseAdminApi:
+    http:
+      method: GET
+      url: https://api.example.com/v1/admin
+
+tools:
+  - name: list_users
+    description: "List all users"
+    inputSchema:
+      type: object
+    invocation:
+      extends:
+        from: baseUserApi
+        # No modifications needed - uses base as-is
+
+  - name: get_user
+    description: "Get a specific user by ID"
+    inputSchema:
+      type: object
+      properties:
+        userId:
+          type: string
+      required:
+        - userId
+    invocation:
+      extends:
+        from: baseUserApi
+        extend:
+          url: "/{userId}"  # Results in: https://api.example.com/v1/users/{userId}
+
+  - name: create_user
+    description: "Create a new user"
+    inputSchema:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+      required:
+        - name
+        - email
+    invocation:
+      extends:
+        from: baseUserApi
+        override:
+          method: POST  # Changes from GET to POST
+
+  - name: delete_user
+    description: "Delete a user by ID"
+    inputSchema:
+      type: object
+      properties:
+        userId:
+          type: string
+      required:
+        - userId
+    invocation:
+      extends:
+        from: baseUserApi
+        extend:
+          url: "/{userId}"
+        override:
+          method: DELETE  # Changes from GET to DELETE
+
+  - name: get_admin_stats
+    description: "Get administrative statistics"
+    inputSchema:
+      type: object
+    invocation:
+      extends:
+        from: baseAdminApi
+        extend:
+          url: "/stats"  # Results in: https://api.example.com/v1/admin/stats
+    requiredScopes:
+      - admin:read
 ```
 
 ## 8. Security Configuration Examples
