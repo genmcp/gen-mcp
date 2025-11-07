@@ -7,6 +7,5 @@ const (
 )
 
 func init() {
-	invocation.RegisterParser(InvocationType, &Parser{})
 	invocation.RegisterFactory(InvocationType, &InvokerFactory{})
 }

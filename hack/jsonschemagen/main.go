@@ -7,11 +7,13 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/invopop/jsonschema"
 
 	"github.com/genmcp/gen-mcp/pkg/invocation/cli"
+	"github.com/genmcp/gen-mcp/pkg/invocation/extends"
 	"github.com/genmcp/gen-mcp/pkg/invocation/http"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	googlejsonschema "github.com/google/jsonschema-go/jsonschema"
@@ -139,6 +141,8 @@ func fixRequiredFieldsForType(schema *jsonschema.Schema, t reflect.Type) {
 	for fieldName := range finalRequired {
 		def.Required = append(def.Required, fieldName)
 	}
+	// Sort required fields to ensure deterministic output
+	sort.Strings(def.Required)
 }
 
 // createJSONSchemaMetaSchema returns a JSON Schema that describes JSON Schema itself.
@@ -332,12 +336,17 @@ func main() {
 			Path: "../../pkg/mcpfile",
 		},
 		{
-			Type: &http.HttpInvocationData{},
+			Type: &http.HttpInvocationConfig{},
 			Base: "github.com/genmcp/gen-mcp/pkg/invocation",
 			Path: "../../pkg/invocation",
 		},
 		{
-			Type: &cli.CliInvocationData{},
+			Type: &cli.CliInvocationConfig{},
+			Base: "github.com/genmcp/gen-mcp/pkg/invocation",
+			Path: "../../pkg/invocation",
+		},
+		{
+			Type: &extends.ExtendsConfig{},
 			Base: "github.com/genmcp/gen-mcp/pkg/invocation",
 			Path: "../../pkg/invocation",
 		},
@@ -351,13 +360,19 @@ func main() {
 		// Don't automatically require all properties - we'll use struct tags to determine this
 		reflector.RequiredFromJSONSchemaTags = true
 
-		// WORKAROUND: Handle google/jsonschema-go Schema type
+		// WORKAROUND: Handle google/jsonschema-go Schema type and json.RawMessage
 		// invopop/jsonschema can't properly reflect google's Schema because it uses
 		// json:"-" tags on the Type field. Instead, we return a detailed meta-schema
 		// that describes JSON Schema itself, providing better IDE autocomplete.
+		// json.RawMessage should be mapped to an object type to allow any JSON value.
 		reflector.Mapper = func(t reflect.Type) *jsonschema.Schema {
 			if t == reflect.TypeOf(&googlejsonschema.Schema{}) || t == reflect.TypeOf(googlejsonschema.Schema{}) {
 				return createJSONSchemaMetaSchema()
+			}
+			if t == reflect.TypeOf(json.RawMessage{}) {
+				return &jsonschema.Schema{
+					Type: "object",
+				}
 			}
 			return nil
 		}

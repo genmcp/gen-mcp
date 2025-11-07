@@ -42,19 +42,31 @@
       ],
       "description": "Configuration for executing a command-line tool."
     },
-    "CliInvocationData": {
+    "ExtendsConfig": {
       "properties": {
-        "cli": {
-          "$ref": "#/$defs/CliInvocationConfig",
-          "description": "Detailed CLI invocation configuration."
+        "from": {
+          "type": "string",
+          "description": "From specifies the invocation base to extend from."
+        },
+        "extend": {
+          "type": "object",
+          "description": "Extend adds or merges new fields into the base configuration (e.g., append to arrays, merge maps)."
+        },
+        "override": {
+          "type": "object",
+          "description": "Override replaces fields in the base configuration with new values."
+        },
+        "remove": {
+          "type": "object",
+          "description": "Remove deletes specific fields from the base configuration (e.g., remove map keys, clear strings)."
         }
       },
       "additionalProperties": false,
       "type": "object",
       "required": [
-        "cli"
+        "from"
       ],
-      "description": "The structure for CLI invocation configuration."
+      "description": "ExtendsConfig allows extending an invocation base with modifications."
     },
     "HttpInvocationConfig": {
       "properties": {
@@ -78,24 +90,54 @@
       "additionalProperties": false,
       "type": "object",
       "required": [
-        "url",
-        "method"
+        "method",
+        "url"
       ],
       "description": "The configuration for making an HTTP request."
     },
-    "HttpInvocationData": {
-      "properties": {
-        "http": {
-          "$ref": "#/$defs/HttpInvocationConfig",
-          "description": "Detailed HTTP invocation configuration."
+    "InvocationConfigWrapper": {
+      "oneOf": [
+        {
+          "properties": {
+            "http": {
+              "$ref": "#/$defs/HttpInvocationConfig"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "http"
+          ],
+          "description": "An invocation configuration using HTTP."
+        },
+        {
+          "properties": {
+            "cli": {
+              "$ref": "#/$defs/CliInvocationConfig"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "cli"
+          ],
+          "description": "An invocation configuration using CLI."
+        },
+        {
+          "properties": {
+            "extends": {
+              "$ref": "#/$defs/ExtendsConfig"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "extends"
+          ],
+          "description": "An invocation configuration that extends a base configuration."
         }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "required": [
-        "http"
       ],
-      "description": "The structure for HTTP invocation configuration."
+      "description": "A wrapper for invocation configurations. Must contain exactly one invocation type key (http, cli, or extends) with its corresponding configuration."
     },
     "LoggingConfig": {
       "properties": {
@@ -157,6 +199,13 @@
         "instructions": {
           "type": "string",
           "description": "A set of instructions provided by the server to the client about how to use the server"
+        },
+        "invocationBases": {
+          "additionalProperties": {
+            "$ref": "#/$defs/InvocationConfigWrapper"
+          },
+          "type": "object",
+          "description": "InvocationBases contains base configs for invocations"
         },
         "tools": {
           "items": {
@@ -532,10 +581,13 @@
         "invocation": {
           "oneOf": [
             {
-              "$ref": "#/$defs/HttpInvocationData"
+              "$ref": "#/$defs/HttpInvocationConfig"
             },
             {
-              "$ref": "#/$defs/CliInvocationData"
+              "$ref": "#/$defs/CliInvocationConfig"
+            },
+            {
+              "$ref": "#/$defs/ExtendsConfig"
             }
           ],
           "description": "Object describing how to invoke the prompt."
@@ -925,10 +977,13 @@
         "invocation": {
           "oneOf": [
             {
-              "$ref": "#/$defs/HttpInvocationData"
+              "$ref": "#/$defs/HttpInvocationConfig"
             },
             {
-              "$ref": "#/$defs/CliInvocationData"
+              "$ref": "#/$defs/CliInvocationConfig"
+            },
+            {
+              "$ref": "#/$defs/ExtendsConfig"
             }
           ],
           "description": "Object describing how to invoke the resource."
@@ -1288,10 +1343,13 @@
         "invocation": {
           "oneOf": [
             {
-              "$ref": "#/$defs/HttpInvocationData"
+              "$ref": "#/$defs/HttpInvocationConfig"
             },
             {
-              "$ref": "#/$defs/CliInvocationData"
+              "$ref": "#/$defs/CliInvocationConfig"
+            },
+            {
+              "$ref": "#/$defs/ExtendsConfig"
             }
           ],
           "description": "Object describing how to invoke the resource template."
@@ -1739,10 +1797,13 @@
         "invocation": {
           "oneOf": [
             {
-              "$ref": "#/$defs/HttpInvocationData"
+              "$ref": "#/$defs/HttpInvocationConfig"
             },
             {
-              "$ref": "#/$defs/CliInvocationData"
+              "$ref": "#/$defs/CliInvocationConfig"
+            },
+            {
+              "$ref": "#/$defs/ExtendsConfig"
             }
           ],
           "description": "Object describing how to execute the tool."

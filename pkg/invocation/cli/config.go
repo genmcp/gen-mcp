@@ -2,16 +2,10 @@ package cli
 
 import (
 	"github.com/genmcp/gen-mcp/pkg/invocation"
-	"github.com/genmcp/gen-mcp/pkg/template"
 )
 
-// The structure for CLI invocation configuration.
-type CliInvocationData struct {
-	// Detailed CLI invocation configuration.
-	Http CliInvocationConfig `json:"cli" jsonschema:"required"`
-}
-
 // Configuration for executing a command-line tool.
+// This is a pure data structure with no parsing logic - all struct tags only.
 type CliInvocationConfig struct {
 	// The command-line string to be executed. It can contain placeholders in the form of '{paramName}' which correspond to parameters defined in the input schema.
 	Command string `json:"command" jsonschema:"required"`
@@ -19,13 +13,6 @@ type CliInvocationConfig struct {
 	// Defines how input parameters are formatted into the command string.
 	// The map key corresponds to the parameter name from the input schema.
 	TemplateVariables map[string]*TemplateVariable `json:"templateVariables,omitempty" jsonschema:"optional"`
-
-	// ParsedTemplate contains the parsed command template with variables
-	// This field is for internal use and is not part of the JSON schema.
-	ParsedTemplate *template.ParsedTemplate `json:"-"`
-
-	// MCP URI template (for resource templates only)
-	URITemplate string `json:"-"`
 }
 
 var _ invocation.InvocationConfig = &CliInvocationConfig{}
@@ -33,6 +20,18 @@ var _ invocation.InvocationConfig = &CliInvocationConfig{}
 func (c *CliInvocationConfig) Validate() error {
 	// Validation is handled during template parsing
 	return nil
+}
+
+func (c *CliInvocationConfig) DeepCopy() invocation.InvocationConfig {
+	cp := &CliInvocationConfig{
+		Command:           c.Command,
+		TemplateVariables: make(map[string]*TemplateVariable, len(c.TemplateVariables)),
+	}
+	for k, v := range c.TemplateVariables {
+		cp.TemplateVariables[k] = v.DeepCopy()
+	}
+
+	return cp
 }
 
 // The formatting for a single parameter in the command template
@@ -44,4 +43,11 @@ type TemplateVariable struct {
 	// OmitIfFalse, if true, causes the template to be omitted entirely if the input
 	// value is a boolean `false`. This is useful for optional flags like "--force".
 	OmitIfFalse bool `json:"omitIfFalse,omitempty" jsonschema:"optional"`
+}
+
+func (tv *TemplateVariable) DeepCopy() *TemplateVariable {
+	return &TemplateVariable{
+		Template:    tv.Template,
+		OmitIfFalse: tv.OmitIfFalse,
+	}
 }

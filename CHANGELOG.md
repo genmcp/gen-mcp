@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.0]
+
+### Added
+- `invocationBases` schema field and `extends` invocation type for defining reusable base configurations that can be extended by multiple invocations, enabling configuration composition and reducing duplication across tools, prompts, and resources (backward compatible with existing mcpfiles) (#203)
+
+### Changed
+- Refactored invocation configuration parsing to use generic factory pattern instead of custom parsers per type
+
+### Removed
+- Custom invocation config parsers for CLI and HTTP types in favor of unified factory approach
+
 ## [v0.1.0]
 
 ### Added
