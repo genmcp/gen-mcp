@@ -166,22 +166,20 @@ jobs:
           SERVER_ZIP="genmcp-server-${GOOS}-${GOARCH}.zip"
 
           echo "Signing ${CLI_ZIP}..."
-          # Sign the blob, outputting a signature and certificate
+          # Sign the blob, outputting a bundle with signature and certificate
           cosign sign-blob --yes "${CLI_ZIP}" \
-            --output-signature "${CLI_ZIP}.sig" \
-            --output-certificate "${CLI_ZIP}.pem"
+            --bundle "${CLI_ZIP}.bundle"
 
           echo "Signing ${SERVER_ZIP}..."
           cosign sign-blob --yes "${SERVER_ZIP}" \
-            --output-signature "${SERVER_ZIP}.sig" \
-            --output-certificate "${SERVER_ZIP}.pem"
+            --bundle "${SERVER_ZIP}.bundle"
 
       - name: Upload assets to release  # Upload all artifacts
         run: |
           VERSION="${{ needs.determine-version.outputs.prerelease_version }}"
-          
-          # Upload all zips, signatures (.sig), and certificates (.pem)
-          for file in *.zip *.sig *.pem; do
+
+          # Upload all zips and bundles
+          for file in *.zip *.bundle; do
             if [ -f "$file" ]; then
               echo "Uploading $file..."
               gh release upload "$VERSION" "$file" --clobber
