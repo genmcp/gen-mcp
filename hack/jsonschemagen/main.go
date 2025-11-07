@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/invopop/jsonschema"
@@ -140,6 +141,8 @@ func fixRequiredFieldsForType(schema *jsonschema.Schema, t reflect.Type) {
 	for fieldName := range finalRequired {
 		def.Required = append(def.Required, fieldName)
 	}
+	// Sort required fields to ensure deterministic output
+	sort.Strings(def.Required)
 }
 
 // createJSONSchemaMetaSchema returns a JSON Schema that describes JSON Schema itself.

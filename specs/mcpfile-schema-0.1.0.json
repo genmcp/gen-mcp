@@ -76,8 +76,8 @@
       "additionalProperties": false,
       "type": "object",
       "required": [
-        "url",
-        "method"
+        "method",
+        "url"
       ],
       "description": "The configuration for making an HTTP request."
     },
@@ -186,9 +186,9 @@
       "additionalProperties": false,
       "type": "object",
       "required": [
-        "version",
         "mcpFileVersion",
-        "name"
+        "name",
+        "version"
       ],
       "description": "MCPFile is the root structure of an MCP configuration file."
     },
