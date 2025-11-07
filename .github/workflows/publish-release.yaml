@@ -139,7 +139,7 @@ jobs:
           go-version-file: 'go.mod'
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@v4
+        uses: sigstore/cosign-installer@v4.0.0
 
       - name: Build genmcp CLI
         env:
