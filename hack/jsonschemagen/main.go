@@ -12,6 +12,7 @@ import (
 	"github.com/invopop/jsonschema"
 
 	"github.com/genmcp/gen-mcp/pkg/invocation/cli"
+	"github.com/genmcp/gen-mcp/pkg/invocation/extends"
 	"github.com/genmcp/gen-mcp/pkg/invocation/http"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	googlejsonschema "github.com/google/jsonschema-go/jsonschema"
@@ -338,6 +339,11 @@ func main() {
 		},
 		{
 			Type: &cli.CliInvocationConfig{},
+			Base: "github.com/genmcp/gen-mcp/pkg/invocation",
+			Path: "../../pkg/invocation",
+		},
+		{
+			Type: &extends.ExtendsConfig{},
 			Base: "github.com/genmcp/gen-mcp/pkg/invocation",
 			Path: "../../pkg/invocation",
 		},

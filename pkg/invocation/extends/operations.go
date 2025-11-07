@@ -219,6 +219,12 @@ func validateOperations(extend, override, remove any) error {
 	overrideVal = overrideVal.Elem()
 	removeVal = removeVal.Elem()
 	extendType := extendVal.Type()
+	overrideType := overrideVal.Type()
+	removeType := removeVal.Type()
+
+	if extendType != overrideType || extendType != removeType {
+		return fmt.Errorf("extend, override, and remove must be the same underlying type")
+	}
 
 	for i := 0; i < extendType.NumField(); i++ {
 		field := extendType.Field(i)

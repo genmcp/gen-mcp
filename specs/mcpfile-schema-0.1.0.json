@@ -42,6 +42,18 @@
       ],
       "description": "Configuration for executing a command-line tool."
     },
+    "ExtendsConfig": {
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "extend": true,
+        "override": true,
+        "remove": true
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
     "HttpInvocationConfig": {
       "properties": {
         "url": {
@@ -174,9 +186,9 @@
       "additionalProperties": false,
       "type": "object",
       "required": [
+        "version",
         "mcpFileVersion",
-        "name",
-        "version"
+        "name"
       ],
       "description": "MCPFile is the root structure of an MCP configuration file."
     },
@@ -520,6 +532,9 @@
             },
             {
               "$ref": "#/$defs/CliInvocationConfig"
+            },
+            {
+              "$ref": "#/$defs/ExtendsConfig"
             }
           ],
           "description": "Object describing how to invoke the prompt."
@@ -913,6 +928,9 @@
             },
             {
               "$ref": "#/$defs/CliInvocationConfig"
+            },
+            {
+              "$ref": "#/$defs/ExtendsConfig"
             }
           ],
           "description": "Object describing how to invoke the resource."
@@ -1276,6 +1294,9 @@
             },
             {
               "$ref": "#/$defs/CliInvocationConfig"
+            },
+            {
+              "$ref": "#/$defs/ExtendsConfig"
             }
           ],
           "description": "Object describing how to invoke the resource template."
@@ -1727,6 +1748,9 @@
             },
             {
               "$ref": "#/$defs/CliInvocationConfig"
+            },
+            {
+              "$ref": "#/$defs/ExtendsConfig"
             }
           ],
           "description": "Object describing how to execute the tool."

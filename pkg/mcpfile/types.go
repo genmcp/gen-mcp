@@ -41,7 +41,7 @@ type Tool struct {
 	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
 
 	// Object describing how to execute the tool.
-	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationConfig;#/$defs/CliInvocationConfig"`
+	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationConfig;#/$defs/CliInvocationConfig;#/$defs/ExtendsConfig"`
 
 	// OAuth scopes required to invoke this tool.
 	RequiredScopes []string `json:"requiredScopes,omitempty" jsonschema:"optional"`
@@ -77,9 +77,17 @@ func (t Tool) PrimitiveType() string               { return PrimitiveTypeTool }
 func (t Tool) GetInputSchema() *jsonschema.Schema  { return t.InputSchema }
 func (t Tool) GetOutputSchema() *jsonschema.Schema { return t.OutputSchema }
 func (t Tool) GetInvocationConfig() invocation.InvocationConfig {
+	if t.InvocationConfigWrapper == nil {
+		return nil
+	}
 	return t.InvocationConfigWrapper.Config
 }
-func (t Tool) GetInvocationType() string                    { return t.InvocationConfigWrapper.Type }
+func (t Tool) GetInvocationType() string {
+	if t.InvocationConfigWrapper == nil {
+		return ""
+	}
+	return t.InvocationConfigWrapper.Type
+}
 func (t Tool) GetRequiredScopes() []string                  { return t.RequiredScopes }
 func (t Tool) GetResolvedInputSchema() *jsonschema.Resolved { return t.ResolvedInputSchema }
 func (t Tool) GetURITemplate() string                       { return "" }
@@ -105,7 +113,7 @@ type Prompt struct {
 	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
 
 	// Object describing how to invoke the prompt.
-	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationConfig;#/$defs/CliInvocationConfig"`
+	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationConfig;#/$defs/CliInvocationConfig;#/$defs/ExtendsConfig"`
 
 	// OAuth scopes required to invoke this prompt.
 	RequiredScopes []string `json:"requiredScopes,omitempty" jsonschema:"optional"`
@@ -120,9 +128,17 @@ func (p Prompt) PrimitiveType() string               { return PrimitiveTypePromp
 func (p Prompt) GetInputSchema() *jsonschema.Schema  { return p.InputSchema }
 func (p Prompt) GetOutputSchema() *jsonschema.Schema { return p.OutputSchema }
 func (p Prompt) GetInvocationConfig() invocation.InvocationConfig {
+	if p.InvocationConfigWrapper == nil {
+		return nil
+	}
 	return p.InvocationConfigWrapper.Config
 }
-func (p Prompt) GetInvocationType() string                    { return p.InvocationConfigWrapper.Type }
+func (p Prompt) GetInvocationType() string {
+	if p.InvocationConfigWrapper == nil {
+		return ""
+	}
+	return p.InvocationConfigWrapper.Type
+}
 func (p Prompt) GetRequiredScopes() []string                  { return p.RequiredScopes }
 func (p Prompt) GetResolvedInputSchema() *jsonschema.Resolved { return p.ResolvedInputSchema }
 func (p Prompt) GetURITemplate() string                       { return "" }
@@ -169,7 +185,7 @@ type Resource struct {
 	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
 
 	// Object describing how to invoke the resource.
-	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationConfig;#/$defs/CliInvocationConfig"`
+	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationConfig;#/$defs/CliInvocationConfig;#/$defs/ExtendsConfig"`
 
 	// OAuth scopes required to access this resource.
 	RequiredScopes []string `json:"requiredScopes,omitempty" jsonschema:"optional"`
@@ -184,9 +200,17 @@ func (r Resource) PrimitiveType() string               { return PrimitiveTypeRes
 func (r Resource) GetInputSchema() *jsonschema.Schema  { return r.InputSchema }
 func (r Resource) GetOutputSchema() *jsonschema.Schema { return r.OutputSchema }
 func (r Resource) GetInvocationConfig() invocation.InvocationConfig {
+	if r.InvocationConfigWrapper == nil {
+		return nil
+	}
 	return r.InvocationConfigWrapper.Config
 }
-func (r Resource) GetInvocationType() string                    { return r.InvocationConfigWrapper.Type }
+func (r Resource) GetInvocationType() string {
+	if r.InvocationConfigWrapper == nil {
+		return ""
+	}
+	return r.InvocationConfigWrapper.Type
+}
 func (r Resource) GetRequiredScopes() []string                  { return r.RequiredScopes }
 func (r Resource) GetResolvedInputSchema() *jsonschema.Resolved { return r.ResolvedInputSchema }
 func (r Resource) GetURITemplate() string                       { return "" }
@@ -215,7 +239,7 @@ type ResourceTemplate struct {
 	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty" jsonschema:"optional"`
 
 	// Object describing how to invoke the resource template.
-	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationConfig;#/$defs/CliInvocationConfig"`
+	InvocationConfigWrapper *invocation.InvocationConfigWrapper `json:"invocation" jsonschema:"required,oneof_ref=#/$defs/HttpInvocationConfig;#/$defs/CliInvocationConfig;#/$defs/ExtendsConfig"`
 
 	// OAuth scopes required to access this resource template.
 	RequiredScopes []string `json:"requiredScopes,omitempty" jsonschema:"optional"`
@@ -230,9 +254,17 @@ func (r ResourceTemplate) PrimitiveType() string               { return Primitiv
 func (r ResourceTemplate) GetInputSchema() *jsonschema.Schema  { return r.InputSchema }
 func (r ResourceTemplate) GetOutputSchema() *jsonschema.Schema { return r.OutputSchema }
 func (r ResourceTemplate) GetInvocationConfig() invocation.InvocationConfig {
+	if r.InvocationConfigWrapper == nil {
+		return nil
+	}
 	return r.InvocationConfigWrapper.Config
 }
-func (r ResourceTemplate) GetInvocationType() string                    { return r.InvocationConfigWrapper.Type }
+func (r ResourceTemplate) GetInvocationType() string {
+	if r.InvocationConfigWrapper == nil {
+		return ""
+	}
+	return r.InvocationConfigWrapper.Type
+}
 func (r ResourceTemplate) GetRequiredScopes() []string                  { return r.RequiredScopes }
 func (r ResourceTemplate) GetResolvedInputSchema() *jsonschema.Resolved { return r.ResolvedInputSchema }
 func (r ResourceTemplate) GetURITemplate() string                       { return r.URITemplate }

@@ -1,8 +1,6 @@
 package cli
 
 import (
-	"maps"
-
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 )
 
@@ -29,7 +27,9 @@ func (c *CliInvocationConfig) DeepCopy() invocation.InvocationConfig {
 		Command:           c.Command,
 		TemplateVariables: make(map[string]*TemplateVariable, len(c.TemplateVariables)),
 	}
-	maps.Copy(cp.TemplateVariables, c.TemplateVariables)
+	for k, v := range c.TemplateVariables {
+		cp.TemplateVariables[k] = v.DeepCopy()
+	}
 
 	return cp
 }
@@ -43,4 +43,11 @@ type TemplateVariable struct {
 	// OmitIfFalse, if true, causes the template to be omitted entirely if the input
 	// value is a boolean `false`. This is useful for optional flags like "--force".
 	OmitIfFalse bool `json:"omitIfFalse,omitempty" jsonschema:"optional"`
+}
+
+func (tv *TemplateVariable) DeepCopy() *TemplateVariable {
+	return &TemplateVariable{
+		Template:    tv.Template,
+		OmitIfFalse: tv.OmitIfFalse,
+	}
 }

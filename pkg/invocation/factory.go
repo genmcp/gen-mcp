@@ -6,6 +6,9 @@ import (
 
 func CreateInvoker(primitive Primitive) (Invoker, error) {
 	config := primitive.GetInvocationConfig()
+	if config == nil {
+		return nil, fmt.Errorf("invocation config is nil or missing for primitive")
+	}
 
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
