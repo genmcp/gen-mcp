@@ -51,7 +51,13 @@ func (ci *CliInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*mc
 	logger := logging.FromContext(ctx)
 	logger.Debug("Starting CLI tool invocation")
 
-	command, _, err := ci.buildCommandFromArgs(ctx, req.Params.Arguments)
+	// Extract incoming headers from request
+	var incomingHeaders map[string][]string
+	if req.Extra != nil {
+		incomingHeaders = req.Extra.Header
+	}
+
+	command, _, err := ci.buildCommandFromArgs(ctx, req.Params.Arguments, incomingHeaders)
 	if err != nil {
 		return nil, err
 	}
@@ -116,6 +122,7 @@ func (ci *CliInvoker) executeCommand(
 func (ci *CliInvoker) buildCommandFromArgs(
 	ctx context.Context,
 	argsBytes []byte,
+	incomingHeaders map[string][]string,
 ) (string, map[string]any, error) {
 	logger := logging.FromContext(ctx)
 
@@ -123,6 +130,12 @@ func (ci *CliInvoker) buildCommandFromArgs(
 	if err != nil {
 		logger.Error("Failed to create command builder", zap.Error(err))
 		return "", nil, fmt.Errorf("failed to create command builder: %w", err)
+	}
+
+	// Set up source resolver for incoming headers if provided
+	if incomingHeaders != nil {
+		headerResolver := template.NewHttpHeaderResolver(incomingHeaders)
+		cb.SetSourceResolver("headers", headerResolver)
 	}
 
 	dj := &invocation.DynamicJson{
@@ -154,6 +167,7 @@ func (ci *CliInvoker) buildCommandFromArgs(
 func (ci *CliInvoker) buildCommandFromPromptArgs(
 	ctx context.Context,
 	promptArgs map[string]string,
+	incomingHeaders map[string][]string,
 ) (string, error) {
 	logger := logging.FromContext(ctx)
 
@@ -161,6 +175,12 @@ func (ci *CliInvoker) buildCommandFromPromptArgs(
 	if err != nil {
 		logger.Error("Failed to create command builder", zap.Error(err))
 		return "", fmt.Errorf("failed to create command builder: %w", err)
+	}
+
+	// Set up source resolver for incoming headers if provided
+	if incomingHeaders != nil {
+		headerResolver := template.NewHttpHeaderResolver(incomingHeaders)
+		cb.SetSourceResolver("headers", headerResolver)
 	}
 
 	if promptArgs == nil {
@@ -193,6 +213,7 @@ func (ci *CliInvoker) buildCommandFromPromptArgs(
 func (ci *CliInvoker) extractArgsFromURI(
 	ctx context.Context,
 	uri string,
+	incomingHeaders map[string][]string,
 ) (*commandBuilder, map[string]any, error) {
 	logger := logging.FromContext(ctx)
 
@@ -200,6 +221,12 @@ func (ci *CliInvoker) extractArgsFromURI(
 	if err != nil {
 		logger.Error("Failed to create command builder", zap.Error(err))
 		return nil, nil, fmt.Errorf("failed to create command builder: %w", err)
+	}
+
+	// Set up source resolver for incoming headers if provided
+	if incomingHeaders != nil {
+		headerResolver := template.NewHttpHeaderResolver(incomingHeaders)
+		cb.SetSourceResolver("headers", headerResolver)
 	}
 
 	// URI template syntax is validated during parsing, so we can safely use it here
@@ -244,7 +271,13 @@ func (ci *CliInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReques
 	logger := logging.FromContext(ctx)
 	logger.Debug("Starting CLI prompt invocation")
 
-	command, err := ci.buildCommandFromPromptArgs(ctx, req.Params.Arguments)
+	// Extract incoming headers from request
+	var incomingHeaders map[string][]string
+	if req.Extra != nil {
+		incomingHeaders = req.Extra.Header
+	}
+
+	command, err := ci.buildCommandFromPromptArgs(ctx, req.Params.Arguments, incomingHeaders)
 	if err != nil {
 		return nil, err
 	}
@@ -274,6 +307,8 @@ func (ci *CliInvoker) InvokeResource(ctx context.Context, req *mcp.ReadResourceR
 	// We can use the template directly as the command
 	command := ci.ParsedTemplate.Template
 
+	// Note: Static resources don't use headers since they have no template variables
+
 	output, err := ci.executeCommand(ctx, command, map[string]string{"uri": req.Params.URI})
 	if err != nil {
 		logger.Error("CLI resource command execution failed", zap.String("uri", req.Params.URI))
@@ -297,7 +332,13 @@ func (ci *CliInvoker) InvokeResourceTemplate(ctx context.Context, req *mcp.ReadR
 	logger := logging.FromContext(ctx)
 	logger.Debug("Starting CLI resource template invocation", zap.String("uri", req.Params.URI))
 
-	cb, _, err := ci.extractArgsFromURI(ctx, req.Params.URI)
+	// Extract incoming headers from request
+	var incomingHeaders map[string][]string
+	if req.Extra != nil {
+		incomingHeaders = req.Extra.Header
+	}
+
+	cb, _, err := ci.extractArgsFromURI(ctx, req.Params.URI, incomingHeaders)
 	if err != nil {
 		return nil, err
 	}
@@ -366,4 +407,9 @@ func (cb *commandBuilder) GetResult() (any, error) {
 	}
 
 	return strings.Join(formattedParts, " "), nil
+}
+
+// SetSourceResolver sets the resolver for the command template to access source data (e.g., headers).
+func (cb *commandBuilder) SetSourceResolver(sourceName string, resolver template.SourceResolver) {
+	cb.templateBuilder.SetSourceResolver(sourceName, resolver)
 }

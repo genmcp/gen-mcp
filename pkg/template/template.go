@@ -497,9 +497,10 @@ func CreateHeadersSourceFactory() map[string]SourceFactory {
 }
 
 // NewTemplateFormatter creates a formatter from a template string.
-func NewTemplateFormatter(templateStr string, inputSchema *jsonschema.Schema, omitIfFalse bool) (VariableFormatter, error) {
+func NewTemplateFormatter(templateStr string, inputSchema *jsonschema.Schema, omitIfFalse bool, sources map[string]SourceFactory) (VariableFormatter, error) {
 	pt, err := ParseTemplate(templateStr, TemplateParserOptions{
 		InputSchema: inputSchema,
+		Sources:     sources,
 	})
 	if err != nil {
 		return nil, err
