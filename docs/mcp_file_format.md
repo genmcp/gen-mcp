@@ -213,15 +213,61 @@ The `http` invocation type is used for tools that are called via an HTTP request
 | Field | Type | Description | Required |
 |---|---|---|---|
 | `method` | string | The HTTP method (e.g., `GET`, `POST`). | Yes |
-| `url` | string | The URL to send the request to. It can be a template. Input parameters from the `inputSchema` are substituted into placeholders like `{paramName}`. | Yes |
+| `url` | string | The URL to send the request to. It can be a template. Input parameters from the `inputSchema` are substituted into placeholders like `{paramName}`. Can also use `{headers.HeaderName}` to access incoming HTTP headers (streamablehttp only) or `${ENV_VAR_NAME}` / `{env.ENV_VAR_NAME}` for environment variables. | Yes |
+| `headers` | map[string]string | HTTP headers to include in the request. Values can use the same templating as `url`, supporting `{paramName}` for input schema parameters, `{headers.HeaderName}` for incoming headers (streamablehttp only), and `${ENV_VAR_NAME}` / `{env.ENV_VAR_NAME}` for environment variables. | No |
 
-#### Example
+#### Example: Basic Usage
 
 ```yaml
 invocation:
   http:
     method: GET
     url: http://localhost:8080/users/{userId}
+```
+
+#### Example: With Static Headers
+
+```yaml
+invocation:
+  http:
+    method: POST
+    url: http://localhost:8080/api/data
+    headers:
+      Authorization: Bearer secret-token
+      X-Custom-Header: static-value
+```
+
+#### Example: With Template Headers
+
+```yaml
+invocation:
+  http:
+    method: POST
+    url: http://localhost:8080/users
+    headers:
+      X-User-Id: "{userId}"
+      X-Tenant: "{tenant}"
+```
+
+#### Example: Forwarding Incoming Headers (streamablehttp only)
+
+```yaml
+invocation:
+  http:
+    method: GET
+    url: http://localhost:8080/proxy
+    headers:
+      Authorization: "{headers.Authorization}"
+      X-Request-Id: "{headers.X-Request-Id}"
+```
+
+#### Example: Using Headers in URL Template (streamablehttp only)
+
+```yaml
+invocation:
+  http:
+    method: GET
+    url: http://localhost:8080/users/{headers.X-User-Id}
 ```
 
 ### 6.2. CLI Invocation
