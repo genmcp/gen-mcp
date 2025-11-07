@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `invocationBases` schema field and `extends` invocation type for defining reusable base configurations that can be extended by multiple invocations, enabling configuration composition and reducing duplication across tools, prompts, and resources (backward compatible with existing mcpfiles) (#203)
+- HTTP header support for `http` invocations, allowing static and templated headers with support for input parameters, incoming request headers (streamablehttp only), and environment variables (#204)
 
 ### Changed
 - Refactored invocation configuration parsing to use generic factory pattern instead of custom parsers per type

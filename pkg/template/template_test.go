@@ -173,6 +173,45 @@ func TestParseTemplate(t *testing.T) {
 			},
 			expectedVarNames: []string{"userId"},
 		},
+		{
+			name:     "dotted variable name without registered source (nested object)",
+			template: "User: {user.name}",
+			opts: TemplateParserOptions{
+				InputSchema: &jsonschema.Schema{
+					Type: "object",
+					Properties: map[string]*jsonschema.Schema{
+						"user": {
+							Type: "object",
+							Properties: map[string]*jsonschema.Schema{
+								"name": {Type: "string"},
+							},
+						},
+					},
+				},
+			},
+			expectedTemplate: "User: %s",
+			expectedVarCount: 1,
+			expectedIndices: map[string][]int{
+				"user.name": {0},
+			},
+			expectedVarNames: []string{"user.name"},
+		},
+		{
+			name:     "dotted variable with registered source uses source",
+			template: "Header: {headers.Token}",
+			opts: TemplateParserOptions{
+				InputSchema: schema,
+				Sources: map[string]SourceFactory{
+					"headers": NewSourceFactory("headers"),
+				},
+			},
+			expectedTemplate: "Header: %s",
+			expectedVarCount: 1,
+			expectedIndices: map[string][]int{
+				"headers.Token": {0},
+			},
+			expectedVarNames: []string{"headers.Token"},
+		},
 	}
 
 	for _, tc := range tt {
@@ -206,6 +245,12 @@ func TestTemplateBuilder(t *testing.T) {
 			"version": {Type: "string"},
 			"count":   {Type: "integer"},
 			"flag":    {Type: "boolean"},
+			"user": {
+				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"name": {Type: "string"},
+				},
+			},
 		},
 	}
 
@@ -290,6 +335,14 @@ func TestTemplateBuilder(t *testing.T) {
 				"userId": "test",
 			},
 			expectedResult: "Before% test %After",
+		},
+		{
+			name:     "dotted variable name without registered source",
+			template: "User: {user.name}",
+			setFields: map[string]any{
+				"user.name": "Alice",
+			},
+			expectedResult: "User: Alice",
 		},
 	}
 
@@ -565,4 +618,122 @@ func (tf *testFormatter) FormatString() string {
 
 func (tf *testFormatter) VariableNames() []string {
 	return []string{tf.name}
+}
+
+func TestSourceResolver(t *testing.T) {
+	schema := &jsonschema.Schema{
+		Type: "object",
+		Properties: map[string]*jsonschema.Schema{
+			"userId": {Type: "string"},
+		},
+	}
+
+	tt := []struct {
+		name           string
+		template       string
+		sources        map[string]SourceFactory
+		setResolvers   map[string]SourceResolver
+		setFields      map[string]any
+		expectedResult string
+		expectErr      bool
+	}{
+		{
+			name:     "simple header source",
+			template: "Authorization: {headers.Token}",
+			sources: map[string]SourceFactory{
+				"headers": NewSourceFactory("headers"),
+			},
+			setResolvers: map[string]SourceResolver{
+				"headers": NewMapResolver(map[string]string{
+					"Token": "Bearer abc123",
+				}),
+			},
+			expectedResult: "Authorization: Bearer abc123",
+		},
+		{
+			name:     "multiple sources",
+			template: "curl -H 'Auth: {headers.Token}' https://{secrets.ApiKey}@api.com/users/{userId}",
+			sources: map[string]SourceFactory{
+				"headers": NewSourceFactory("headers"),
+				"secrets": NewSourceFactory("secrets"),
+			},
+			setResolvers: map[string]SourceResolver{
+				"headers": NewMapResolver(map[string]string{
+					"Token": "secret123",
+				}),
+				"secrets": NewMapResolver(map[string]string{
+					"ApiKey": "key456",
+				}),
+			},
+			setFields: map[string]any{
+				"userId": "user789",
+			},
+			expectedResult: "curl -H 'Auth: secret123' https://key456@api.com/users/user789",
+		},
+		{
+			name:     "duplicate source field references",
+			template: "{headers.Auth} and {headers.Auth} again",
+			sources: map[string]SourceFactory{
+				"headers": NewSourceFactory("headers"),
+			},
+			setResolvers: map[string]SourceResolver{
+				"headers": NewMapResolver(map[string]string{
+					"Auth": "token",
+				}),
+			},
+			expectedResult: "token and token again",
+		},
+		{
+			name:     "missing resolver",
+			template: "Auth: {headers.Token}",
+			sources: map[string]SourceFactory{
+				"headers": NewSourceFactory("headers"),
+			},
+			expectErr: true,
+		},
+		{
+			name:     "missing field in resolver",
+			template: "Auth: {headers.MissingField}",
+			sources: map[string]SourceFactory{
+				"headers": NewSourceFactory("headers"),
+			},
+			setResolvers: map[string]SourceResolver{
+				"headers": NewMapResolver(map[string]string{
+					"Token": "exists",
+				}),
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			pt, err := ParseTemplate(tc.template, TemplateParserOptions{
+				InputSchema: schema,
+				Sources:     tc.sources,
+			})
+			require.NoError(t, err)
+
+			builder, err := NewTemplateBuilder(pt, false)
+			require.NoError(t, err)
+
+			for sourceName, resolver := range tc.setResolvers {
+				builder.SetSourceResolver(sourceName, resolver)
+			}
+
+			for path, value := range tc.setFields {
+				builder.SetField(path, value)
+			}
+
+			result, err := builder.GetResult()
+
+			if tc.expectErr {
+				assert.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedResult, result)
+		})
+	}
 }
