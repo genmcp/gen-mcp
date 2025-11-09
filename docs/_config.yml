@@ -1,0 +1,33 @@
+# Site settings
+title: gen-mcp
+description: Zero-Code MCP Server Generation - Transform any API into an MCP server in seconds
+baseurl: "/gen-mcp"
+url: "https://genmcp.github.io"
+
+# Build settings
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false
+
+# Collections
+collections:
+  guides:
+    output: true
+    permalink: /guides/:path/
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"

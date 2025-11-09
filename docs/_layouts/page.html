@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if page.title %}{{ page.title }} | {% endif %}{{ site.title }}</title>
+    <meta name="description" content="{{ page.description | default: site.description }}">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+
+    <!-- Syntax Highlighting -->
+    <link rel="stylesheet" href="{{ '/assets/css/syntax.css' | relative_url }}">
+</head>
+<body>
+    {% include header.html %}
+
+    <main class="main-content">
+        <div class="container">
+            {{ content }}
+        </div>
+    </main>
+
+    {% include footer.html %}
+
+    <!-- Scripts -->
+    <script src="{{ '/assets/js/theme-toggle.js' | relative_url }}"></script>
+    <script src="{{ '/assets/js/navigation.js' | relative_url }}"></script>
+    <script src="{{ '/assets/js/copy-code.js' | relative_url }}"></script>
+</body>
+</html>
