@@ -15,7 +15,7 @@ gen-mcp eliminates the complexity of building Model Context Protocol (MCP) serve
 - 🤖 **AI Engineers** - Connect LLMs to external tools without custom server code  
 - 🛠️ **DevOps Teams** - Integrate legacy systems with modern AI workflows
 
-![gen-mcp System Diagram](./docs/gen-mcp-system-diagram.jpg)
+![gen-mcp System Diagram](./assets/images/gen-mcp-system-diagram.jpg)
 
 ## ✨ Key Features
 
@@ -51,20 +51,18 @@ You'll need the `cosign` command-line tool. Please see the [Official Cosign Inst
 
 ##### Step 2: Verify the Binary
 
-1.  From the release page, download three files for your platform:
-    * The binary archive (e.g., `genmcp-linux-amd64.zip`)
-    * The certificate (e.g., `genmcp-linux-amd64.zip.pem`)
-    * The signature (e.g., `genmcp-linux-amd64.zip.sig`)
+1.  From the release page, download the signed bundle for your platform:
+    * The bundle file (e.g., `genmcp-linux-amd64.zip.bundle`)
 
-2.  Run the `cosign verify-blob` command in your terminal.
+2.  Run the `cosign verify-blob-attestation` command in your terminal.
 
     **Example (for the Linux amd64 CLI):**
     ```bash
-      cosign verify-blob \
-         --certificate genmcp-linux-amd64.zip.pem \
-         --signature genmcp-linux-amd64.zip.sig \
+      cosign verify-blob-attestation \
+         --bundle genmcp-linux-amd64.zip.bundle \
          --certificate-identity-regexp "https://github.com/genmcp/gen-mcp/.*" \
          --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+         --new-bundle-format \
          genmcp-linux-amd64.zip
    ```
 
@@ -239,7 +237,7 @@ Intellij IDEs [support](https://www.jetbrains.com/help/idea/json.html#ws_json_sc
 
 VS Code requires the installation of the [YAML extension by Red Hat](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml).
 
-![Schema Autocomplete Screenshot](./hack/jsonschemagen/mcpfile-autocomplete-screenshot.png)
+![Schema Autocomplete Screenshot](./assets/screenshots/mcpfile-autocomplete-screenshot.png)
 
 ## 📚 Examples & Tutorials
 
@@ -294,6 +292,12 @@ Expose existing gRPC services to LLMs without modifying service code:
 ## 🤝 Contributing
 
 We welcome contributions! This is an early-stage research project with lots of room for improvement.
+
+### Join the Community
+
+Have questions or want to discuss gen-mcp? Join our Discord community:
+
+**[Join Discord](https://discord.gg/AwP6GAUEQR)** - Connect with other users, share ideas, and get help
 
 ### Development Setup
 ```bash

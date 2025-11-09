@@ -1,3 +1,9 @@
+---
+layout: page
+title: MCP File Format Specification
+description: Complete reference guide for the GenMCP file format
+---
+
 # MCP File Format Specification
 
 ## 1. Introduction
