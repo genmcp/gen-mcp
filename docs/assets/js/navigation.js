@@ -1,5 +1,8 @@
 // Smooth scrolling for anchor links
 document.addEventListener('DOMContentLoaded', function() {
+  // Shared header offset constant for consistent scrolling and highlighting
+  const headerOffset = 80;
+
   // Handle anchor link clicks
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function(e) {
@@ -12,7 +15,6 @@ document.addEventListener('DOMContentLoaded', function() {
       const target = document.querySelector(href);
 
       if (target) {
-        const headerOffset = 80;
         const elementPosition = target.getBoundingClientRect().top;
         const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
@@ -46,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const sectionTop = section.offsetTop;
       const sectionHeight = section.clientHeight;
 
-      if (window.pageYOffset >= sectionTop - 100) {
+      if (window.pageYOffset >= sectionTop - headerOffset) {
         current = section.getAttribute('id');
       }
     });
