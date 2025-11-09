@@ -97,10 +97,11 @@ title: Home
 {% highlight bash %}
 # Download from GitHub releases
 # Visit: https://github.com/genmcp/gen-mcp/releases
-# Or using curl (replace with latest version):
-curl -L https://github.com/genmcp/gen-mcp/releases/latest/download/genmcp-linux-amd64 -o genmcp
-chmod +x genmcp
-sudo mv genmcp /usr/local/bin
+# Or using curl (replace with latest version and platform):
+curl -L https://github.com/genmcp/gen-mcp/releases/latest/download/genmcp-linux-amd64.zip -o genmcp-linux-amd64.zip
+unzip genmcp-linux-amd64.zip
+chmod +x genmcp-linux-amd64
+sudo mv genmcp-linux-amd64 /usr/local/bin/genmcp
 {% endhighlight %}
     </div>
 
