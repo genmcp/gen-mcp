@@ -243,12 +243,15 @@ scenario4_break() {
 
   local patch_file
   patch_file="$(mktemp)"
+  trap 'if [[ -n "${patch_file:-}" ]]; then rm -f "${patch_file}"; fi' EXIT
+
   cat <<'JSON' > "${patch_file}"
 {"spec":{"tls":{"termination":"reencrypt","insecureEdgeTerminationPolicy":"Redirect","destinationCACertificate":"-----BEGIN CERTIFICATE-----\nMIICwjCCAaqgAwIBAgIUPdPBiiv4lqmx+J/0VDP0FmSkL5AwDQYJKoZIhvcNAQEL\nBQAwFDESMBAGA1UEAwwJbmV0ZWRnZS1jYTAeFw0yNDAxMDEwMDAwMDBaFw0zNDAx\nMDEwMDAwMDBaMBQxEjAQBgNVBAMMCW5ldGVkZ2UtY2EwggEiMA0GCSqGSIb3DQEB\nAQUAA4IBDwAwggEKAoIBAQDJF5vQ2p8sVh6a4l4BhFJj3ZdtmLEl3gHtP3nTzmYB\njLfzMOlHFelgW8Trgzzwf1JmHz1DScz3H1JdYaiN2rFbV2jwV3X7hJ2P60+g2PdV\ng9gi3b3tu5C3fYpt3YaKulHytQ+Oqv5x0zDfai+qyDCqgQzfwzEkbg0AoLvvy0F9\nWPzPj6xnEwSa5t1FUbYQwplpHk2nw/TYe8LSF+6T1Vn/ZRQlBIjXopB11Mh17l5b\n7ouC2vhV3ZNiHPJJR7MY3GacsbGu9zwCfn12MBYc4B1YwDWwP6R6jo5fKUn19+ih\nq6B4Tn3FQilds3n3qNNc3blJPoBsXSV6XdJ+2l4O/E/1AgMBAAGjUzBRMB0GA1Ud\nDgQWBBSmU/lVYG5HZM3Xq2bpuASr9PBRGjAfBgNVHSMEGDAWgBSmU/lVYG5HZM3X\nq2bpuASr9PBRGjAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQCH\n0W7jhBP6tQyctXWZfqs169uAHSrmwU0aQAn2j2ad3rZ4IE+u2ASfrmVii5wjNe4E\ntRjS0+QWaEoZwJBGtJ6r/TqlTr/7zQa4XzdX8yEbfL33Gt20lfO1nU/KcqbPjhQi\n6JFpj0YvdwfukuvseIgCyPCYTDWJrrRJbwI62I5qnK0iePvyplTkU1qpLVgv2wP6\nUZUqXYy3eLKUIKwoJs5eX1Po9rIrFHG8wbHPJUBaVuZQgDrw9WdDPQ6YgB1nc8fN\nWHGakUWTynVro4/+Y/5Dn09iuPhR2JrDogFm6uaSYzBeAnkw1GOEiUv7J8wo6P0R\nQrJjapdStc3bVh7usNuh\n-----END CERTIFICATE-----\n"}}}
 JSON
 
   oc -n "${NAMESPACE}" patch route "${APP_NAME}" --type=merge --patch-file "${patch_file}"
   rm -f "${patch_file}"
+  trap - EXIT
 
   show_status
   refresh_route_host
