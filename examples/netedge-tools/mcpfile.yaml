@@ -225,17 +225,32 @@ tools:
 
           oc -n "$namespace" delete pod "$pod_name" --ignore-not-found >/dev/null 2>&1 || true
 
-          overrides="$(printf '\173"spec":\173"securityContext":\173"runAsNonRoot":true,\"seccompProfile\":\173\"type\":\"RuntimeDefault\"\175\175,\"containers\":[\173\"name\":\"dns\",\"securityContext\":\173\"allowPrivilegeEscalation\":false,\"capabilities\":\173\"drop\":[\"ALL\"]\175\175\175]\175\175')"
-
-          if ! oc -n "$namespace" run "$pod_name" \
-            --image="$image" \
-            --restart=Never \
-            --command \
-            --overrides "$overrides" \
-            -- /bin/sh -c "dig @$server $name $rtype +noall +answer" >/dev/null; then
-            echo "failed to create DNS probe pod" >&2
-            exit 1
-          fi
+          cat <<EOF | oc -n "$namespace" apply -f - >/dev/null
+            apiVersion: v1
+            kind: Pod
+            metadata:
+              name: $pod_name
+              labels:
+                app.kubernetes.io/managed-by: netedge-tools
+            spec:
+              restartPolicy: Never
+              securityContext:
+                runAsNonRoot: true
+                seccompProfile:
+                  type: RuntimeDefault
+              containers:
+              - name: $pod_name
+                image: $image
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                command:
+                - /bin/sh
+                - -c
+                - dig @$server $name $rtype +noall +answer
+          EOF
 
           for attempt in $(seq 1 24); do
             phase="$(oc -n "$namespace" get pod "$pod_name" -o "jsonpath=$phase_jsonpath" 2>/dev/null || true)"
