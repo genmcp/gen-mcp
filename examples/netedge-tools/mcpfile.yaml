@@ -178,9 +178,9 @@ tools:
           n="{name}"
           t="{type}"
           if command -v dig >/dev/null 2>&1; then
-            dig @$s $n $t +noall +answer || true
+            dig @"$s" "$n" "$t" +noall +answer || true
           else
-            nslookup -type=$t $n $s || echo "dig/nslookup not available"
+            nslookup -type="$t" "$n" "$s" || echo "dig/nslookup not available"
           fi
 
   - name: exec_dns_in_pod
@@ -249,7 +249,7 @@ tools:
                 command:
                 - /bin/sh
                 - -c
-                - dig @$server $name $rtype +noall +answer
+                - dig @"$server" "$name" "$rtype" +noall +answer
           EOF
 
           for attempt in $(seq 1 24); do
