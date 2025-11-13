@@ -158,72 +158,12 @@ func parseServerConfigFile(filePath string) (*serverconfig.MCPServerConfigFile, 
 	return serverconfig.ParseMCPFile(filePath)
 }
 
+// TODO: remove
 // combineFilesToMCPServer combines tool definitions and server config into an MCPServer struct
 func combineFilesToMCPServer(toolDefs *definitions.MCPToolDefinitionsFile, serverConfig *serverconfig.MCPServerConfigFile) *mcpfile.MCPServer {
-	// Convert tools, prompts, resources, and resource templates from definitions package
-	tools := make([]*definitions.Tool, len(toolDefs.Tools))
-	for i, t := range toolDefs.Tools {
-		tools[i] = t
-	}
-
-	prompts := make([]*definitions.Prompt, len(toolDefs.Prompts))
-	for i, p := range toolDefs.Prompts {
-		prompts[i] = p
-	}
-
-	resources := make([]*definitions.Resource, len(toolDefs.Resources))
-	for i, r := range toolDefs.Resources {
-		resources[i] = r
-	}
-
-	resourceTemplates := make([]*definitions.ResourceTemplate, len(toolDefs.ResourceTemplates))
-	for i, rt := range toolDefs.ResourceTemplates {
-		resourceTemplates[i] = rt
-	}
-
-	// Merge invocation bases (server config takes precedence if there are conflicts)
-	invocationBases := make(map[string]*invocation.InvocationConfigWrapper)
-	for k, v := range toolDefs.InvocationBases {
-		invocationBases[k] = v
-	}
-	for k, v := range serverConfig.InvocationBases {
-		invocationBases[k] = v
-	}
-
-	// Use name and version from server config, fallback to tool definitions if not set
-	name := serverConfig.Name
-	if name == "" {
-		name = toolDefs.Name
-	}
-	version := serverConfig.Version
-	if version == "" {
-		version = toolDefs.Version
-	}
-
-	// Use instructions from server config, fallback to tool definitions if not set
-	instructions := serverConfig.Instructions
-	if instructions == "" {
-		instructions = toolDefs.Instructions
-	}
-
 	return &mcpfile.MCPServer{
-		MCPToolDefinitions: definitions.MCPToolDefinitions{
-			Name:              name,
-			Version:           version,
-			Instructions:      instructions,
-			InvocationBases:   invocationBases,
-			Tools:             tools,
-			Prompts:           prompts,
-			Resources:         resources,
-			ResourceTemplates: resourceTemplates,
-		},
-		MCPServerConfig: serverconfig.MCPServerConfig{
-			Name:            name,
-			Version:         version,
-			Instructions:    instructions,
-			Runtime:         serverConfig.Runtime,
-			InvocationBases: invocationBases,
-		},
+		MCPToolDefinitions: toolDefs.MCPToolDefinitions,
+		MCPServerConfig:    serverConfig.MCPServerConfig,
 	}
 }
 
