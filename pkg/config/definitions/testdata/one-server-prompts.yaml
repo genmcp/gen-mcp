@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=../../../specs/mcpfile-schema.json
+mcpFileVersion: 0.2.0
+name: test-server
+version: 1.0.0
+prompts:
+- name: code_review
+  title: "Request Code Review"
+  description: "Asks the LLM to analyze code quality and suggest improvements"
+  arguments:
+  - name: code
+    title: "Code"
+    description: "The code to review"
+    required: true
+  inputSchema:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "The code to review"
+    required:
+      - code
+  invocation:
+    http:
+      url: http://localhost:5000
+      method: POST
+

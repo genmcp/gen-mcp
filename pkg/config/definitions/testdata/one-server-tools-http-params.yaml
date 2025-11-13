@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=../../../specs/mcpfile-schema.json
+mcpFileVersion: 0.2.0
+name: test-server
+version: 1.0.0
+tools:
+- name: get_user_by_company
+  title: Users Provider
+  description: Get list of users from a given company
+  inputSchema:
+    type: object
+    properties:
+      companyName:
+        type: string
+        description: Name of the company
+    required:
+    - companyName
+  invocation:
+    http:
+      url: http://localhost:5000/{companyName}/users
+      method: GET
