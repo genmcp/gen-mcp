@@ -54,7 +54,7 @@ func (m *MCPFile) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("invalid mcp file version %s, expected %s - please migrate your file and handle any breaking changes", m.FileVersion, MCPFileVersion)
 	}
 
-	// Unmarshal the rest into MCPServer
+	// Unmarshal the rest into MCPServerConfig
 	if err := json.Unmarshal(data, &m.MCPServer); err != nil {
 		return err
 	}
