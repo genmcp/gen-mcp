@@ -23,70 +23,70 @@ import (
 )
 
 func MakeServer(mcpServer *mcpfile.MCPServer) (*mcp.Server, error) {
-	logger := mcpServer.Runtime.GetBaseLogger()
+	logger := mcpServer.MCPServerConfig.Runtime.GetBaseLogger()
 	logger.Debug("Creating MCP server",
-		zap.String("server_name", mcpServer.Name),
-		zap.String("server_version", mcpServer.Version))
+		zap.String("server_name", mcpServer.Name()),
+		zap.String("server_version", mcpServer.Version()))
 
 	// apply the runtime overrides to the mcp server
 	// if something goes wrong in the env vars, we warn but continue
 	envOverrider := mcpfile.NewEnvRuntimeOverrider()
-	if err := envOverrider.ApplyOverrides(mcpServer.Runtime); err != nil {
+	if err := envOverrider.ApplyOverrides(mcpServer.MCPServerConfig.Runtime); err != nil {
 		logger.Warn("Failed to apply overrides from env vars to the mcp server",
-			zap.String("server_name", mcpServer.Name),
+			zap.String("server_name", mcpServer.Name()),
 			zap.Error(err))
 	}
 
 	// Validate the server configuration before creating the server
 	if err := mcpServer.Validate(invocation.InvocationValidator); err != nil {
 		logger.Error("Server configuration validation failed",
-			zap.String("server_name", mcpServer.Name),
+			zap.String("server_name", mcpServer.Name()),
 			zap.Error(err))
 		return nil, fmt.Errorf("invalid server configuration: %w", err)
 	}
 
 	logger.Info("Server configuration validated successfully",
-		zap.String("server_name", mcpServer.Name))
+		zap.String("server_name", mcpServer.Name()))
 
 	server, err := makeServerWithoutValidation(mcpServer)
 	if err != nil {
 		logger.Error("Failed to create server",
-			zap.String("server_name", mcpServer.Name),
+			zap.String("server_name", mcpServer.Name()),
 			zap.Error(err))
 		return nil, err
 	}
 
 	logger.Info("MCP server created successfully",
-		zap.String("server_name", mcpServer.Name),
-		zap.String("server_version", mcpServer.Version))
+		zap.String("server_name", mcpServer.Name()),
+		zap.String("server_version", mcpServer.Version()))
 	return server, nil
 }
 
 // makeServerWithoutValidation creates a server without performing validation
 // This is used internally when validation has already been performed
 func makeServerWithoutValidation(mcpServer *mcpfile.MCPServer) (*mcp.Server, error) {
-	return makeServerWithTools(mcpServer, mcpServer.Tools)
+	return makeServerWithTools(mcpServer, mcpServer.MCPToolDefinitions.Tools)
 }
 
 func RunServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
-	logger := mcpServerConfig.Runtime.GetBaseLogger()
+	logger := mcpServerConfig.MCPServerConfig.Runtime.GetBaseLogger()
 	logger.Info("Starting MCP server",
-		zap.String("server_name", mcpServerConfig.Name),
-		zap.String("server_version", mcpServerConfig.Version),
-		zap.String("transport_protocol", mcpServerConfig.Runtime.TransportProtocol))
+		zap.String("server_name", mcpServerConfig.Name()),
+		zap.String("server_version", mcpServerConfig.Version()),
+		zap.String("transport_protocol", mcpServerConfig.MCPServerConfig.Runtime.TransportProtocol))
 
 	// Validate the server configuration before running
 	if err := mcpServerConfig.Validate(invocation.InvocationValidator); err != nil {
 		logger.Error("Server configuration validation failed before running",
-			zap.String("server_name", mcpServerConfig.Name),
+			zap.String("server_name", mcpServerConfig.Name()),
 			zap.Error(err))
 		return fmt.Errorf("invalid server configuration: %w", err)
 	}
 
 	logger.Debug("Server configuration validated, selecting transport protocol",
-		zap.String("transport_protocol", mcpServerConfig.Runtime.TransportProtocol))
+		zap.String("transport_protocol", mcpServerConfig.MCPServerConfig.Runtime.TransportProtocol))
 
-	switch strings.ToLower(mcpServerConfig.Runtime.TransportProtocol) {
+	switch strings.ToLower(mcpServerConfig.MCPServerConfig.Runtime.TransportProtocol) {
 	case mcpfile.TransportProtocolStreamableHttp:
 		logger.Info("Running server with streamable HTTP transport")
 		return runStreamableHttpServer(ctx, mcpServerConfig)
@@ -95,7 +95,7 @@ func RunServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
 		return runStdioServer(ctx, mcpServerConfig)
 	default:
 		logger.Error("Invalid transport protocol specified",
-			zap.String("transport_protocol", mcpServerConfig.Runtime.TransportProtocol))
+			zap.String("transport_protocol", mcpServerConfig.MCPServerConfig.Runtime.TransportProtocol))
 		return fmt.Errorf("tried running invalid transport protocol")
 	}
 }
@@ -119,12 +119,12 @@ func RunServers(ctx context.Context, toolDefinitionsPath, serverConfigPath strin
 	mcpServer := combineFilesToMCPServer(toolDefsFile, serverConfigFile)
 
 	// Now we can get the logger from the runtime config
-	logger := mcpServer.Runtime.GetBaseLogger()
+	logger := mcpServer.MCPServerConfig.Runtime.GetBaseLogger()
 	logger.Info("Starting servers from MCP files",
 		zap.String("tool_definitions_path", toolDefinitionsPath),
 		zap.String("server_config_path", serverConfigPath),
-		zap.String("server_name", mcpServer.Name),
-		zap.String("server_version", mcpServer.Version))
+		zap.String("server_name", mcpServer.Name()),
+		zap.String("server_version", mcpServer.Version()))
 
 	if err := mcpServer.Validate(invocation.InvocationValidator); err != nil {
 		logger.Error("MCP file validation failed",
@@ -139,9 +139,9 @@ func RunServers(ctx context.Context, toolDefinitionsPath, serverConfigPath strin
 	// Apply runtime overrides from environment variables
 	// if something goes wrong in the env vars, we warn but continue
 	envOverrider := mcpfile.NewEnvRuntimeOverrider()
-	if err := envOverrider.ApplyOverrides(mcpServer.Runtime); err != nil {
+	if err := envOverrider.ApplyOverrides(mcpServer.MCPServerConfig.Runtime); err != nil {
 		logger.Warn("Failed to apply overrides from env vars to the mcp server",
-			zap.String("server_name", mcpServer.Name),
+			zap.String("server_name", mcpServer.Name()),
 			zap.Error(err))
 	}
 
@@ -160,25 +160,25 @@ func parseServerConfigFile(filePath string) (*serverconfig.MCPServerConfigFile, 
 
 // combineFilesToMCPServer combines tool definitions and server config into an MCPServer struct
 func combineFilesToMCPServer(toolDefs *definitions.MCPToolDefinitionsFile, serverConfig *serverconfig.MCPServerConfigFile) *mcpfile.MCPServer {
-	// Convert tools, prompts, resources, and resource templates from definitions package to mcpfile package
-	tools := make([]*mcpfile.Tool, len(toolDefs.Tools))
+	// Convert tools, prompts, resources, and resource templates from definitions package
+	tools := make([]*definitions.Tool, len(toolDefs.Tools))
 	for i, t := range toolDefs.Tools {
-		tools[i] = convertTool(t)
+		tools[i] = t
 	}
 
-	prompts := make([]*mcpfile.Prompt, len(toolDefs.Prompts))
+	prompts := make([]*definitions.Prompt, len(toolDefs.Prompts))
 	for i, p := range toolDefs.Prompts {
-		prompts[i] = convertPrompt(p)
+		prompts[i] = p
 	}
 
-	resources := make([]*mcpfile.Resource, len(toolDefs.Resources))
+	resources := make([]*definitions.Resource, len(toolDefs.Resources))
 	for i, r := range toolDefs.Resources {
-		resources[i] = convertResource(r)
+		resources[i] = r
 	}
 
-	resourceTemplates := make([]*mcpfile.ResourceTemplate, len(toolDefs.ResourceTemplates))
+	resourceTemplates := make([]*definitions.ResourceTemplate, len(toolDefs.ResourceTemplates))
 	for i, rt := range toolDefs.ResourceTemplates {
-		resourceTemplates[i] = convertResourceTemplate(rt)
+		resourceTemplates[i] = rt
 	}
 
 	// Merge invocation bases (server config takes precedence if there are conflicts)
@@ -206,145 +206,32 @@ func combineFilesToMCPServer(toolDefs *definitions.MCPToolDefinitionsFile, serve
 		instructions = toolDefs.Instructions
 	}
 
-	// Convert server runtime from server config package to mcpfile package
-	runtime := convertServerRuntime(serverConfig.Runtime)
-
 	return &mcpfile.MCPServer{
-		Name:              name,
-		Version:           version,
-		Runtime:           runtime,
-		Instructions:      instructions,
-		InvocationBases:   invocationBases,
-		Tools:             tools,
-		Prompts:           prompts,
-		Resources:         resources,
-		ResourceTemplates: resourceTemplates,
-	}
-}
-
-// convertTool converts a Tool from definitions package to mcpfile package
-func convertTool(t *definitions.Tool) *mcpfile.Tool {
-	return &mcpfile.Tool{
-		Name:                    t.Name,
-		Title:                   t.Title,
-		Description:             t.Description,
-		InputSchema:             t.InputSchema,
-		OutputSchema:            t.OutputSchema,
-		InvocationConfigWrapper: t.InvocationConfigWrapper,
-		RequiredScopes:          t.RequiredScopes,
-		Annotations:             convertToolAnnotations(t.Annotations),
-		ResolvedInputSchema:     t.ResolvedInputSchema,
-	}
-}
-
-// convertToolAnnotations converts ToolAnnotations from definitions package to mcpfile package
-func convertToolAnnotations(a *definitions.ToolAnnotations) *mcpfile.ToolAnnotations {
-	if a == nil {
-		return nil
-	}
-	return &mcpfile.ToolAnnotations{
-		DestructiveHint: a.DestructiveHint,
-		IdempotentHint:  a.IdempotentHint,
-		OpenWorldHint:   a.OpenWorldHint,
-		ReadOnlyHint:    a.ReadOnlyHint,
-	}
-}
-
-// convertPrompt converts a Prompt from definitions package to mcpfile package
-func convertPrompt(p *definitions.Prompt) *mcpfile.Prompt {
-	args := make([]*mcpfile.PromptArgument, len(p.Arguments))
-	for i, a := range p.Arguments {
-		args[i] = &mcpfile.PromptArgument{
-			Name:        a.Name,
-			Description: a.Description,
-		}
-	}
-	return &mcpfile.Prompt{
-		Name:                    p.Name,
-		Title:                   p.Title,
-		Description:             p.Description,
-		Arguments:               args,
-		InputSchema:             p.InputSchema,
-		OutputSchema:            p.OutputSchema,
-		InvocationConfigWrapper: p.InvocationConfigWrapper,
-		RequiredScopes:          p.RequiredScopes,
-		ResolvedInputSchema:     p.ResolvedInputSchema,
-	}
-}
-
-// convertResource converts a Resource from definitions package to mcpfile package
-func convertResource(r *definitions.Resource) *mcpfile.Resource {
-	return &mcpfile.Resource{
-		URI:                     r.URI,
-		Name:                    r.Name,
-		Description:             r.Description,
-		MIMEType:                r.MIMEType,
-		InvocationConfigWrapper: r.InvocationConfigWrapper,
-		RequiredScopes:          r.RequiredScopes,
-	}
-}
-
-// convertResourceTemplate converts a ResourceTemplate from definitions package to mcpfile package
-func convertResourceTemplate(rt *definitions.ResourceTemplate) *mcpfile.ResourceTemplate {
-	return &mcpfile.ResourceTemplate{
-		URITemplate:             rt.URITemplate,
-		Name:                    rt.Name,
-		Description:             rt.Description,
-		MIMEType:                rt.MIMEType,
-		InvocationConfigWrapper: rt.InvocationConfigWrapper,
-		RequiredScopes:          rt.RequiredScopes,
-	}
-}
-
-// convertServerRuntime converts ServerRuntime from server config package to mcpfile package
-func convertServerRuntime(sr *serverconfig.ServerRuntime) *mcpfile.ServerRuntime {
-	if sr == nil {
-		return nil
-	}
-
-	var streamableHTTPConfig *mcpfile.StreamableHTTPConfig
-	if sr.StreamableHTTPConfig != nil {
-		var auth *mcpfile.AuthConfig
-		if sr.StreamableHTTPConfig.Auth != nil {
-			auth = &mcpfile.AuthConfig{
-				AuthorizationServers: sr.StreamableHTTPConfig.Auth.AuthorizationServers,
-				JWKSURI:              sr.StreamableHTTPConfig.Auth.JWKSURI,
-			}
-		}
-		var tls *mcpfile.TLSConfig
-		if sr.StreamableHTTPConfig.TLS != nil {
-			tls = &mcpfile.TLSConfig{
-				CertFile: sr.StreamableHTTPConfig.TLS.CertFile,
-				KeyFile:  sr.StreamableHTTPConfig.TLS.KeyFile,
-			}
-		}
-		streamableHTTPConfig = &mcpfile.StreamableHTTPConfig{
-			Port:      sr.StreamableHTTPConfig.Port,
-			BasePath:  sr.StreamableHTTPConfig.BasePath,
-			Stateless: sr.StreamableHTTPConfig.Stateless,
-			Auth:      auth,
-			TLS:       tls,
-		}
-	}
-
-	var stdioConfig *mcpfile.StdioConfig
-	if sr.StdioConfig != nil {
-		stdioConfig = &mcpfile.StdioConfig{}
-	}
-
-	return &mcpfile.ServerRuntime{
-		TransportProtocol:    sr.TransportProtocol,
-		StreamableHTTPConfig: streamableHTTPConfig,
-		StdioConfig:          stdioConfig,
-		LoggingConfig:        sr.LoggingConfig,
+		MCPToolDefinitions: definitions.MCPToolDefinitions{
+			Name:              name,
+			Version:           version,
+			Instructions:      instructions,
+			InvocationBases:   invocationBases,
+			Tools:             tools,
+			Prompts:           prompts,
+			Resources:         resources,
+			ResourceTemplates: resourceTemplates,
+		},
+		MCPServerConfig: serverconfig.MCPServerConfig{
+			Name:            name,
+			Version:         version,
+			Instructions:    instructions,
+			Runtime:         serverConfig.Runtime,
+			InvocationBases: invocationBases,
+		},
 	}
 }
 
 func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
-	logger := mcpServerConfig.Runtime.GetBaseLogger()
-	port := mcpServerConfig.Runtime.StreamableHTTPConfig.Port
-	basePath := mcpServerConfig.Runtime.StreamableHTTPConfig.BasePath
-	stateless := mcpServerConfig.Runtime.StreamableHTTPConfig.Stateless
+	logger := mcpServerConfig.MCPServerConfig.Runtime.GetBaseLogger()
+	port := mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.Port
+	basePath := mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.BasePath
+	stateless := mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.Stateless
 
 	logger.Info("Setting up streamable HTTP server",
 		zap.Int("port", port),
@@ -378,7 +265,7 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpfile.MCPSe
 	logger.Debug("Registered MCP handler", zap.String("path", basePath))
 
 	// Set up OAuth protected resource metadata endpoint under / if needed
-	if mcpServerConfig.Runtime.StreamableHTTPConfig.Auth != nil {
+	if mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.Auth != nil {
 		logger.Debug("Setting up OAuth protected resource metadata endpoint")
 		mux.HandleFunc(oauth.ProtectedResourceMetadataEndpoint, oauth.ProtectedResourceMetadataHandler(mcpServerConfig))
 		logger.Debug("Registered OAuth metadata handler", zap.String("path", oauth.ProtectedResourceMetadataEndpoint))
@@ -395,13 +282,13 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpfile.MCPSe
 	errCh := make(chan error, 1)
 	go func() {
 		var err error
-		if mcpServerConfig.Runtime.StreamableHTTPConfig.TLS != nil {
+		if mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.TLS != nil {
 			logger.Info("Starting HTTPS server with TLS",
-				zap.String("cert_file", mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.CertFile),
-				zap.String("key_file", mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.KeyFile))
+				zap.String("cert_file", mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.TLS.CertFile),
+				zap.String("key_file", mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.TLS.KeyFile))
 			err = srv.ListenAndServeTLS(
-				mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.CertFile,
-				mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.KeyFile,
+				mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.TLS.CertFile,
+				mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.TLS.KeyFile,
 			)
 		} else {
 			logger.Info("Starting HTTP server")
@@ -431,10 +318,10 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpfile.MCPSe
 }
 
 func runStdioServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
-	logger := mcpServerConfig.Runtime.GetBaseLogger()
+	logger := mcpServerConfig.MCPServerConfig.Runtime.GetBaseLogger()
 	logger.Info("Setting up stdio server",
-		zap.String("server_name", mcpServerConfig.Name),
-		zap.String("server_version", mcpServerConfig.Version))
+		zap.String("server_name", mcpServerConfig.Name()),
+		zap.String("server_version", mcpServerConfig.Version()))
 
 	s, err := makeServerWithoutValidation(mcpServerConfig)
 	if err != nil {
@@ -493,7 +380,7 @@ func checkPrimitiveAuthorization(ctx context.Context, requiredScopes []string, p
 }
 
 // createAuthorizedToolHandler wraps a tool handler with authorization checks
-func createAuthorizedToolHandler(tool *mcpfile.Tool) (mcp.ToolHandler, error) {
+func createAuthorizedToolHandler(tool *definitions.Tool) (mcp.ToolHandler, error) {
 	invoker, err := invocation.CreateInvoker(tool)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create invoker for tool %s: %w", tool.Name, err)
@@ -539,7 +426,7 @@ func createAuthorizedToolHandler(tool *mcpfile.Tool) (mcp.ToolHandler, error) {
 	}, nil
 }
 
-func createAuthorizedPromptHandler(prompt *mcpfile.Prompt) (mcp.PromptHandler, error) {
+func createAuthorizedPromptHandler(prompt *definitions.Prompt) (mcp.PromptHandler, error) {
 	invoker, err := invocation.CreatePromptInvoker(prompt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create invoker for prompt %s: %w", prompt.Name, err)
@@ -585,7 +472,7 @@ func createAuthorizedPromptHandler(prompt *mcpfile.Prompt) (mcp.PromptHandler, e
 	}, nil
 }
 
-func createAuthorizedResourceHandler(resource *mcpfile.Resource) (mcp.ResourceHandler, error) {
+func createAuthorizedResourceHandler(resource *definitions.Resource) (mcp.ResourceHandler, error) {
 	invoker, err := invocation.CreateResourceInvoker(resource)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create invoker for resource %s: %w", resource.Name, err)
@@ -631,7 +518,7 @@ func createAuthorizedResourceHandler(resource *mcpfile.Resource) (mcp.ResourceHa
 	}, nil
 }
 
-func createAuthorizedResourceTemplateHandler(resourceTemplate *mcpfile.ResourceTemplate) (mcp.ResourceHandler, error) {
+func createAuthorizedResourceTemplateHandler(resourceTemplate *definitions.ResourceTemplate) (mcp.ResourceHandler, error) {
 	invoker, err := invocation.CreateResourceTemplateInvoker(resourceTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create invoker for resource template %s: %w", resourceTemplate.Name, err)
@@ -678,29 +565,29 @@ func createAuthorizedResourceTemplateHandler(resourceTemplate *mcpfile.ResourceT
 
 // makeServerWithTools makes a server using the server metadata in mcpServer but with the tools specified in tools
 // this is useful for creating servers with filtered tool lists
-func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*mcp.Server, error) {
-	logger := mcpServer.Runtime.GetBaseLogger()
+func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*definitions.Tool) (*mcp.Server, error) {
+	logger := mcpServer.MCPServerConfig.Runtime.GetBaseLogger()
 	logger.Debug("Building MCP server with tools",
-		zap.String("server_name", mcpServer.Name),
-		zap.String("server_version", mcpServer.Version),
+		zap.String("server_name", mcpServer.Name()),
+		zap.String("server_version", mcpServer.Version()),
 		zap.Int("num_tools", len(tools)),
-		zap.Int("num_prompts", len(mcpServer.Prompts)),
-		zap.Int("num_resources", len(mcpServer.Resources)),
-		zap.Int("num_resource_templates", len(mcpServer.ResourceTemplates)))
+		zap.Int("num_prompts", len(mcpServer.MCPToolDefinitions.Prompts)),
+		zap.Int("num_resources", len(mcpServer.MCPToolDefinitions.Resources)),
+		zap.Int("num_resource_templates", len(mcpServer.MCPToolDefinitions.ResourceTemplates)))
 
 	opts := &mcp.ServerOptions{
-		HasTools:     len(mcpServer.Tools) > 0,
-		HasPrompts:   len(mcpServer.Prompts) > 0,
-		HasResources: len(mcpServer.Resources)+len(mcpServer.ResourceTemplates) > 0,
+		HasTools:     len(mcpServer.MCPToolDefinitions.Tools) > 0,
+		HasPrompts:   len(mcpServer.MCPToolDefinitions.Prompts) > 0,
+		HasResources: len(mcpServer.MCPToolDefinitions.Resources)+len(mcpServer.MCPToolDefinitions.ResourceTemplates) > 0,
 	}
-	if mcpServer.Instructions != "" {
+	if mcpServer.Instructions() != "" {
 		logger.Debug("Adding server instructions")
-		opts.Instructions = mcpServer.Instructions
+		opts.Instructions = mcpServer.Instructions()
 	}
 
 	s := mcp.NewServer(&mcp.Implementation{
-		Name:    mcpServer.Name,
-		Version: mcpServer.Version,
+		Name:    mcpServer.Name(),
+		Version: mcpServer.Version(),
 	}, opts)
 
 	logger.Debug("Adding logging middleware")
@@ -753,8 +640,8 @@ func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*
 		logger.Debug("Registered tool", zap.String("tool_name", t.Name))
 	}
 
-	logger.Debug("Registering prompts", zap.Int("count", len(mcpServer.Prompts)))
-	for _, p := range mcpServer.Prompts {
+	logger.Debug("Registering prompts", zap.Int("count", len(mcpServer.MCPToolDefinitions.Prompts)))
+	for _, p := range mcpServer.MCPToolDefinitions.Prompts {
 		handler, err := createAuthorizedPromptHandler(p)
 		if err != nil {
 			logger.Error("Failed to create prompt handler",
@@ -774,8 +661,8 @@ func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*
 		logger.Debug("Registered prompt", zap.String("prompt_name", p.Name))
 	}
 
-	logger.Debug("Registering resources", zap.Int("count", len(mcpServer.Resources)))
-	for _, r := range mcpServer.Resources {
+	logger.Debug("Registering resources", zap.Int("count", len(mcpServer.MCPToolDefinitions.Resources)))
+	for _, r := range mcpServer.MCPToolDefinitions.Resources {
 		handler, err := createAuthorizedResourceHandler(r)
 		if err != nil {
 			logger.Error("Failed to create resource handler",
@@ -798,8 +685,8 @@ func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*mcpfile.Tool) (*
 		logger.Debug("Registered resource", zap.String("resource_name", r.Name))
 	}
 
-	logger.Debug("Registering resource templates", zap.Int("count", len(mcpServer.ResourceTemplates)))
-	for _, rt := range mcpServer.ResourceTemplates {
+	logger.Debug("Registering resource templates", zap.Int("count", len(mcpServer.MCPToolDefinitions.ResourceTemplates)))
+	for _, rt := range mcpServer.MCPToolDefinitions.ResourceTemplates {
 		handler, err := createAuthorizedResourceTemplateHandler(rt)
 		if err != nil {
 			logger.Error("Failed to create resource template handler",
