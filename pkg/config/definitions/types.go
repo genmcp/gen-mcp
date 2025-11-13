@@ -11,6 +11,7 @@ const (
 	PrimitiveTypePrompt           = "prompt"
 	PrimitiveTypeResource         = "resource"
 	PrimitiveTypeResourceTemplate = "resourceTemplate"
+	KindMCPToolDefinitions        = "MCPToolDefinitions"
 )
 
 // Tool represents an executable capability of the MCP server.
@@ -324,6 +325,9 @@ type MCPToolDefinitions struct {
 
 // MCPToolDefinitionsFile is the root structure of an MCP configuration file.
 type MCPToolDefinitionsFile struct {
+	// Kind identifies the type of MCP file.
+	Kind string `json:"kind" jsonschema:"required"`
+
 	// Version of the MCP file format.
 	FileVersion string `json:"mcpFileVersion" jsonschema:"required"`
 

@@ -43,6 +43,21 @@ func (m *MCPToolDefinitionsFile) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	// Unmarshal Kind separately
+	if k, ok := raw["kind"]; ok {
+		if err := json.Unmarshal(k, &m.Kind); err != nil {
+			return err
+		}
+	}
+
+	// Validate kind
+	if m.Kind == "" {
+		return fmt.Errorf("kind field is required, expected %s", KindMCPToolDefinitions)
+	}
+	if m.Kind != KindMCPToolDefinitions {
+		return fmt.Errorf("invalid kind %s, expected %s", m.Kind, KindMCPToolDefinitions)
+	}
+
 	// Unmarshal FileVersion separately
 	if fv, ok := raw["mcpFileVersion"]; ok {
 		if err := json.Unmarshal(fv, &m.FileVersion); err != nil {
