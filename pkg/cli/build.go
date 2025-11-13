@@ -1,13 +1,16 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/genmcp/gen-mcp/pkg/builder"
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 )
 
 func init() {
@@ -38,6 +41,12 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 
 	if imageTag == "" {
 		fmt.Printf("--tag is required to build an image\n")
+		os.Exit(1)
+	}
+
+	// Validate MCP file before building
+	if err := validateMCPFile(mcpFile); err != nil {
+		fmt.Printf("invalid mcp file: %s\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -141,4 +150,38 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 			fmt.Printf("\n")
 		}
 	}
+}
+
+// validateMCPFile validates an MCP file by parsing it based on its kind field
+func validateMCPFile(filePath string) error {
+	// Read the file to check the kind field
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read mcp file: %w", err)
+	}
+
+	// Parse just the kind field to determine which parser to use
+	var fileKind struct {
+		Kind string `json:"kind" yaml:"kind"`
+	}
+	if err := json.Unmarshal(data, &fileKind); err != nil {
+		// Try YAML unmarshaling
+		if yamlErr := yaml.Unmarshal(data, &fileKind); yamlErr != nil {
+			return fmt.Errorf("failed to parse mcp file (tried both JSON and YAML): %w", err)
+		}
+	}
+
+	// Only accept MCPToolDefinitionsFile for build command
+	if fileKind.Kind != definitions.KindMCPToolDefinitions {
+		return fmt.Errorf("build command only accepts MCPToolDefinitions files (kind: %s), but found kind: %s", definitions.KindMCPToolDefinitions, fileKind.Kind)
+	}
+
+	mcpFile, err := definitions.ParseMCPFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to parse MCPToolDefinitions file: %w", err)
+	}
+	// Note: MCPToolDefinitionsFile doesn't have a Validate method that matches
+	// the signature expected, so we'll just validate parsing succeeded
+	_ = mcpFile
+	return nil
 }
