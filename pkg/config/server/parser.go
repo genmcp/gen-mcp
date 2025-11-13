@@ -57,15 +57,15 @@ func (m *MCPServerConfigFile) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("invalid kind %s, expected %s", m.Kind, KindMCPServerConfig)
 	}
 
-	// Unmarshal FileVersion separately
-	if fv, ok := raw["mcpFileVersion"]; ok {
-		if err := json.Unmarshal(fv, &m.FileVersion); err != nil {
+	// Unmarshal SchemaVersion separately
+	if fv, ok := raw["schemaVersion"]; ok {
+		if err := json.Unmarshal(fv, &m.SchemaVersion); err != nil {
 			return err
 		}
 	}
 
-	if m.FileVersion != MCPFileVersion {
-		return fmt.Errorf("invalid mcp file version %s, expected %s - please migrate your file and handle any breaking changes", m.FileVersion, MCPFileVersion)
+	if m.SchemaVersion != SchemaVersion {
+		return fmt.Errorf("invalid schema version %s, expected %s - please migrate your file and handle any breaking changes", m.SchemaVersion, SchemaVersion)
 	}
 
 	// Unmarshal the rest into MCPServerConfig

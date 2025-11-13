@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	MCPFileVersion                = "0.2.0"
+	SchemaVersion                 = "0.2.0"
 	PrimitiveTypeTool             = "tool"
 	PrimitiveTypePrompt           = "prompt"
 	PrimitiveTypeResource         = "resource"
@@ -329,7 +329,7 @@ type MCPToolDefinitionsFile struct {
 	Kind string `json:"kind" jsonschema:"required"`
 
 	// Version of the MCP file format.
-	FileVersion string `json:"mcpFileVersion" jsonschema:"required"`
+	SchemaVersion string `json:"schemaVersion" jsonschema:"required"`
 
 	// MCP server definition.
 	MCPToolDefinitions `json:",inline"`
