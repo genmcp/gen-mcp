@@ -14,6 +14,7 @@ const (
 	MCPFileVersion                  = "0.2.0"
 	TransportProtocolStreamableHttp = "streamablehttp"
 	TransportProtocolStdio          = "stdio"
+	KindMCPServerConfig             = "MCPServerConfig"
 )
 
 // StreamableHTTPConfig defines configuration for the HTTP-based runtime.
@@ -121,6 +122,9 @@ type MCPServerConfig struct {
 
 // MCPServerConfigFile is the root structure of an MCP configuration file.
 type MCPServerConfigFile struct {
+	// Kind identifies the type of MCP file.
+	Kind string `json:"kind" jsonschema:"required"`
+
 	// Version of the MCP file format.
 	FileVersion string `json:"mcpFileVersion" jsonschema:"required"`
 

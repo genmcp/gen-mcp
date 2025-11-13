@@ -1,4 +1,5 @@
 # yaml-language-server: $schema=../../../specs/mcpfile-schema.json
+kind: MCPToolDefinitions
 mcpFileVersion: 0.2.0
 name: git-github-example
 version: 1.0.0

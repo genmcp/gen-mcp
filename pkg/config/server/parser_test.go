@@ -17,12 +17,14 @@ func TestParseMcpFile(t *testing.T) {
 		"no servers": {
 			testFileName: "no-servers.yaml",
 			expected: &MCPServerConfigFile{
+				Kind:        KindMCPServerConfig,
 				FileVersion: MCPFileVersion,
 			},
 		},
 		"stateful": {
 			testFileName: "one-server-stateful.yaml",
 			expected: &MCPServerConfigFile{
+				Kind:        KindMCPServerConfig,
 				FileVersion: MCPFileVersion,
 				MCPServerConfig: MCPServerConfig{
 					Name:    "test-server",
@@ -41,6 +43,7 @@ func TestParseMcpFile(t *testing.T) {
 		"server runtime stdio": {
 			testFileName: "server-runtime-stdio.yaml",
 			expected: &MCPServerConfigFile{
+				Kind:        KindMCPServerConfig,
 				FileVersion: MCPFileVersion,
 				MCPServerConfig: MCPServerConfig{
 					Name:    "test-server",
@@ -54,6 +57,7 @@ func TestParseMcpFile(t *testing.T) {
 		"full demo": {
 			testFileName: "full-demo.yaml",
 			expected: &MCPServerConfigFile{
+				Kind:        KindMCPServerConfig,
 				FileVersion: MCPFileVersion,
 				MCPServerConfig: MCPServerConfig{
 					Name:    "git-github-example",
@@ -71,6 +75,7 @@ func TestParseMcpFile(t *testing.T) {
 		"with tls": {
 			testFileName: "one-server-tls.yaml",
 			expected: &MCPServerConfigFile{
+				Kind:        KindMCPServerConfig,
 				FileVersion: MCPFileVersion,
 				MCPServerConfig: MCPServerConfig{
 					Name:    "test-server",

@@ -1,4 +1,5 @@
 # yaml-language-server: $schema=../../../specs/mcpfile-schema.json
+kind: MCPServerConfig
 mcpFileVersion: 0.2.0
 name: test-server
 version: 1.0.0

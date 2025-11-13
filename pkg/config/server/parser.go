@@ -42,6 +42,21 @@ func (m *MCPServerConfigFile) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	// Unmarshal Kind separately
+	if k, ok := raw["kind"]; ok {
+		if err := json.Unmarshal(k, &m.Kind); err != nil {
+			return err
+		}
+	}
+
+	// Validate kind
+	if m.Kind == "" {
+		return fmt.Errorf("kind field is required, expected %s", KindMCPServerConfig)
+	}
+	if m.Kind != KindMCPServerConfig {
+		return fmt.Errorf("invalid kind %s, expected %s", m.Kind, KindMCPServerConfig)
+	}
+
 	// Unmarshal FileVersion separately
 	if fv, ok := raw["mcpFileVersion"]; ok {
 		if err := json.Unmarshal(fv, &m.FileVersion); err != nil {
