@@ -264,10 +264,8 @@ func TestImageBuilder_Build(t *testing.T) {
 				binaryInfo := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryData))}
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(binaryData, binaryInfo, nil)
 
-				mcpFileInfo := &mockFileInfo{name: "mcpfile.yaml", size: 100}
-				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpFileInfo, nil)
-				mcpServerConfigInfo := &mockFileInfo{name: "mcpserver.yaml", size: 100}
-				mfs.On("Stat", "/test/mcpserver.yaml").Return(mcpServerConfigInfo, nil)
+				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: 100}
+				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil)
 				mfs.On("ReadFile", "/test/mcpfile.yaml").Return([]byte{}, errors.New("read permission denied"))
 			},
 			expectedError: "failed to read MCP tool definitions file: read permission denied",
@@ -286,10 +284,15 @@ func TestImageBuilder_Build(t *testing.T) {
 				binaryInfo := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryData))}
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(binaryData, binaryInfo, nil)
 
-				mcpFileData := []byte("fake-mcp-file-data")
-				mcpFileInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpFileData))}
-				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpFileInfo, nil)
-				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpFileData, nil)
+				mcpToolDefsData := []byte("fake-mcp-tool-defs-data")
+				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
+				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil)
+				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpToolDefsData, nil)
+
+				mcpServerConfigData := []byte("fake-mcp-server-config-data")
+				mcpServerConfigInfo := &mockFileInfo{name: "mcpserver.yaml", size: int64(len(mcpServerConfigData))}
+				mfs.On("Stat", "/test/mcpserver.yaml").Return(mcpServerConfigInfo, nil)
+				mfs.On("ReadFile", "/test/mcpserver.yaml").Return(mcpServerConfigData, nil)
 			},
 			expectedError: "failed to get media type for layers: invalid base image media type",
 		},
