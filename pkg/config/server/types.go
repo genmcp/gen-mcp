@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	MCPFileVersion                  = "0.2.0"
+	SchemaVersion                   = "0.2.0"
 	TransportProtocolStreamableHttp = "streamablehttp"
 	TransportProtocolStdio          = "stdio"
 	KindMCPServerConfig             = "MCPServerConfig"
@@ -126,7 +126,7 @@ type MCPServerConfigFile struct {
 	Kind string `json:"kind" jsonschema:"required"`
 
 	// Version of the MCP file format.
-	FileVersion string `json:"mcpFileVersion" jsonschema:"required"`
+	SchemaVersion string `json:"schemaVersion" jsonschema:"required"`
 
 	// MCP server definition.
 	MCPServerConfig `json:",inline"`

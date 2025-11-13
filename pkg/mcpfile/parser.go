@@ -43,7 +43,7 @@ func (m *MCPFile) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	// Unmarshal FileVersion separately
+	// Unmarshal SchemaVersion separately
 	if fv, ok := raw["mcpFileVersion"]; ok {
 		if err := json.Unmarshal(fv, &m.FileVersion); err != nil {
 			return err

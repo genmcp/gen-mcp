@@ -17,15 +17,15 @@ func TestParseMcpFile(t *testing.T) {
 		"no servers": {
 			testFileName: "no-servers.yaml",
 			expected: &MCPServerConfigFile{
-				Kind:        KindMCPServerConfig,
-				FileVersion: MCPFileVersion,
+				Kind:          KindMCPServerConfig,
+				SchemaVersion: SchemaVersion,
 			},
 		},
 		"stateful": {
 			testFileName: "one-server-stateful.yaml",
 			expected: &MCPServerConfigFile{
-				Kind:        KindMCPServerConfig,
-				FileVersion: MCPFileVersion,
+				Kind:          KindMCPServerConfig,
+				SchemaVersion: SchemaVersion,
 				MCPServerConfig: MCPServerConfig{
 					Name:    "test-server",
 					Version: "1.0.0",
@@ -43,8 +43,8 @@ func TestParseMcpFile(t *testing.T) {
 		"server runtime stdio": {
 			testFileName: "server-runtime-stdio.yaml",
 			expected: &MCPServerConfigFile{
-				Kind:        KindMCPServerConfig,
-				FileVersion: MCPFileVersion,
+				Kind:          KindMCPServerConfig,
+				SchemaVersion: SchemaVersion,
 				MCPServerConfig: MCPServerConfig{
 					Name:    "test-server",
 					Version: "1.0.0",
@@ -57,8 +57,8 @@ func TestParseMcpFile(t *testing.T) {
 		"full demo": {
 			testFileName: "full-demo.yaml",
 			expected: &MCPServerConfigFile{
-				Kind:        KindMCPServerConfig,
-				FileVersion: MCPFileVersion,
+				Kind:          KindMCPServerConfig,
+				SchemaVersion: SchemaVersion,
 				MCPServerConfig: MCPServerConfig{
 					Name:    "git-github-example",
 					Version: "1.0.0",
@@ -75,8 +75,8 @@ func TestParseMcpFile(t *testing.T) {
 		"with tls": {
 			testFileName: "one-server-tls.yaml",
 			expected: &MCPServerConfigFile{
-				Kind:        KindMCPServerConfig,
-				FileVersion: MCPFileVersion,
+				Kind:          KindMCPServerConfig,
+				SchemaVersion: SchemaVersion,
 				MCPServerConfig: MCPServerConfig{
 					Name:    "test-server",
 					Version: "1.0.0",
@@ -95,9 +95,9 @@ func TestParseMcpFile(t *testing.T) {
 			},
 		},
 		"invalid version 0.0.1": {
-			testFileName:  "invalid-file-version.yaml",
+			testFileName:  "invalid-schema-version.yaml",
 			wantErr:       true,
-			errorContains: "invalid mcp file version",
+			errorContains: "invalid schema version",
 		},
 	}
 
