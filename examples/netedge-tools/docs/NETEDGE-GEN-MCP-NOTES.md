@@ -7,8 +7,9 @@ how to build and run, key assumptions, and short next‑step ideas.
 
 What this directory contains
 - `mcpfile.yaml` — curated NETEDGE MCP tools using the `stdio` transport.
-- `docs/` — documentation (this file, scenario catalog, break/repair guide).
-- `netedge-break-repair.sh` — script that stages documented ingress scenarios.
+- `docs/` — documentation (this file and scenario catalog). Test harnesses and
+  scenario automation now live in the [`gevals`](https://github.com/genmcp/gevals)
+  repository.
 
 Quick summary of provided tools & resources
 - `inspect_route` — fetch a `Route` and, when possible, its `Service` and `Endpoints`.

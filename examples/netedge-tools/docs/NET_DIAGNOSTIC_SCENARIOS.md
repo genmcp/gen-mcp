@@ -5,10 +5,6 @@ This document describes candidate **network breakage scenarios** for use in an A
 - Detectable using only **Phase 0** diagnostic tools
 - Safe — the cluster remains fully accessible remotely
 
-The [`../netedge-break-repair.sh`](../netedge-break-repair.sh) helper script can
-stage each scenario end-to-end; see [`README-netedge-break-repair.md`](./README-netedge-break-repair.md)
-for usage.
-
 ---
 
 ## 1. Route → Service Selector Mismatch (Empty Endpoints)
@@ -103,7 +99,7 @@ for usage.
 - Fully reversible by removing the TLS stanza from the Route.
 
 ### How to stage it
-1. Deploy the healthy baseline (Deployment, Service, Route) via `netedge-break-repair.sh --setup`.
+1. Deploy the healthy baseline (Deployment, Service, Route).
 2. **Break**: patch the Route to `spec.tls.termination: reencrypt` with a bogus CA while leaving the backend Service on HTTP.
 3. Wait 30–60s; router pods will begin returning 503s because the backend never completes TLS.
 4. **Repair**: remove the Route `spec.tls` block to restore plain HTTP edge traffic.
