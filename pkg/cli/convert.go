@@ -15,16 +15,18 @@ import (
 
 func init() {
 	rootCmd.AddCommand(convertCmd)
-	convertCmd.Flags().StringVarP(&outputPath, "out", "o", "mcpfile.yaml", "the path to write the mcp file to")
+	convertCmd.Flags().StringVarP(&toolDefinitionsPath, "tool-definitions", "t", "mcpfile.yaml", "the path to write the tool definitions file to")
+	convertCmd.Flags().StringVarP(&serverConfigPath, "server-config", "s", "mcpfile-server.yaml", "the path to write the server config file to")
 	convertCmd.Flags().StringVarP(&host, "host", "H", "", "the base host for the API, if different than in the OpenAPI spec")
 }
 
-var outputPath string
+var toolDefinitionsPath string
+var serverConfigPath string
 var host string
 
 var convertCmd = &cobra.Command{
 	Use:   "convert",
-	Short: "Convert an OpenAPI v2/v3 spec into a MCPFile",
+	Short: "Convert an OpenAPI v2/v3 spec into MCP tool definitions and server config files",
 	Args:  cobra.ExactArgs(1),
 	Run:   executeConvertCmd,
 }
@@ -48,23 +50,49 @@ func executeConvertCmd(cobraCmd *cobra.Command, args []string) {
 		}
 	}
 
-	mcpFile, err := openapi.DocumentToMcpFile(openApiBytes, host)
+	convertedFiles, err := openapi.DocumentToMcpFile(openApiBytes, host)
 	if err != nil {
-		fmt.Printf("encountered errors while converting openapi document to mcp file: %s\n", err.Error())
+		fmt.Printf("encountered errors while converting openapi document to mcp files: %s\n", err.Error())
 	}
 
-	mcpFileBytes, err := yaml.Marshal(mcpFile)
-	if err != nil {
-		fmt.Printf("could not marshal mcp file: %s\n", err.Error())
+	if convertedFiles == nil {
+		fmt.Printf("conversion failed, no files generated\n")
 		return
 	}
 
-	mcpFileBytes = utils.AppendSchemaHeader(mcpFileBytes)
-
-	err = os.WriteFile(outputPath, mcpFileBytes, 0644)
+	// Write tool definitions file
+	toolDefBytes, err := yaml.Marshal(convertedFiles.ToolDefinitions)
 	if err != nil {
-		fmt.Printf("could not write mcpfile to file at path %s: %s", outputPath, err.Error())
+		fmt.Printf("could not marshal tool definitions file: %s\n", err.Error())
+		return
 	}
+
+	toolDefBytes = utils.AppendSchemaHeader(toolDefBytes)
+
+	err = os.WriteFile(toolDefinitionsPath, toolDefBytes, 0644)
+	if err != nil {
+		fmt.Printf("could not write tool definitions file to path %s: %s\n", toolDefinitionsPath, err.Error())
+		return
+	}
+
+	fmt.Printf("wrote tool definitions to %s\n", toolDefinitionsPath)
+
+	// Write server config file
+	serverConfigBytes, err := yaml.Marshal(convertedFiles.ServerConfig)
+	if err != nil {
+		fmt.Printf("could not marshal server config file: %s\n", err.Error())
+		return
+	}
+
+	serverConfigBytes = utils.AppendSchemaHeader(serverConfigBytes)
+
+	err = os.WriteFile(serverConfigPath, serverConfigBytes, 0644)
+	if err != nil {
+		fmt.Printf("could not write server config file to path %s: %s\n", serverConfigPath, err.Error())
+		return
+	}
+
+	fmt.Printf("wrote server config to %s\n", serverConfigPath)
 
 }
 
