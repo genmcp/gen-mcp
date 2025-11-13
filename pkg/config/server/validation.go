@@ -7,8 +7,10 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 )
 
+// TODO: remove type
 type InvocationValidator func(primitive invocation.Primitive) error
 
+// TODO: remove param
 func (m *MCPServerConfigFile) Validate(invocationValidator InvocationValidator) error {
 	var err error = nil
 	if m.Name == "" {
