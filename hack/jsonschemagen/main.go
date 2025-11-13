@@ -328,10 +328,10 @@ func createJSONSchemaMetaSchema() *jsonschema.Schema {
 
 func main() {
 	// Use a slice to guarantee the processing order.
-	// mcpfile.MCPFile will be processed first.
+	// mcpfile.MCPServer will be processed first.
 	types := []schemaType{
 		{
-			Type: &mcpfile.MCPFile{},
+			Type: &mcpfile.MCPServer{},
 			Base: "github.com/genmcp/gen-mcp/pkg/mcpfile",
 			Path: "../../pkg/mcpfile",
 		},

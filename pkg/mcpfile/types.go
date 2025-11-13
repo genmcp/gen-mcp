@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	MCPFileVersion                  = "0.1.0"
+	// TODO: is this duplicated?
+	MCPFileVersion                  = "0.2.0"
 	TransportProtocolStreamableHttp = "streamablehttp"
 	TransportProtocolStdio          = "stdio"
 )
@@ -62,15 +63,6 @@ func (m *MCPServer) InvocationBases() map[string]*invocation.InvocationConfigWra
 		}
 	}
 	return result
-}
-
-// MCPFile is the root structure of an MCP configuration file.
-type MCPFile struct {
-	// Version of the MCP file format.
-	FileVersion string `json:"mcpFileVersion" jsonschema:"required"`
-
-	// MCP server definition.
-	MCPServer `json:",inline"`
 }
 
 var _ invocation.Primitive = (*definitions.Tool)(nil)

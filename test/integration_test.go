@@ -27,7 +27,7 @@ var _ = Describe("Basic Integration", Ordered, func() {
 
 		var (
 			backendServer       *httptest.Server
-			mcpConfig           *mcpfile.MCPFile
+			mcpConfig           *mcpfile.MCPServer
 			mcpServerCancelFunc context.CancelFunc
 		)
 
@@ -41,16 +41,7 @@ var _ = Describe("Basic Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				mcpServer := &mcpfile.MCPServer{
-					Name:         mcpConfig.Name,
-					Version:      mcpConfig.Version,
-					Runtime:      mcpConfig.Runtime,
-					Instructions: mcpConfig.Instructions,
-					Tools:        mcpConfig.Tools,
-					Prompts:      mcpConfig.Prompts,
-					Resources:    mcpConfig.Resources,
-				}
-				err := mcpserver.RunServer(ctx, mcpServer)
+				err := mcpserver.RunServer(ctx, mcpConfig)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}
@@ -217,7 +208,7 @@ var _ = Describe("Basic Integration", Ordered, func() {
 		)
 
 		var (
-			mcpConfig           *mcpfile.MCPFile
+			mcpConfig           *mcpfile.MCPServer
 			mcpServerCancelFunc context.CancelFunc
 		)
 
@@ -230,15 +221,7 @@ var _ = Describe("Basic Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				mcpServer := &mcpfile.MCPServer{
-					Name:      mcpConfig.Name,
-					Version:   mcpConfig.Version,
-					Runtime:   mcpConfig.Runtime,
-					Tools:     mcpConfig.Tools,
-					Prompts:   mcpConfig.Prompts,
-					Resources: mcpConfig.Resources,
-				}
-				err := mcpserver.RunServer(ctx, mcpServer)
+				err := mcpserver.RunServer(ctx, mcpConfig)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}
@@ -390,7 +373,7 @@ func createMockBackendServerIntegration() *httptest.Server {
 	}))
 }
 
-func createBasicTestMCPConfig(backendURL string, port int) *mcpfile.MCPFile {
+func createBasicTestMCPConfig(backendURL string, port int) *mcpfile.MCPServer {
 	By("creating basic test MCP configuration")
 
 	mcpYAML := fmt.Sprintf(`
@@ -467,7 +450,7 @@ resources:
 	return config
 }
 
-func createCLITestMCPConfig(port int) *mcpfile.MCPFile {
+func createCLITestMCPConfig(port int) *mcpfile.MCPServer {
 	By("creating CLI test MCP configuration")
 
 	mcpYAML := fmt.Sprintf(`

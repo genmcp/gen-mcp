@@ -46,7 +46,7 @@ func ExtractCLICommandInfo(cliCommand string, commandItems *[]CommandItem) (bool
 	return true, nil
 }
 
-func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpfile.MCPFile, error) {
+func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpfile.MCPServer, error) {
 	if commandItems == nil || len(*commandItems) == 0 {
 		return nil, fmt.Errorf("no command items provided")
 	}
@@ -62,29 +62,26 @@ func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpfile.MCPFile, er
 		tools = append(tools, tool)
 	}
 
-	// Create MCP file
-	mcpFile := &mcpfile.MCPFile{
-		FileVersion: mcpfile.MCPFileVersion,
-		MCPServer: mcpfile.MCPServer{
-			MCPToolDefinitions: definitions.MCPToolDefinitions{
-				Name:    "cli-generated-server",
-				Version: "0.0.1",
-				Tools:   tools,
-			},
-			MCPServerConfig: serverconfig.MCPServerConfig{
-				Name:    "cli-generated-server",
-				Version: "0.0.1",
-				Runtime: &serverconfig.ServerRuntime{
-					TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
-					StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
-						Port: 7008,
-					},
+	// Create MCP server
+	mcpServer := &mcpfile.MCPServer{
+		MCPToolDefinitions: definitions.MCPToolDefinitions{
+			Name:    "cli-generated-server",
+			Version: "0.0.1",
+			Tools:   tools,
+		},
+		MCPServerConfig: serverconfig.MCPServerConfig{
+			Name:    "cli-generated-server",
+			Version: "0.0.1",
+			Runtime: &serverconfig.ServerRuntime{
+				TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
+				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
+					Port: 7008,
 				},
 			},
 		},
 	}
 
-	return mcpFile, nil
+	return mcpServer, nil
 }
 
 func convertCommandItemToTool(commandItem CommandItem) (*definitions.Tool, error) {
