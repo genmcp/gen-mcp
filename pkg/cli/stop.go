@@ -11,8 +11,10 @@ import (
 
 func init() {
 	rootCmd.AddCommand(stopCmd)
-	stopCmd.Flags().StringVarP(&mcpFilePath, "file", "f", "mcpfile.yaml", "mcp file to read from")
+	stopCmd.Flags().StringVarP(&stopMCPFilePath, "file", "f", "mcpfile.yaml", "mcp file to read from")
 }
+
+var stopMCPFilePath string
 
 var stopCmd = &cobra.Command{
 	Use:   "stop",
@@ -21,7 +23,7 @@ var stopCmd = &cobra.Command{
 }
 
 func executeStopCmd(cobraCmd *cobra.Command, args []string) {
-	mcpFilePath, err := filepath.Abs(mcpFilePath)
+	mcpFilePath, err := filepath.Abs(stopMCPFilePath)
 	if err != nil {
 		fmt.Printf("failed to resolve mcp file path: %s\n", err.Error())
 		return

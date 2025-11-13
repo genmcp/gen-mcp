@@ -11,6 +11,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.uber.org/zap"
 
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
+	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 	_ "github.com/genmcp/gen-mcp/pkg/invocation/cli"
 	_ "github.com/genmcp/gen-mcp/pkg/invocation/http"
@@ -98,38 +100,41 @@ func RunServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
 	}
 }
 
-// RunServers runs all servers defined in the MCP file
-func RunServers(ctx context.Context, mcpFilePath string) error {
-	mcpConfig, err := mcpfile.ParseMCPFile(mcpFilePath)
+// RunServers runs all servers defined in the MCP files
+// It accepts both tool definitions and server config file paths
+func RunServers(ctx context.Context, toolDefinitionsPath, serverConfigPath string) error {
+	// Parse tool definitions file
+	toolDefsFile, err := parseToolDefinitionsFile(toolDefinitionsPath)
 	if err != nil {
-		return fmt.Errorf("failed to parse mcp file: %w", err)
+		return fmt.Errorf("failed to parse tool definitions file: %w", err)
 	}
+
+	// Parse server config file
+	serverConfigFile, err := parseServerConfigFile(serverConfigPath)
+	if err != nil {
+		return fmt.Errorf("failed to parse server config file: %w", err)
+	}
+
+	// Combine into MCPServer struct
+	mcpServer := combineFilesToMCPServer(toolDefsFile, serverConfigFile)
 
 	// Now we can get the logger from the runtime config
-	logger := mcpConfig.Runtime.GetBaseLogger()
-	logger.Info("Starting servers from MCP file",
-		zap.String("mcp_file_path", mcpFilePath),
-		zap.String("server_name", mcpConfig.Name),
-		zap.String("server_version", mcpConfig.Version))
+	logger := mcpServer.Runtime.GetBaseLogger()
+	logger.Info("Starting servers from MCP files",
+		zap.String("tool_definitions_path", toolDefinitionsPath),
+		zap.String("server_config_path", serverConfigPath),
+		zap.String("server_name", mcpServer.Name),
+		zap.String("server_version", mcpServer.Version))
 
-	if err := mcpConfig.Validate(invocation.InvocationValidator); err != nil {
+	if err := mcpServer.Validate(invocation.InvocationValidator); err != nil {
 		logger.Error("MCP file validation failed",
-			zap.String("mcp_file_path", mcpFilePath),
+			zap.String("tool_definitions_path", toolDefinitionsPath),
+			zap.String("server_config_path", serverConfigPath),
 			zap.Error(err))
-		return fmt.Errorf("mcp file is invalid: %w", err)
+		return fmt.Errorf("mcp files are invalid: %w", err)
 	}
 
-	logger.Debug("MCP file validated successfully, creating server instance")
-
-	mcpServer := &mcpfile.MCPServer{
-		Name:              mcpConfig.Name,
-		Version:           mcpConfig.Version,
-		Runtime:           mcpConfig.Runtime,
-		Tools:             mcpConfig.Tools,
-		Prompts:           mcpConfig.Prompts,
-		Resources:         mcpConfig.Resources,
-		ResourceTemplates: mcpConfig.ResourceTemplates,
-	}
+	logger.Debug("MCP files validated successfully, creating server instance")
 
 	// Apply runtime overrides from environment variables
 	// if something goes wrong in the env vars, we warn but continue
@@ -141,6 +146,198 @@ func RunServers(ctx context.Context, mcpFilePath string) error {
 	}
 
 	return RunServer(ctx, mcpServer)
+}
+
+// parseToolDefinitionsFile parses a tool definitions file
+func parseToolDefinitionsFile(filePath string) (*definitions.MCPToolDefinitionsFile, error) {
+	return definitions.ParseMCPFile(filePath)
+}
+
+// parseServerConfigFile parses a server config file
+func parseServerConfigFile(filePath string) (*serverconfig.MCPServerConfigFile, error) {
+	return serverconfig.ParseMCPFile(filePath)
+}
+
+// combineFilesToMCPServer combines tool definitions and server config into an MCPServer struct
+func combineFilesToMCPServer(toolDefs *definitions.MCPToolDefinitionsFile, serverConfig *serverconfig.MCPServerConfigFile) *mcpfile.MCPServer {
+	// Convert tools, prompts, resources, and resource templates from definitions package to mcpfile package
+	tools := make([]*mcpfile.Tool, len(toolDefs.Tools))
+	for i, t := range toolDefs.Tools {
+		tools[i] = convertTool(t)
+	}
+
+	prompts := make([]*mcpfile.Prompt, len(toolDefs.Prompts))
+	for i, p := range toolDefs.Prompts {
+		prompts[i] = convertPrompt(p)
+	}
+
+	resources := make([]*mcpfile.Resource, len(toolDefs.Resources))
+	for i, r := range toolDefs.Resources {
+		resources[i] = convertResource(r)
+	}
+
+	resourceTemplates := make([]*mcpfile.ResourceTemplate, len(toolDefs.ResourceTemplates))
+	for i, rt := range toolDefs.ResourceTemplates {
+		resourceTemplates[i] = convertResourceTemplate(rt)
+	}
+
+	// Merge invocation bases (server config takes precedence if there are conflicts)
+	invocationBases := make(map[string]*invocation.InvocationConfigWrapper)
+	for k, v := range toolDefs.InvocationBases {
+		invocationBases[k] = v
+	}
+	for k, v := range serverConfig.InvocationBases {
+		invocationBases[k] = v
+	}
+
+	// Use name and version from server config, fallback to tool definitions if not set
+	name := serverConfig.Name
+	if name == "" {
+		name = toolDefs.Name
+	}
+	version := serverConfig.Version
+	if version == "" {
+		version = toolDefs.Version
+	}
+
+	// Use instructions from server config, fallback to tool definitions if not set
+	instructions := serverConfig.Instructions
+	if instructions == "" {
+		instructions = toolDefs.Instructions
+	}
+
+	// Convert server runtime from server config package to mcpfile package
+	runtime := convertServerRuntime(serverConfig.Runtime)
+
+	return &mcpfile.MCPServer{
+		Name:              name,
+		Version:           version,
+		Runtime:           runtime,
+		Instructions:      instructions,
+		InvocationBases:   invocationBases,
+		Tools:             tools,
+		Prompts:           prompts,
+		Resources:         resources,
+		ResourceTemplates: resourceTemplates,
+	}
+}
+
+// convertTool converts a Tool from definitions package to mcpfile package
+func convertTool(t *definitions.Tool) *mcpfile.Tool {
+	return &mcpfile.Tool{
+		Name:                    t.Name,
+		Title:                   t.Title,
+		Description:             t.Description,
+		InputSchema:             t.InputSchema,
+		OutputSchema:            t.OutputSchema,
+		InvocationConfigWrapper: t.InvocationConfigWrapper,
+		RequiredScopes:          t.RequiredScopes,
+		Annotations:             convertToolAnnotations(t.Annotations),
+		ResolvedInputSchema:     t.ResolvedInputSchema,
+	}
+}
+
+// convertToolAnnotations converts ToolAnnotations from definitions package to mcpfile package
+func convertToolAnnotations(a *definitions.ToolAnnotations) *mcpfile.ToolAnnotations {
+	if a == nil {
+		return nil
+	}
+	return &mcpfile.ToolAnnotations{
+		DestructiveHint: a.DestructiveHint,
+		IdempotentHint:  a.IdempotentHint,
+		OpenWorldHint:   a.OpenWorldHint,
+		ReadOnlyHint:    a.ReadOnlyHint,
+	}
+}
+
+// convertPrompt converts a Prompt from definitions package to mcpfile package
+func convertPrompt(p *definitions.Prompt) *mcpfile.Prompt {
+	args := make([]*mcpfile.PromptArgument, len(p.Arguments))
+	for i, a := range p.Arguments {
+		args[i] = &mcpfile.PromptArgument{
+			Name:        a.Name,
+			Description: a.Description,
+		}
+	}
+	return &mcpfile.Prompt{
+		Name:                    p.Name,
+		Title:                   p.Title,
+		Description:             p.Description,
+		Arguments:               args,
+		InputSchema:             p.InputSchema,
+		OutputSchema:            p.OutputSchema,
+		InvocationConfigWrapper: p.InvocationConfigWrapper,
+		RequiredScopes:          p.RequiredScopes,
+		ResolvedInputSchema:     p.ResolvedInputSchema,
+	}
+}
+
+// convertResource converts a Resource from definitions package to mcpfile package
+func convertResource(r *definitions.Resource) *mcpfile.Resource {
+	return &mcpfile.Resource{
+		URI:                     r.URI,
+		Name:                    r.Name,
+		Description:             r.Description,
+		MIMEType:                r.MIMEType,
+		InvocationConfigWrapper: r.InvocationConfigWrapper,
+		RequiredScopes:          r.RequiredScopes,
+	}
+}
+
+// convertResourceTemplate converts a ResourceTemplate from definitions package to mcpfile package
+func convertResourceTemplate(rt *definitions.ResourceTemplate) *mcpfile.ResourceTemplate {
+	return &mcpfile.ResourceTemplate{
+		URITemplate:             rt.URITemplate,
+		Name:                    rt.Name,
+		Description:             rt.Description,
+		MIMEType:                rt.MIMEType,
+		InvocationConfigWrapper: rt.InvocationConfigWrapper,
+		RequiredScopes:          rt.RequiredScopes,
+	}
+}
+
+// convertServerRuntime converts ServerRuntime from server config package to mcpfile package
+func convertServerRuntime(sr *serverconfig.ServerRuntime) *mcpfile.ServerRuntime {
+	if sr == nil {
+		return nil
+	}
+
+	var streamableHTTPConfig *mcpfile.StreamableHTTPConfig
+	if sr.StreamableHTTPConfig != nil {
+		var auth *mcpfile.AuthConfig
+		if sr.StreamableHTTPConfig.Auth != nil {
+			auth = &mcpfile.AuthConfig{
+				AuthorizationServers: sr.StreamableHTTPConfig.Auth.AuthorizationServers,
+				JWKSURI:              sr.StreamableHTTPConfig.Auth.JWKSURI,
+			}
+		}
+		var tls *mcpfile.TLSConfig
+		if sr.StreamableHTTPConfig.TLS != nil {
+			tls = &mcpfile.TLSConfig{
+				CertFile: sr.StreamableHTTPConfig.TLS.CertFile,
+				KeyFile:  sr.StreamableHTTPConfig.TLS.KeyFile,
+			}
+		}
+		streamableHTTPConfig = &mcpfile.StreamableHTTPConfig{
+			Port:      sr.StreamableHTTPConfig.Port,
+			BasePath:  sr.StreamableHTTPConfig.BasePath,
+			Stateless: sr.StreamableHTTPConfig.Stateless,
+			Auth:      auth,
+			TLS:       tls,
+		}
+	}
+
+	var stdioConfig *mcpfile.StdioConfig
+	if sr.StdioConfig != nil {
+		stdioConfig = &mcpfile.StdioConfig{}
+	}
+
+	return &mcpfile.ServerRuntime{
+		TransportProtocol:    sr.TransportProtocol,
+		StreamableHTTPConfig: streamableHTTPConfig,
+		StdioConfig:          stdioConfig,
+		LoggingConfig:        sr.LoggingConfig,
+	}
 }
 
 func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
