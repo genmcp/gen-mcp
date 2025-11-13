@@ -8,6 +8,7 @@ import (
 
 	"github.com/genmcp/gen-mcp/pkg/builder"
 	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
+	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
@@ -16,7 +17,8 @@ import (
 func init() {
 	rootCmd.AddCommand(buildCmd)
 	buildCmd.Flags().StringVar(&baseImage, "base-image", "", "base image to build the genmcp image on top of")
-	buildCmd.Flags().StringVarP(&mcpFile, "file", "f", "mcpfile.yaml", "mcp file to build")
+	buildCmd.Flags().StringVarP(&mcpToolDefinitionsPath, "file", "f", "mcpfile.yaml", "MCP tool definitions file")
+	buildCmd.Flags().StringVarP(&mcpServerConfigPath, "server-config", "s", "mcpserver.yaml", "MCP server configuration file")
 	buildCmd.Flags().StringVar(&platform, "platform", "", "platform to build for (e.g., linux/amd64). If not specified, builds multi-arch image for linux/amd64 and linux/arm64")
 	buildCmd.Flags().StringVar(&imageTag, "tag", "", "image tag for the registry")
 	buildCmd.Flags().BoolVar(&push, "push", false, "push the image to the registry (if false, store locally)")
@@ -29,11 +31,12 @@ var buildCmd = &cobra.Command{
 }
 
 var (
-	baseImage string
-	mcpFile   string
-	platform  string
-	imageTag  string
-	push      bool
+	baseImage              string
+	mcpToolDefinitionsPath string
+	mcpServerConfigPath    string
+	platform               string
+	imageTag               string
+	push                   bool
 )
 
 func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
@@ -44,9 +47,13 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// Validate MCP file before building
-	if err := validateMCPFile(mcpFile); err != nil {
-		fmt.Printf("invalid mcp file: %s\n", err.Error())
+	// Validate MCP files before building
+	if err := validateMCPToolDefinitionsFile(mcpToolDefinitionsPath); err != nil {
+		fmt.Printf("invalid MCP tool definitions file: %s\n", err.Error())
+		os.Exit(1)
+	}
+	if err := validateMCPServerConfigFile(mcpServerConfigPath); err != nil {
+		fmt.Printf("invalid MCP server config file: %s\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -62,10 +69,11 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 
 		fmt.Printf("building image for %s...\n", platform)
 		opts := builder.BuildOptions{
-			Platform:    parsedPlatform,
-			BaseImage:   baseImage,
-			MCPFilePath: mcpFile,
-			ImageTag:    imageTag,
+			Platform:               parsedPlatform,
+			BaseImage:              baseImage,
+			MCPToolDefinitionsPath: mcpToolDefinitionsPath,
+			MCPServerConfigPath:    mcpServerConfigPath,
+			ImageTag:               imageTag,
 		}
 
 		img, err := b.Build(ctx, opts)
@@ -110,10 +118,11 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 
 		fmt.Printf("building multi-arch image for platforms: %v...\n", platforms)
 		opts := builder.MultiArchBuildOptions{
-			Platforms:   parsedPlatforms,
-			BaseImage:   baseImage,
-			MCPFilePath: mcpFile,
-			ImageTag:    imageTag,
+			Platforms:              parsedPlatforms,
+			BaseImage:              baseImage,
+			MCPToolDefinitionsPath: mcpToolDefinitionsPath,
+			MCPServerConfigPath:    mcpServerConfigPath,
+			ImageTag:               imageTag,
 		}
 
 		idx, err := b.BuildMultiArch(ctx, opts)
@@ -152,28 +161,28 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 	}
 }
 
-// validateMCPFile validates an MCP file by parsing it based on its kind field
-func validateMCPFile(filePath string) error {
+// validateMCPToolDefinitionsFile validates an MCP tool definitions file
+func validateMCPToolDefinitionsFile(filePath string) error {
 	// Read the file to check the kind field
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return fmt.Errorf("failed to read mcp file: %w", err)
+		return fmt.Errorf("failed to read file: %w", err)
 	}
 
-	// Parse just the kind field to determine which parser to use
+	// Parse just the kind field to verify it's the correct type
 	var fileKind struct {
 		Kind string `json:"kind" yaml:"kind"`
 	}
 	if err := json.Unmarshal(data, &fileKind); err != nil {
 		// Try YAML unmarshaling
 		if yamlErr := yaml.Unmarshal(data, &fileKind); yamlErr != nil {
-			return fmt.Errorf("failed to parse mcp file (tried both JSON and YAML): %w", err)
+			return fmt.Errorf("failed to parse file (tried both JSON and YAML): %w", err)
 		}
 	}
 
-	// Only accept MCPToolDefinitionsFile for build command
+	// Only accept MCPToolDefinitionsFile
 	if fileKind.Kind != definitions.KindMCPToolDefinitions {
-		return fmt.Errorf("build command only accepts MCPToolDefinitions files (kind: %s), but found kind: %s", definitions.KindMCPToolDefinitions, fileKind.Kind)
+		return fmt.Errorf("expected MCPToolDefinitions file (kind: %s), but found kind: %s", definitions.KindMCPToolDefinitions, fileKind.Kind)
 	}
 
 	mcpFile, err := definitions.ParseMCPFile(filePath)
@@ -181,6 +190,40 @@ func validateMCPFile(filePath string) error {
 		return fmt.Errorf("failed to parse MCPToolDefinitions file: %w", err)
 	}
 	// Note: MCPToolDefinitionsFile doesn't have a Validate method that matches
+	// the signature expected, so we'll just validate parsing succeeded
+	_ = mcpFile
+	return nil
+}
+
+// validateMCPServerConfigFile validates an MCP server config file
+func validateMCPServerConfigFile(filePath string) error {
+	// Read the file to check the kind field
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// Parse just the kind field to verify it's the correct type
+	var fileKind struct {
+		Kind string `json:"kind" yaml:"kind"`
+	}
+	if err := json.Unmarshal(data, &fileKind); err != nil {
+		// Try YAML unmarshaling
+		if yamlErr := yaml.Unmarshal(data, &fileKind); yamlErr != nil {
+			return fmt.Errorf("failed to parse file (tried both JSON and YAML): %w", err)
+		}
+	}
+
+	// Only accept MCPServerConfigFile
+	if fileKind.Kind != serverconfig.KindMCPServerConfig {
+		return fmt.Errorf("expected MCPServerConfig file (kind: %s), but found kind: %s", serverconfig.KindMCPServerConfig, fileKind.Kind)
+	}
+
+	mcpFile, err := serverconfig.ParseMCPFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to parse MCPServerConfig file: %w", err)
+	}
+	// Note: MCPServerConfigFile doesn't have a Validate method that matches
 	// the signature expected, so we'll just validate parsing succeeded
 	_ = mcpFile
 	return nil
