@@ -13,9 +13,9 @@ func TestMCPFileValidate(t *testing.T) {
 	}
 
 	t.Run("missing name should fail validation", func(t *testing.T) {
-		mcpFile := &MCPServerFile{
+		mcpFile := &MCPServerConfigFile{
 			FileVersion: MCPFileVersion,
-			MCPServer: MCPServer{
+			MCPServerConfig: MCPServerConfig{
 				Version: "1.0.0",
 				Runtime: &ServerRuntime{
 					TransportProtocol: TransportProtocolStreamableHttp,
@@ -32,9 +32,9 @@ func TestMCPFileValidate(t *testing.T) {
 	})
 
 	t.Run("missing version should fail validation", func(t *testing.T) {
-		mcpFile := &MCPServerFile{
+		mcpFile := &MCPServerConfigFile{
 			FileVersion: MCPFileVersion,
-			MCPServer: MCPServer{
+			MCPServerConfig: MCPServerConfig{
 				Name: "test-server",
 				Runtime: &ServerRuntime{
 					TransportProtocol: TransportProtocolStreamableHttp,
@@ -51,9 +51,9 @@ func TestMCPFileValidate(t *testing.T) {
 	})
 
 	t.Run("valid server should pass validation", func(t *testing.T) {
-		mcpFile := &MCPServerFile{
+		mcpFile := &MCPServerConfigFile{
 			FileVersion: MCPFileVersion,
-			MCPServer: MCPServer{
+			MCPServerConfig: MCPServerConfig{
 				Name:    "test-server",
 				Version: "1.0.0",
 				Runtime: &ServerRuntime{

@@ -101,8 +101,8 @@ func (sr *ServerRuntime) GetBaseLogger() *zap.Logger {
 	return sr.baseLogger
 }
 
-// MCPServer defines the metadata and capabilities of an MCP server.
-type MCPServer struct {
+// MCPServerConfig defines the metadata and capabilities of an MCP server.
+type MCPServerConfig struct {
 	// Name of the MCP server.
 	Name string `json:"name" jsonschema:"required"`
 
@@ -119,11 +119,11 @@ type MCPServer struct {
 	InvocationBases map[string]*invocation.InvocationConfigWrapper `json:"invocationBases,omitempty" jsonschema:"optional"`
 }
 
-// MCPServerFile is the root structure of an MCP configuration file.
-type MCPServerFile struct {
+// MCPServerConfigFile is the root structure of an MCP configuration file.
+type MCPServerConfigFile struct {
 	// Version of the MCP file format.
 	FileVersion string `json:"mcpFileVersion" jsonschema:"required"`
 
 	// MCP server definition.
-	MCPServer `json:",inline"`
+	MCPServerConfig `json:",inline"`
 }

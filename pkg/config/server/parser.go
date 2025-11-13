@@ -14,8 +14,8 @@ const (
 	DefaultBasePath = "/mcp"
 )
 
-func ParseMCPFile(path string) (*MCPServerFile, error) {
-	mcpFile := &MCPServerFile{}
+func ParseMCPFile(path string) (*MCPServerConfigFile, error) {
+	mcpFile := &MCPServerConfigFile{}
 
 	path, err := filepath.Abs(path)
 	if err != nil {
@@ -35,7 +35,7 @@ func ParseMCPFile(path string) (*MCPServerFile, error) {
 	return mcpFile, nil
 }
 
-func (m *MCPServerFile) UnmarshalJSON(data []byte) error {
+func (m *MCPServerConfigFile) UnmarshalJSON(data []byte) error {
 	// First unmarshal into a temporary struct to get all fields
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
@@ -53,16 +53,16 @@ func (m *MCPServerFile) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("invalid mcp file version %s, expected %s - please migrate your file and handle any breaking changes", m.FileVersion, MCPFileVersion)
 	}
 
-	// Unmarshal the rest into MCPServer
-	if err := json.Unmarshal(data, &m.MCPServer); err != nil {
+	// Unmarshal the rest into MCPServerConfig
+	if err := json.Unmarshal(data, &m.MCPServerConfig); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *MCPServer) UnmarshalJSON(data []byte) error {
-	type Doppleganger MCPServer
+func (s *MCPServerConfig) UnmarshalJSON(data []byte) error {
+	type Doppleganger MCPServerConfig
 
 	tmp := struct {
 		*Doppleganger

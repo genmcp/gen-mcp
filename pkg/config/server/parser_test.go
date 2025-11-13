@@ -10,21 +10,21 @@ import (
 func TestParseMcpFile(t *testing.T) {
 	tt := map[string]struct {
 		testFileName  string
-		expected      *MCPServerFile
+		expected      *MCPServerConfigFile
 		wantErr       bool
 		errorContains string
 	}{
 		"no servers": {
 			testFileName: "no-servers.yaml",
-			expected: &MCPServerFile{
+			expected: &MCPServerConfigFile{
 				FileVersion: MCPFileVersion,
 			},
 		},
 		"stateful": {
 			testFileName: "one-server-stateful.yaml",
-			expected: &MCPServerFile{
+			expected: &MCPServerConfigFile{
 				FileVersion: MCPFileVersion,
-				MCPServer: MCPServer{
+				MCPServerConfig: MCPServerConfig{
 					Name:    "test-server",
 					Version: "1.0.0",
 					Runtime: &ServerRuntime{
@@ -40,9 +40,9 @@ func TestParseMcpFile(t *testing.T) {
 		},
 		"server runtime stdio": {
 			testFileName: "server-runtime-stdio.yaml",
-			expected: &MCPServerFile{
+			expected: &MCPServerConfigFile{
 				FileVersion: MCPFileVersion,
-				MCPServer: MCPServer{
+				MCPServerConfig: MCPServerConfig{
 					Name:    "test-server",
 					Version: "1.0.0",
 					Runtime: &ServerRuntime{
@@ -53,9 +53,9 @@ func TestParseMcpFile(t *testing.T) {
 		},
 		"full demo": {
 			testFileName: "full-demo.yaml",
-			expected: &MCPServerFile{
+			expected: &MCPServerConfigFile{
 				FileVersion: MCPFileVersion,
-				MCPServer: MCPServer{
+				MCPServerConfig: MCPServerConfig{
 					Name:    "git-github-example",
 					Version: "1.0.0",
 					Runtime: &ServerRuntime{
@@ -70,9 +70,9 @@ func TestParseMcpFile(t *testing.T) {
 		},
 		"with tls": {
 			testFileName: "one-server-tls.yaml",
-			expected: &MCPServerFile{
+			expected: &MCPServerConfigFile{
 				FileVersion: MCPFileVersion,
-				MCPServer: MCPServer{
+				MCPServerConfig: MCPServerConfig{
 					Name:    "test-server",
 					Version: "1.0.0",
 					Runtime: &ServerRuntime{

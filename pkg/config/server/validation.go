@@ -9,7 +9,7 @@ import (
 
 type InvocationValidator func(primitive invocation.Primitive) error
 
-func (m *MCPServerFile) Validate(invocationValidator InvocationValidator) error {
+func (m *MCPServerConfigFile) Validate(invocationValidator InvocationValidator) error {
 	var err error = nil
 	if m.Name == "" {
 		err = errors.Join(err, fmt.Errorf("invalid mcpfile: name is required"))
@@ -26,7 +26,7 @@ func (m *MCPServerFile) Validate(invocationValidator InvocationValidator) error 
 	return err
 }
 
-func (s *MCPServer) Validate(invocationValidator InvocationValidator) error {
+func (s *MCPServerConfig) Validate(invocationValidator InvocationValidator) error {
 	var err error = nil
 	if s.Name == "" {
 		err = errors.Join(err, fmt.Errorf("invalid server: name is required"))
