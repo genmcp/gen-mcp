@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/genmcp/gen-mcp/pkg/invocation/extends"
-	"github.com/google/jsonschema-go/jsonschema"
 	"sigs.k8s.io/yaml"
 )
 
@@ -15,6 +14,7 @@ const (
 	DefaultBasePath = "/mcp"
 )
 
+// TODO: remove
 func ParseMCPFile(path string) (*MCPFile, error) {
 	mcpFile := &MCPFile{}
 
@@ -36,6 +36,7 @@ func ParseMCPFile(path string) (*MCPFile, error) {
 	return mcpFile, nil
 }
 
+// TODO: remove
 func (m *MCPFile) UnmarshalJSON(data []byte) error {
 	// First unmarshal into a temporary struct to get all fields
 	var raw map[string]json.RawMessage
@@ -63,27 +64,29 @@ func (m *MCPFile) UnmarshalJSON(data []byte) error {
 }
 
 func (s *MCPServer) UnmarshalJSON(data []byte) error {
-	type Doppleganger MCPServer
-
-	tmp := struct {
-		*Doppleganger
-	}{
-		Doppleganger: (*Doppleganger)(s),
-	}
-
-	err := json.Unmarshal(data, &tmp)
+	// Unmarshal into both embedded structs
+	err := json.Unmarshal(data, &s.MCPToolDefinitions)
 	if err != nil {
 		return err
 	}
 
-	if len(s.InvocationBases) > 0 {
-		extends.SetBases(s.InvocationBases)
+	err = json.Unmarshal(data, &s.MCPServerConfig)
+	if err != nil {
+		return err
+	}
+
+	// Merge invocation bases and set them for extends
+	mergedBases := s.InvocationBases()
+	if len(mergedBases) > 0 {
+		extends.SetBases(mergedBases)
 	}
 
 	// Only set defaults if we have a server defined (name or version present)
-	if s.Name != "" || s.Version != "" {
-		if s.Runtime == nil {
-			s.Runtime = &ServerRuntime{
+	name := s.Name()
+	version := s.Version()
+	if name != "" || version != "" {
+		if s.MCPServerConfig.Runtime == nil {
+			s.MCPServerConfig.Runtime = &ServerRuntime{
 				TransportProtocol: TransportProtocolStreamableHttp,
 				StreamableHTTPConfig: &StreamableHTTPConfig{
 					Port:      3000,
@@ -93,8 +96,8 @@ func (s *MCPServer) UnmarshalJSON(data []byte) error {
 			}
 		}
 
-		if s.Runtime.TransportProtocol == TransportProtocolStreamableHttp && s.Runtime.StreamableHTTPConfig == nil {
-			s.Runtime.StreamableHTTPConfig = &StreamableHTTPConfig{
+		if s.MCPServerConfig.Runtime.TransportProtocol == TransportProtocolStreamableHttp && s.MCPServerConfig.Runtime.StreamableHTTPConfig == nil {
+			s.MCPServerConfig.Runtime.StreamableHTTPConfig = &StreamableHTTPConfig{
 				Port:      3000,
 				BasePath:  DefaultBasePath,
 				Stateless: true,
@@ -103,111 +106,9 @@ func (s *MCPServer) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
-
 }
 
-func (t *Tool) UnmarshalJSON(data []byte) error {
-	type Doppleganger Tool
+// Note: UnmarshalJSON methods for Tool, Prompt, Resource, ResourceTemplate are defined in pkg/config/definitions
+// and are available through type aliases. UnmarshalJSON for StreamableHTTPConfig is defined in pkg/config/server.
 
-	tmp := (*Doppleganger)(t)
-
-	err := json.Unmarshal(data, tmp)
-	if err != nil {
-		return err
-	}
-
-	if t.InputSchema == nil {
-		t.InputSchema = &jsonschema.Schema{
-			Properties: make(map[string]*jsonschema.Schema),
-		}
-	}
-
-	if t.InputSchema.Properties == nil {
-		// set the properties to be not nil so that it serializes as {} (required for some clients to properly parse the tool)
-		t.InputSchema.Properties = make(map[string]*jsonschema.Schema)
-	}
-
-	if t.InputSchema.Type == "" {
-		t.InputSchema.Type = "object"
-	}
-
-	return nil
-}
-
-func (p *Prompt) UnmarshalJSON(data []byte) error {
-	type Doppleganger Prompt
-
-	tmp := (*Doppleganger)(p)
-
-	err := json.Unmarshal(data, tmp)
-	if err != nil {
-		return err
-	}
-
-	if p.InputSchema != nil && p.InputSchema.Properties == nil {
-		// set the properties to be not nil so that it serializes as {} (required for some clients to properly parse the tool)
-		p.InputSchema.Properties = make(map[string]*jsonschema.Schema)
-	}
-
-	return nil
-}
-
-func (p *Resource) UnmarshalJSON(data []byte) error {
-	type Doppleganger Resource
-
-	tmp := (*Doppleganger)(p)
-
-	err := json.Unmarshal(data, tmp)
-	if err != nil {
-		return err
-	}
-
-	if p.InputSchema != nil && p.InputSchema.Properties == nil {
-		// set the properties to be not nil so that it serializes as {} (required for some clients to properly parse the tool)
-		p.InputSchema.Properties = make(map[string]*jsonschema.Schema)
-	}
-
-	return nil
-}
-
-func (p *ResourceTemplate) UnmarshalJSON(data []byte) error {
-	type Doppleganger ResourceTemplate
-
-	tmp := (*Doppleganger)(p)
-
-	err := json.Unmarshal(data, tmp)
-	if err != nil {
-		return err
-	}
-
-	if p.InputSchema != nil && p.InputSchema.Properties == nil {
-		// set the properties to be not nil so that it serializes as {} (required for some clients to properly parse the tool)
-		p.InputSchema.Properties = make(map[string]*jsonschema.Schema)
-	}
-
-	return nil
-}
-
-func (s *StreamableHTTPConfig) UnmarshalJSON(data []byte) error {
-	type Doppleganger StreamableHTTPConfig
-
-	tmp := struct {
-		Stateless *bool `json:"stateless,omitempty"`
-		*Doppleganger
-	}{
-		Doppleganger: (*Doppleganger)(s),
-	}
-
-	err := json.Unmarshal(data, &tmp)
-	if err != nil {
-		return err
-	}
-
-	if tmp.Stateless != nil {
-		s.Stateless = *tmp.Stateless
-	} else {
-		s.Stateless = true
-	}
-
-	return nil
-}
+// Note: UnmarshalJSON method for StreamableHTTPConfig is defined in pkg/config/server and is available through type alias.
