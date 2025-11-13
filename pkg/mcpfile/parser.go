@@ -15,10 +15,9 @@ const (
 	DefaultBasePath = "/mcp"
 )
 
-// TODO: remove
-func ParseMCPFile(path string) (*MCPFile, error) {
-	mcpFile := &MCPFile{}
-
+// ParseMCPFile parses an MCP file and returns an MCPServer.
+// It validates the mcpFileVersion field if present.
+func ParseMCPFile(path string) (*MCPServer, error) {
 	path, err := filepath.Abs(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get absolute path to mcpfile: %v", err)
@@ -29,39 +28,29 @@ func ParseMCPFile(path string) (*MCPFile, error) {
 		return nil, fmt.Errorf("failed to read mcpfile: %v", err)
 	}
 
-	err = yaml.Unmarshal(data, mcpFile)
+	// Check version before unmarshaling
+	var raw map[string]json.RawMessage
+	if err := yaml.Unmarshal(data, &raw); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal mcpfile: %v", err)
+	}
+
+	if fv, ok := raw["mcpFileVersion"]; ok {
+		var fileVersion string
+		if err := json.Unmarshal(fv, &fileVersion); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal mcpFileVersion: %v", err)
+		}
+		if fileVersion != MCPFileVersion {
+			return nil, fmt.Errorf("invalid mcp file version %s, expected %s - please migrate your file and handle any breaking changes", fileVersion, MCPFileVersion)
+		}
+	}
+
+	mcpServer := &MCPServer{}
+	err = yaml.Unmarshal(data, mcpServer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal mcpfile: %v", err)
 	}
 
-	return mcpFile, nil
-}
-
-// TODO: remove
-func (m *MCPFile) UnmarshalJSON(data []byte) error {
-	// First unmarshal into a temporary struct to get all fields
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-
-	// Unmarshal SchemaVersion separately
-	if fv, ok := raw["mcpFileVersion"]; ok {
-		if err := json.Unmarshal(fv, &m.FileVersion); err != nil {
-			return err
-		}
-	}
-
-	if m.FileVersion != MCPFileVersion {
-		return fmt.Errorf("invalid mcp file version %s, expected %s - please migrate your file and handle any breaking changes", m.FileVersion, MCPFileVersion)
-	}
-
-	// Unmarshal the rest into MCPServerConfig
-	if err := json.Unmarshal(data, &m.MCPServer); err != nil {
-		return err
-	}
-
-	return nil
+	return mcpServer, nil
 }
 
 func (s *MCPServer) UnmarshalJSON(data []byte) error {

@@ -17,30 +17,26 @@ import (
 func TestParseMcpFile(t *testing.T) {
 	tt := map[string]struct {
 		testFileName  string
-		expected      *MCPFile
+		expected      *MCPServer
 		wantErr       bool
 		errorContains string
 	}{
 		"no servers": {
 			testFileName: "no-servers.yaml",
-			expected: &MCPFile{
-				FileVersion: MCPFileVersion,
-			},
+			expected:     &MCPServer{},
 		},
 		"no tools": {
 			testFileName: "one-server-no-tools.yaml",
-			expected: &MCPFile{
-				FileVersion: MCPFileVersion,
-				MCPServer: MCPServer{
-					MCPToolDefinitions: definitions.MCPToolDefinitions{
-						Name:    "test-server",
-						Version: "1.0.0",
-					},
-					MCPServerConfig: serverconfig.MCPServerConfig{
-						Name:    "test-server",
-						Version: "1.0.0",
-						Runtime: &serverconfig.ServerRuntime{
-							TransportProtocol: TransportProtocolStreamableHttp,
+			expected: &MCPServer{
+				MCPToolDefinitions: definitions.MCPToolDefinitions{
+					Name:    "test-server",
+					Version: "1.0.0",
+				},
+				MCPServerConfig: serverconfig.MCPServerConfig{
+					Name:    "test-server",
+					Version: "1.0.0",
+					Runtime: &serverconfig.ServerRuntime{
+						TransportProtocol: TransportProtocolStreamableHttp,
 						StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 							Port:      3000,
 							BasePath:  DefaultBasePath,
@@ -52,24 +48,21 @@ func TestParseMcpFile(t *testing.T) {
 		},
 		"with instructions": {
 			testFileName: "one-server-instructions.yaml",
-			expected: &MCPFile{
-				FileVersion: MCPFileVersion,
-				MCPServer: MCPServer{
-					MCPToolDefinitions: definitions.MCPToolDefinitions{
-						Name:    "test-server",
-						Version: "1.0.0",
-					},
-					MCPServerConfig: serverconfig.MCPServerConfig{
-						Name:    "test-server",
-						Version: "1.0.0",
-						Instructions: "These are the server instructions.\nIt can be a multi line string\n",
-						Runtime: &serverconfig.ServerRuntime{
-							TransportProtocol: TransportProtocolStreamableHttp,
-							StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
-								Port:      3000,
-								BasePath:  DefaultBasePath,
-								Stateless: true,
-							},
+			expected: &MCPServer{
+				MCPToolDefinitions: definitions.MCPToolDefinitions{
+					Name:    "test-server",
+					Version: "1.0.0",
+				},
+				MCPServerConfig: serverconfig.MCPServerConfig{
+					Name:    "test-server",
+					Version: "1.0.0",
+					Instructions: "These are the server instructions.\nIt can be a multi line string\n",
+					Runtime: &serverconfig.ServerRuntime{
+						TransportProtocol: TransportProtocolStreamableHttp,
+						StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
+							Port:      3000,
+							BasePath:  DefaultBasePath,
+							Stateless: true,
 						},
 					},
 				},
@@ -77,29 +70,11 @@ func TestParseMcpFile(t *testing.T) {
 		},
 		"with tools": {
 			testFileName: "one-server-tools.yaml",
-			expected: &MCPFile{
-				FileVersion: MCPFileVersion,
-				MCPServer: MCPServer{
-					MCPToolDefinitions: definitions.MCPToolDefinitions{
-						Name:    "test-server",
-						Version: "1.0.0",
-					},
-					MCPServerConfig: serverconfig.MCPServerConfig{
-						Name:    "test-server",
-						Version: "1.0.0",
-						Runtime: &serverconfig.ServerRuntime{
-							TransportProtocol: TransportProtocolStreamableHttp,
-							StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
-								Port:      3000,
-								BasePath:  DefaultBasePath,
-								Stateless: true,
-							},
-						},
-					},
-					MCPToolDefinitions: definitions.MCPToolDefinitions{
-						Name:    "test-server",
-						Version: "1.0.0",
-						Tools: []*definitions.Tool{
+			expected: &MCPServer{
+				MCPToolDefinitions: definitions.MCPToolDefinitions{
+					Name:    "test-server",
+					Version: "1.0.0",
+					Tools: []*definitions.Tool{
 						{
 							Name:        "get_user_by_company",
 							Title:       "Users Provider",
@@ -130,33 +105,27 @@ func TestParseMcpFile(t *testing.T) {
 						},
 					},
 				},
+				MCPServerConfig: serverconfig.MCPServerConfig{
+					Name:    "test-server",
+					Version: "1.0.0",
+					Runtime: &serverconfig.ServerRuntime{
+						TransportProtocol: TransportProtocolStreamableHttp,
+						StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
+							Port:      3000,
+							BasePath:  DefaultBasePath,
+							Stateless: true,
+						},
+					},
+				},
 			},
 		},
 		"with tools and http params": {
 			testFileName: "one-server-tools-http-params.yaml",
-			expected: &MCPFile{
-				FileVersion: MCPFileVersion,
-				MCPServer: MCPServer{
-					MCPToolDefinitions: definitions.MCPToolDefinitions{
-						Name:    "test-server",
-						Version: "1.0.0",
-					},
-					MCPServerConfig: serverconfig.MCPServerConfig{
-						Name:    "test-server",
-						Version: "1.0.0",
-						Runtime: &serverconfig.ServerRuntime{
-							TransportProtocol: TransportProtocolStreamableHttp,
-							StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
-								Port:      3000,
-								BasePath:  DefaultBasePath,
-								Stateless: true,
-							},
-						},
-					},
-					MCPToolDefinitions: definitions.MCPToolDefinitions{
-						Name:    "test-server",
-						Version: "1.0.0",
-						Tools: []*definitions.Tool{
+			expected: &MCPServer{
+				MCPToolDefinitions: definitions.MCPToolDefinitions{
+					Name:    "test-server",
+					Version: "1.0.0",
+					Tools: []*definitions.Tool{
 						{
 							Name:        "get_user_by_company",
 							Title:       "Users Provider",
@@ -185,24 +154,10 @@ func TestParseMcpFile(t *testing.T) {
 		},
 		"cli invocation": {
 			testFileName: "one-server-cli-tools.yaml",
-			expected: &MCPFile{
-				FileVersion: MCPFileVersion,
-				MCPServer: MCPServer{
-					MCPToolDefinitions: definitions.MCPToolDefinitions{
-						Name:    "test-server",
-						Version: "1.0.0",
-					},
-					MCPServerConfig: serverconfig.MCPServerConfig{
-						Name:    "test-server",
-						Version: "1.0.0",
-						Runtime: &serverconfig.ServerRuntime{
-							TransportProtocol: TransportProtocolStreamableHttp,
-						StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
-							BasePath:  DefaultBasePath,
-							Port:      3000,
-							Stateless: true,
-						},
-					},
+			expected: &MCPServer{
+				MCPToolDefinitions: definitions.MCPToolDefinitions{
+					Name:    "test-server",
+					Version: "1.0.0",
 					Tools: []*definitions.Tool{
 						{
 							Name:        "clone_repo",
@@ -245,28 +200,26 @@ func TestParseMcpFile(t *testing.T) {
 						},
 					},
 				},
+				MCPServerConfig: serverconfig.MCPServerConfig{
+					Name:    "test-server",
+					Version: "1.0.0",
+					Runtime: &serverconfig.ServerRuntime{
+						TransportProtocol: TransportProtocolStreamableHttp,
+						StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
+							Port:      3000,
+							BasePath:  DefaultBasePath,
+							Stateless: true,
+						},
+					},
+				},
 			},
 		},
 		"stateful": {
 			testFileName: "one-server-stateful.yaml",
-			expected: &MCPFile{
-				FileVersion: MCPFileVersion,
-				MCPServer: MCPServer{
-					MCPToolDefinitions: definitions.MCPToolDefinitions{
-						Name:    "test-server",
-						Version: "1.0.0",
-					},
-					MCPServerConfig: serverconfig.MCPServerConfig{
-						Name:    "test-server",
-						Version: "1.0.0",
-						Runtime: &serverconfig.ServerRuntime{
-							TransportProtocol: TransportProtocolStreamableHttp,
-						StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
-							BasePath:  DefaultBasePath,
-							Port:      3000,
-							Stateless: false,
-						},
-					},
+			expected: &MCPServer{
+				MCPToolDefinitions: definitions.MCPToolDefinitions{
+					Name:    "test-server",
+					Version: "1.0.0",
 					Tools: []*definitions.Tool{
 						{
 							Name:        "clone_repo",
@@ -313,9 +266,7 @@ func TestParseMcpFile(t *testing.T) {
 		},
 		"server runtime stdio": {
 			testFileName: "server-runtime-stdio.yaml",
-			expected: &MCPFile{
-				FileVersion: MCPFileVersion,
-				MCPServer: MCPServer{
+			expected: &MCPServer{
 					MCPToolDefinitions: definitions.MCPToolDefinitions{
 						Name:    "test-server",
 						Version: "1.0.0",
@@ -360,40 +311,23 @@ func TestParseMcpFile(t *testing.T) {
 							},
 						},
 					},
-					MCPServerConfig: serverconfig.MCPServerConfig{
-						Name:    "test-server",
-						Version: "1.0.0",
-						Runtime: &serverconfig.ServerRuntime{
-							TransportProtocol: TransportProtocolStdio,
-						},
+				},
+				MCPServerConfig: serverconfig.MCPServerConfig{
+					Name:    "test-server",
+					Version: "1.0.0",
+					Runtime: &serverconfig.ServerRuntime{
+						TransportProtocol: TransportProtocolStdio,
 					},
 				},
 			},
 		},
 		"one server, prompts": {
 			testFileName: "one-server-prompts.yaml",
-			expected: &MCPFile{
-				FileVersion: MCPFileVersion,
-				MCPServer: MCPServer{
-					MCPToolDefinitions: definitions.MCPToolDefinitions{
-						Name:    "test-server",
-						Version: "1.0.0",
-					},
-					MCPServerConfig: serverconfig.MCPServerConfig{
-						Name:    "test-server",
-						Version: "1.0.0",
-						Runtime: &serverconfig.ServerRuntime{
-							TransportProtocol: TransportProtocolStreamableHttp,
-						StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
-							BasePath:  DefaultBasePath,
-							Port:      3000,
-							Stateless: true,
-						},
-					},
-					MCPToolDefinitions: definitions.MCPToolDefinitions{
-						Name:    "test-server",
-						Version: "1.0.0",
-						Prompts: []*definitions.Prompt{
+			expected: &MCPServer{
+				MCPToolDefinitions: definitions.MCPToolDefinitions{
+					Name:    "test-server",
+					Version: "1.0.0",
+					Prompts: []*definitions.Prompt{
 							{
 								Name:        "code_review",
 								Title:       "Request Code Review",
@@ -426,31 +360,26 @@ func TestParseMcpFile(t *testing.T) {
 						},
 					},
 				},
-			},
-		}, "one server, resources": {
-			testFileName: "one-server-resources.yaml",
-			expected: &MCPFile{
-				FileVersion: MCPFileVersion,
-				MCPServer: MCPServer{
-					MCPToolDefinitions: definitions.MCPToolDefinitions{
-						Name:    "test-server",
-						Version: "1.0.0",
-					},
-					MCPServerConfig: serverconfig.MCPServerConfig{
-						Name:    "test-server",
-						Version: "1.0.0",
-						Runtime: &serverconfig.ServerRuntime{
-							TransportProtocol: TransportProtocolStreamableHttp,
+				MCPServerConfig: serverconfig.MCPServerConfig{
+					Name:    "test-server",
+					Version: "1.0.0",
+					Runtime: &serverconfig.ServerRuntime{
+						TransportProtocol: TransportProtocolStreamableHttp,
 						StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 							BasePath:  DefaultBasePath,
 							Port:      3000,
 							Stateless: true,
 						},
 					},
-					MCPToolDefinitions: definitions.MCPToolDefinitions{
-						Name:    "test-server",
-						Version: "1.0.0",
-						Resources: []*definitions.Resource{
+				},
+			},
+		}, "one server, resources": {
+			testFileName: "one-server-resources.yaml",
+			expected: &MCPServer{
+				MCPToolDefinitions: definitions.MCPToolDefinitions{
+					Name:    "test-server",
+					Version: "1.0.0",
+					Resources: []*definitions.Resource{
 							{
 								Name:           "web_server_access_log",
 								Title:          "Web Server Access Log",
@@ -472,9 +401,7 @@ func TestParseMcpFile(t *testing.T) {
 		},
 		"one server, resource templates": {
 			testFileName: "one-server-resource-templates.yaml",
-			expected: &MCPFile{
-				FileVersion: MCPFileVersion,
-				MCPServer: MCPServer{
+			expected: &MCPServer{
 					MCPToolDefinitions: definitions.MCPToolDefinitions{
 						Name:    "test-server",
 						Version: "1.0.0",
@@ -490,10 +417,11 @@ func TestParseMcpFile(t *testing.T) {
 							Stateless: true,
 						},
 					},
-					MCPToolDefinitions: definitions.MCPToolDefinitions{
-						Name:    "test-server",
-						Version: "1.0.0",
-						ResourceTemplates: []*definitions.ResourceTemplate{
+				},
+				MCPToolDefinitions: definitions.MCPToolDefinitions{
+					Name:    "test-server",
+					Version: "1.0.0",
+					ResourceTemplates: []*definitions.ResourceTemplate{
 							{
 								Name:        "weather-forecast",
 								Title:       "Weather Forecast",
@@ -528,13 +456,11 @@ func TestParseMcpFile(t *testing.T) {
 		},
 		"full demo": {
 			testFileName: "full-demo.yaml",
-			expected: &MCPFile{
-				FileVersion: MCPFileVersion,
-				MCPServer: MCPServer{
-					MCPToolDefinitions: definitions.MCPToolDefinitions{
-						Name:    "git-github-example",
-						Version: "1.0.0",
-						Tools: []*definitions.Tool{
+			expected: &MCPServer{
+				MCPToolDefinitions: definitions.MCPToolDefinitions{
+					Name:    "git-github-example",
+					Version: "1.0.0",
+					Tools: []*definitions.Tool{
 							{
 								Name:        "clone_repo",
 								Title:       "Clone git repository",
@@ -646,9 +572,7 @@ func TestParseMcpFile(t *testing.T) {
 		},
 		"with tls": {
 			testFileName: "one-server-tls.yaml",
-			expected: &MCPFile{
-				FileVersion: MCPFileVersion,
-				MCPServer: MCPServer{
+			expected: &MCPServer{
 					MCPToolDefinitions: definitions.MCPToolDefinitions{
 						Name:    "test-server",
 						Version: "1.0.0",
@@ -677,18 +601,18 @@ func TestParseMcpFile(t *testing.T) {
 							},
 						},
 					},
-					MCPServerConfig: serverconfig.MCPServerConfig{
-						Name:    "test-server",
-						Version: "1.0.0",
-						Runtime: &serverconfig.ServerRuntime{
-							TransportProtocol: TransportProtocolStreamableHttp,
-							StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
-								Port:      7007,
-								Stateless: true,
-								TLS: &serverconfig.TLSConfig{
-									CertFile: "/path/to/server.crt",
-									KeyFile:  "/path/to/server.key",
-								},
+				},
+				MCPServerConfig: serverconfig.MCPServerConfig{
+					Name:    "test-server",
+					Version: "1.0.0",
+					Runtime: &serverconfig.ServerRuntime{
+						TransportProtocol: TransportProtocolStreamableHttp,
+						StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
+							Port:      7007,
+							Stateless: true,
+							TLS: &serverconfig.TLSConfig{
+								CertFile: "/path/to/server.crt",
+								KeyFile:  "/path/to/server.key",
 							},
 						},
 					},
@@ -705,7 +629,7 @@ func TestParseMcpFile(t *testing.T) {
 	for testName, testCase := range tt {
 		t.Run(testName, func(t *testing.T) {
 			t.Parallel()
-			mcpFile, err := ParseMCPFile(fmt.Sprintf("./testdata/%s", testCase.testFileName))
+			mcpServer, err := ParseMCPFile(fmt.Sprintf("./testdata/%s", testCase.testFileName))
 			if testCase.wantErr {
 				assert.Error(t, err, "parsing mcp file should cause an error")
 				assert.ErrorContains(t, err, testCase.errorContains, "the error should contain the right message")
@@ -713,7 +637,7 @@ func TestParseMcpFile(t *testing.T) {
 				assert.NoError(t, err, "parsing mcp file should succeed")
 			}
 
-			assert.Equal(t, testCase.expected, mcpFile)
+			assert.Equal(t, testCase.expected, mcpServer)
 		})
 
 	}
