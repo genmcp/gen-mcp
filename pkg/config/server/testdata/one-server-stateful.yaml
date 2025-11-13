@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../../../specs/mcpfile-schema.json
+mcpFileVersion: 0.2.0
+name: test-server
+version: 1.0.0
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 3000
+    basePath: /mcp
+    stateless: false
