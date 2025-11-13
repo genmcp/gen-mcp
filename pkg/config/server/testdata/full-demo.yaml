@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=../../../specs/mcpfile-schema.json
+mcpFileVersion: 0.2.0
+name: git-github-example
+version: 1.0.0
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8008
