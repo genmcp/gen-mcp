@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/genmcp/gen-mcp/pkg/invocation"
 	mcpli "github.com/genmcp/gen-mcp/pkg/invocation/cli"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 )
@@ -32,8 +33,7 @@ func TestQueryPrometheusFallbacksToRouteForSvcURL(t *testing.T) {
 		t.Fatalf("query_prometheus tool not found in MCP file")
 	}
 
-	parser := &mcpli.Parser{}
-	rawConfig, err := parser.Parse(tool.InvocationData, tool)
+	rawConfig, err := invocation.ParseInvocation(tool.GetInvocationType(), tool.GetInvocationData(), tool)
 	if err != nil {
 		t.Fatalf("failed to parse CLI config: %v", err)
 	}
@@ -97,7 +97,9 @@ printf '%s'
 	setArg("step", "60s")
 
 	command := fmt.Sprintf(config.Command, args...)
-	t.Logf("rendered command:\n%s", command)
+	if testing.Verbose() {
+		t.Logf("rendered command:\n%s", command)
+	}
 
 	cmd := exec.Command("bash", "-c", command)
 	cmd.Env = append(os.Environ(),
