@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
+	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/genmcp/gen-mcp/pkg/invocation/cli"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
@@ -50,7 +52,7 @@ func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpfile.MCPFile, er
 	}
 
 	// Create tools from command items
-	tools := make([]*mcpfile.Tool, 0, len(*commandItems))
+	tools := make([]*definitions.Tool, 0, len(*commandItems))
 
 	for _, commandItem := range *commandItems {
 		tool, err := convertCommandItemToTool(commandItem)
@@ -64,22 +66,28 @@ func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpfile.MCPFile, er
 	mcpFile := &mcpfile.MCPFile{
 		FileVersion: mcpfile.MCPFileVersion,
 		MCPServer: mcpfile.MCPServer{
-			Name:    "cli-generated-server",
-			Version: "0.0.1",
-			Runtime: &mcpfile.ServerRuntime{
-				TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
-				StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
-					Port: 7008,
+			MCPToolDefinitions: definitions.MCPToolDefinitions{
+				Name:    "cli-generated-server",
+				Version: "0.0.1",
+				Tools:   tools,
+			},
+			MCPServerConfig: serverconfig.MCPServerConfig{
+				Name:    "cli-generated-server",
+				Version: "0.0.1",
+				Runtime: &serverconfig.ServerRuntime{
+					TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
+					StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
+						Port: 7008,
+					},
 				},
 			},
-			Tools: tools,
 		},
 	}
 
 	return mcpFile, nil
 }
 
-func convertCommandItemToTool(commandItem CommandItem) (*mcpfile.Tool, error) {
+func convertCommandItemToTool(commandItem CommandItem) (*definitions.Tool, error) {
 	// Create input schema for the tool based on arguments
 	inputSchema, err := createInputSchemaFromArguments(commandItem.Data.Arguments, commandItem.Data.Options)
 	if err != nil {
@@ -100,7 +108,7 @@ func convertCommandItemToTool(commandItem CommandItem) (*mcpfile.Tool, error) {
 		return nil, fmt.Errorf("failed to unmarshal invocation data: %w", err)
 	}
 
-	tool := &mcpfile.Tool{
+	tool := &definitions.Tool{
 		Name:        toolName,
 		Title:       commandItem.Command,
 		Description: commandItem.Data.Description,

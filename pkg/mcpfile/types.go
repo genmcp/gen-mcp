@@ -12,21 +12,6 @@ const (
 	TransportProtocolStdio          = "stdio"
 )
 
-// Type aliases for backward compatibility - these point to the types from pkg/config/definitions
-type Tool = definitions.Tool
-type ToolAnnotations = definitions.ToolAnnotations
-type Prompt = definitions.Prompt
-type PromptArgument = definitions.PromptArgument
-type Resource = definitions.Resource
-type ResourceTemplate = definitions.ResourceTemplate
-
-// Type aliases for server config types - these point to the types from pkg/config/server
-type StreamableHTTPConfig = serverconfig.StreamableHTTPConfig
-type TLSConfig = serverconfig.TLSConfig
-type AuthConfig = serverconfig.AuthConfig
-type StdioConfig = serverconfig.StdioConfig
-type ServerRuntime = serverconfig.ServerRuntime
-
 // MCPServer defines the metadata and capabilities of an MCP server.
 // It embeds MCPToolDefinitions for tool definitions and MCPServerConfig for server configuration.
 type MCPServer struct {
@@ -61,31 +46,6 @@ func (m *MCPServer) Instructions() string {
 	return m.MCPToolDefinitions.Instructions
 }
 
-// Runtime returns the runtime configuration from server config
-func (m *MCPServer) Runtime() *ServerRuntime {
-	return m.MCPServerConfig.Runtime
-}
-
-// Tools returns the tools from tool definitions
-func (m *MCPServer) Tools() []*Tool {
-	return m.MCPToolDefinitions.Tools
-}
-
-// Prompts returns the prompts from tool definitions
-func (m *MCPServer) Prompts() []*Prompt {
-	return m.MCPToolDefinitions.Prompts
-}
-
-// Resources returns the resources from tool definitions
-func (m *MCPServer) Resources() []*Resource {
-	return m.MCPToolDefinitions.Resources
-}
-
-// ResourceTemplates returns the resource templates from tool definitions
-func (m *MCPServer) ResourceTemplates() []*ResourceTemplate {
-	return m.MCPToolDefinitions.ResourceTemplates
-}
-
 // InvocationBases returns merged invocation bases (server config takes precedence for conflicts)
 func (m *MCPServer) InvocationBases() map[string]*invocation.InvocationConfigWrapper {
 	result := make(map[string]*invocation.InvocationConfigWrapper)
@@ -113,7 +73,7 @@ type MCPFile struct {
 	MCPServer `json:",inline"`
 }
 
-var _ invocation.Primitive = (*Tool)(nil)
-var _ invocation.Primitive = (*Prompt)(nil)
-var _ invocation.Primitive = (*Resource)(nil)
-var _ invocation.Primitive = (*ResourceTemplate)(nil)
+var _ invocation.Primitive = (*definitions.Tool)(nil)
+var _ invocation.Primitive = (*definitions.Prompt)(nil)
+var _ invocation.Primitive = (*definitions.Resource)(nil)
+var _ invocation.Primitive = (*definitions.ResourceTemplate)(nil)

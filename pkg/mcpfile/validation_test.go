@@ -3,6 +3,8 @@ package mcpfile
 import (
 	"testing"
 
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
+	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,10 +18,14 @@ func TestMCPFileValidate(t *testing.T) {
 		mcpFile := &MCPFile{
 			FileVersion: MCPFileVersion,
 			MCPServer: MCPServer{
-				Version: "1.0.0",
-				Runtime: &ServerRuntime{
-					TransportProtocol: TransportProtocolStreamableHttp,
-					StreamableHTTPConfig: &StreamableHTTPConfig{
+				MCPToolDefinitions: definitions.MCPToolDefinitions{
+					Version: "1.0.0",
+				},
+				MCPServerConfig: serverconfig.MCPServerConfig{
+					Version: "1.0.0",
+					Runtime: &serverconfig.ServerRuntime{
+						TransportProtocol: TransportProtocolStreamableHttp,
+					StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 						Port:     3000,
 						BasePath: DefaultBasePath,
 					},
@@ -35,10 +41,14 @@ func TestMCPFileValidate(t *testing.T) {
 		mcpFile := &MCPFile{
 			FileVersion: MCPFileVersion,
 			MCPServer: MCPServer{
-				Name: "test-server",
-				Runtime: &ServerRuntime{
-					TransportProtocol: TransportProtocolStreamableHttp,
-					StreamableHTTPConfig: &StreamableHTTPConfig{
+				MCPToolDefinitions: definitions.MCPToolDefinitions{
+					Name: "test-server",
+				},
+				MCPServerConfig: serverconfig.MCPServerConfig{
+					Name: "test-server",
+					Runtime: &serverconfig.ServerRuntime{
+						TransportProtocol: TransportProtocolStreamableHttp,
+					StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 						Port:     3000,
 						BasePath: DefaultBasePath,
 					},
@@ -54,11 +64,16 @@ func TestMCPFileValidate(t *testing.T) {
 		mcpFile := &MCPFile{
 			FileVersion: MCPFileVersion,
 			MCPServer: MCPServer{
-				Name:    "test-server",
-				Version: "1.0.0",
-				Runtime: &ServerRuntime{
-					TransportProtocol: TransportProtocolStreamableHttp,
-					StreamableHTTPConfig: &StreamableHTTPConfig{
+				MCPToolDefinitions: definitions.MCPToolDefinitions{
+					Name:    "test-server",
+					Version: "1.0.0",
+				},
+				MCPServerConfig: serverconfig.MCPServerConfig{
+					Name:    "test-server",
+					Version: "1.0.0",
+					Runtime: &serverconfig.ServerRuntime{
+						TransportProtocol: TransportProtocolStreamableHttp,
+					StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 						Port:     3000,
 						BasePath: DefaultBasePath,
 					},

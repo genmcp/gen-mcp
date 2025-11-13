@@ -4,41 +4,42 @@ import (
 	"os"
 	"testing"
 
+	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/observability/logging"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestEnvOverrides(t *testing.T) {
 	tt := map[string]struct {
-		initialRuntime  *ServerRuntime
-		expectedRuntime *ServerRuntime
+		initialRuntime  *serverconfig.ServerRuntime
+		expectedRuntime *serverconfig.ServerRuntime
 		env             map[string]string
 		expectErr       bool
 	}{
 		"no overrides": {
-			initialRuntime: &ServerRuntime{
+			initialRuntime: &serverconfig.ServerRuntime{
 				TransportProtocol: "streamablehttp",
-				StreamableHTTPConfig: &StreamableHTTPConfig{
+				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 					Port: 8080,
 				},
 			},
-			expectedRuntime: &ServerRuntime{
+			expectedRuntime: &serverconfig.ServerRuntime{
 				TransportProtocol: "streamablehttp",
-				StreamableHTTPConfig: &StreamableHTTPConfig{
+				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 					Port: 8080,
 				},
 			},
 		},
 		"override transport protocol": {
-			initialRuntime: &ServerRuntime{
+			initialRuntime: &serverconfig.ServerRuntime{
 				TransportProtocol: "streamablehttp",
-				StreamableHTTPConfig: &StreamableHTTPConfig{
+				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 					Port: 8080,
 				},
 			},
-			expectedRuntime: &ServerRuntime{
+			expectedRuntime: &serverconfig.ServerRuntime{
 				TransportProtocol: "stdio",
-				StreamableHTTPConfig: &StreamableHTTPConfig{
+				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 					Port: 8080,
 				},
 			},
@@ -47,15 +48,15 @@ func TestEnvOverrides(t *testing.T) {
 			},
 		},
 		"override nested port": {
-			initialRuntime: &ServerRuntime{
+			initialRuntime: &serverconfig.ServerRuntime{
 				TransportProtocol: "streamablehttp",
-				StreamableHTTPConfig: &StreamableHTTPConfig{
+				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 					Port: 8080,
 				},
 			},
-			expectedRuntime: &ServerRuntime{
+			expectedRuntime: &serverconfig.ServerRuntime{
 				TransportProtocol: "streamablehttp",
-				StreamableHTTPConfig: &StreamableHTTPConfig{
+				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 					Port: 9000,
 				},
 			},
@@ -64,9 +65,9 @@ func TestEnvOverrides(t *testing.T) {
 			},
 		},
 		"surfaces error on invalid env var type": {
-			initialRuntime: &ServerRuntime{
+			initialRuntime: &serverconfig.ServerRuntime{
 				TransportProtocol: "streamablehttp",
-				StreamableHTTPConfig: &StreamableHTTPConfig{
+				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 					Port: 8080,
 				},
 			},
@@ -76,15 +77,15 @@ func TestEnvOverrides(t *testing.T) {
 			},
 		},
 		"handles maps correctly": {
-			initialRuntime: &ServerRuntime{
+			initialRuntime: &serverconfig.ServerRuntime{
 				TransportProtocol: "streamablehttp",
-				StreamableHTTPConfig: &StreamableHTTPConfig{
+				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 					Port: 8080,
 				},
 			},
-			expectedRuntime: &ServerRuntime{
+			expectedRuntime: &serverconfig.ServerRuntime{
 				TransportProtocol: "streamablehttp",
-				StreamableHTTPConfig: &StreamableHTTPConfig{
+				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 					Port: 8080,
 				},
 				LoggingConfig: &logging.LoggingConfig{
@@ -98,15 +99,15 @@ func TestEnvOverrides(t *testing.T) {
 			},
 		},
 		"handles slices correctly": {
-			initialRuntime: &ServerRuntime{
+			initialRuntime: &serverconfig.ServerRuntime{
 				TransportProtocol: "streamablehttp",
-				StreamableHTTPConfig: &StreamableHTTPConfig{
+				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 					Port: 8080,
 				},
 			},
-			expectedRuntime: &ServerRuntime{
+			expectedRuntime: &serverconfig.ServerRuntime{
 				TransportProtocol: "streamablehttp",
-				StreamableHTTPConfig: &StreamableHTTPConfig{
+				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 					Port: 8080,
 				},
 				LoggingConfig: &logging.LoggingConfig{

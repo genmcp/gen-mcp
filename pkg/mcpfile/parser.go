@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/invocation/extends"
 	"sigs.k8s.io/yaml"
 )
@@ -86,9 +87,9 @@ func (s *MCPServer) UnmarshalJSON(data []byte) error {
 	version := s.Version()
 	if name != "" || version != "" {
 		if s.MCPServerConfig.Runtime == nil {
-			s.MCPServerConfig.Runtime = &ServerRuntime{
+			s.MCPServerConfig.Runtime = &serverconfig.ServerRuntime{
 				TransportProtocol: TransportProtocolStreamableHttp,
-				StreamableHTTPConfig: &StreamableHTTPConfig{
+				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 					Port:      3000,
 					BasePath:  DefaultBasePath,
 					Stateless: true,
@@ -97,7 +98,7 @@ func (s *MCPServer) UnmarshalJSON(data []byte) error {
 		}
 
 		if s.MCPServerConfig.Runtime.TransportProtocol == TransportProtocolStreamableHttp && s.MCPServerConfig.Runtime.StreamableHTTPConfig == nil {
-			s.MCPServerConfig.Runtime.StreamableHTTPConfig = &StreamableHTTPConfig{
+			s.MCPServerConfig.Runtime.StreamableHTTPConfig = &serverconfig.StreamableHTTPConfig{
 				Port:      3000,
 				BasePath:  DefaultBasePath,
 				Stateless: true,
@@ -108,7 +109,5 @@ func (s *MCPServer) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Note: UnmarshalJSON methods for Tool, Prompt, Resource, ResourceTemplate are defined in pkg/config/definitions
-// and are available through type aliases. UnmarshalJSON for StreamableHTTPConfig is defined in pkg/config/server.
-
-// Note: UnmarshalJSON method for StreamableHTTPConfig is defined in pkg/config/server and is available through type alias.
+// Note: UnmarshalJSON methods for Tool, Prompt, Resource, ResourceTemplate are defined in pkg/config/definitions.
+// UnmarshalJSON for StreamableHTTPConfig is defined in pkg/config/server.
