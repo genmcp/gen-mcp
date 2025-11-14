@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] – PR #162
+
+### Added
+- Introduced the NETEDGE MCP manifest with the ingress and DNS diagnostic toolset used for evaluation (`examples/netedge-tools/mcpfile.yaml`). (#162)
+- Added supporting documentation and agent transcripts for the scenarios, including a pointer to the canonical evaluation notes in `github.com/genmcp/gevals` (`examples/netedge-tools/docs`). (#162)
+- Documented the NETEDGE Phase-0 gen-mcp tooling notes (`examples/netedge-tools/docs/NETEDGE-GEN-MCP-NOTES.md`). (#162)
+- Added a focused unit test for the Prometheus query tool to ensure `.svc` URLs fall back to the routed endpoint (`test/query_prometheus_tool_test.go`). (#162)
+- Updated `.gitignore` to drop generated evaluation artifacts from version control. (#162)
+
 ## [v0.1.1]
 
 ### Added
