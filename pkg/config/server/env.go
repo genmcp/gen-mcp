@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 )
 
 const (
@@ -17,7 +15,7 @@ const (
 )
 
 type RuntimeOverrider interface {
-	ApplyOverrides(runtime *serverconfig.ServerRuntime) error
+	ApplyOverrides(runtime *ServerRuntime) error
 }
 
 type envRuntimeOverrider struct{}
@@ -26,7 +24,7 @@ func NewEnvRuntimeOverrider() RuntimeOverrider {
 	return &envRuntimeOverrider{}
 }
 
-func (e *envRuntimeOverrider) ApplyOverrides(runtime *serverconfig.ServerRuntime) error {
+func (e *envRuntimeOverrider) ApplyOverrides(runtime *ServerRuntime) error {
 	if runtime == nil {
 		return fmt.Errorf("can only apply env overrides to a non-nil server runtime")
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.uber.org/zap"
 
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/genmcp/gen-mcp/pkg/oauth"
 )
@@ -22,10 +23,10 @@ type ServerManager struct {
 }
 
 func NewServerManager(server *mcpfile.MCPServer) *ServerManager {
-	logger := server.Runtime.GetBaseLogger()
+	logger := server.MCPServerConfig.Runtime.GetBaseLogger()
 	logger.Debug("Creating new server manager",
-		zap.String("server_name", server.Name),
-		zap.String("server_version", server.Version))
+		zap.String("server_name", server.Name()),
+		zap.String("server_version", server.Version()))
 
 	return &ServerManager{
 		mcpServer:           server,
@@ -39,7 +40,7 @@ func NewServerManager(server *mcpfile.MCPServer) *ServerManager {
 // It then checks if after filtering the tools for the received scopes there is an existing server with the same tool set
 // Finally, it creates a new server with the correct set of tools and caches the server for future connections
 func (sm *ServerManager) ServerFromContext(ctx context.Context) (*mcp.Server, error) {
-	logger := sm.mcpServer.Runtime.GetBaseLogger()
+	logger := sm.mcpServer.MCPServerConfig.Runtime.GetBaseLogger()
 
 	claims := oauth.GetClaimsFromContext(ctx)
 	if claims == nil {
@@ -71,7 +72,7 @@ func (sm *ServerManager) ServerFromContext(ctx context.Context) (*mcp.Server, er
 
 	logger.Debug("Filtered tools for user scopes",
 		zap.String("user_subject", claims.Subject),
-		zap.Int("total_tools", len(sm.mcpServer.Tools)),
+		zap.Int("total_tools", len(sm.mcpServer.MCPToolDefinitions.Tools)),
 		zap.Int("filtered_tools", len(filteredTools)),
 		zap.Strings("tool_names", filteredToolNames))
 
@@ -112,9 +113,9 @@ func (sm *ServerManager) ServerFromContext(ctx context.Context) (*mcp.Server, er
 	return s, nil
 }
 
-func (sm *ServerManager) filterToolsForScope(scope string) []*mcpfile.Tool {
-	logger := sm.mcpServer.Runtime.GetBaseLogger()
-	var allowedTools []*mcpfile.Tool
+func (sm *ServerManager) filterToolsForScope(scope string) []*definitions.Tool {
+	logger := sm.mcpServer.MCPServerConfig.Runtime.GetBaseLogger()
+	var allowedTools []*definitions.Tool
 
 	userScopes := strings.Split(scope, " ")
 	scopesLookup := make(map[string]struct{}, len(userScopes))
@@ -124,9 +125,9 @@ func (sm *ServerManager) filterToolsForScope(scope string) []*mcpfile.Tool {
 
 	logger.Debug("Filtering tools for scope",
 		zap.String("scope", scope),
-		zap.Int("total_tools", len(sm.mcpServer.Tools)))
+		zap.Int("total_tools", len(sm.mcpServer.MCPToolDefinitions.Tools)))
 
-	for _, tool := range sm.mcpServer.Tools {
+	for _, tool := range sm.mcpServer.MCPToolDefinitions.Tools {
 		if err := checkAuthorization(tool.RequiredScopes, scopesLookup); err != nil {
 			logger.Debug("Tool filtered out due to insufficient scopes",
 				zap.String("tool_name", tool.Name))
@@ -139,7 +140,7 @@ func (sm *ServerManager) filterToolsForScope(scope string) []*mcpfile.Tool {
 	}
 
 	logger.Debug("Tool filtering completed",
-		zap.Int("total_tools", len(sm.mcpServer.Tools)),
+		zap.Int("total_tools", len(sm.mcpServer.MCPToolDefinitions.Tools)),
 		zap.Int("allowed_tools", len(allowedTools)))
 
 	return allowedTools

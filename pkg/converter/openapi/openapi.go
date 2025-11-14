@@ -9,10 +9,12 @@ import (
 	"slices"
 	"strings"
 
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
+	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/genmcp/gen-mcp/pkg/invocation/extends"
 	ihttps "github.com/genmcp/gen-mcp/pkg/invocation/http"
-	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/pb33f/libopenapi"
 	highbase "github.com/pb33f/libopenapi/datamodel/high/base"
@@ -24,7 +26,13 @@ const (
 	baseApiInvocationName = "baseApi"
 )
 
-func DocumentToMcpFile(document []byte, host string) (*mcpfile.MCPFile, error) {
+// ConvertedMCPFiles contains both the tool definitions and server config files
+type ConvertedMCPFiles struct {
+	ToolDefinitions *definitions.MCPToolDefinitionsFile
+	ServerConfig    *serverconfig.MCPServerConfigFile
+}
+
+func DocumentToMcpFile(document []byte, host string) (*ConvertedMCPFiles, error) {
 	doc, err := libopenapi.NewDocument(document)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create openapi document: %w", err)
@@ -35,44 +43,63 @@ func DocumentToMcpFile(document []byte, host string) (*mcpfile.MCPFile, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to build OpenAPI V3 model: %w", err)
 		}
-		return McpFileFromOpenApiV3Model(&docModel.Model, host)
+		return McpFilesFromOpenApiV3Model(&docModel.Model, host)
 	}
 
 	docModel, err := doc.BuildV2Model()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build OpenAPI V2 model: %w", err)
 	}
-	return McpFileFromOpenApiV2Model(&docModel.Model, host)
+	return McpFilesFromOpenApiV2Model(&docModel.Model, host)
 }
 
-func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCPFile, error) {
+func McpFilesFromOpenApiV2Model(model *v2high.Swagger, host string) (*ConvertedMCPFiles, error) {
 	if model.Host == "" && host == "" {
 		return nil, fmt.Errorf("no host provided in the swagger file, unable to construct valid URLs")
 	}
 	// 1. Set top level MCP file info
-	// 2. Create server in the MCP file, default to streamablehttp transport w. port 8080
-	// 3 for each (path, operation) in the document, add one tool to the server w. http invoke
-	server := &mcpfile.MCPFile{
-		FileVersion: mcpfile.MCPFileVersion,
-		MCPServer: mcpfile.MCPServer{
-			Runtime: &mcpfile.ServerRuntime{
-				TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
-				StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
-					Port: 8080,
-				},
-			},
-			Tools:           []*mcpfile.Tool{},
-			Version:         "0.0.1",
-			InvocationBases: map[string]*invocation.InvocationConfigWrapper{},
-		},
-	}
+	// 2. Create server config file with runtime configuration
+	// 3. Create tool definitions file with tools
+	// 4. For each (path, operation) in the document, add one tool w. http invoke
 
 	title := "mcpfile-generated"
 	if model.Info != nil && model.Info.Title != "" {
 		title = model.Info.Title
 	}
 
-	server.Name = title
+	version := "0.0.1"
+	if model.Info != nil && model.Info.Version != "" {
+		version = model.Info.Version
+	}
+
+	// Create server config file
+	serverConfig := &serverconfig.MCPServerConfigFile{
+		Kind:          serverconfig.KindMCPServerConfig,
+		SchemaVersion: serverconfig.SchemaVersion,
+		MCPServerConfig: serverconfig.MCPServerConfig{
+			Name:    title,
+			Version: version,
+			Runtime: &serverconfig.ServerRuntime{
+				TransportProtocol: serverconfig.TransportProtocolStreamableHttp,
+				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
+					Port: 8080,
+				},
+			},
+			InvocationBases: map[string]*invocation.InvocationConfigWrapper{},
+		},
+	}
+
+	// Create tool definitions file
+	toolDefinitions := &definitions.MCPToolDefinitionsFile{
+		Kind:          definitions.KindMCPToolDefinitions,
+		SchemaVersion: definitions.SchemaVersion,
+		MCPToolDefinitions: definitions.MCPToolDefinitions{
+			Name:            title,
+			Version:         version,
+			Tools:           []*definitions.Tool{},
+			InvocationBases: map[string]*invocation.InvocationConfigWrapper{},
+		},
+	}
 
 	var err error
 	var scheme string
@@ -101,7 +128,9 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 		},
 	}
 
-	server.InvocationBases[baseApiInvocationName] = baseInvocation
+	// Set invocation bases in both files
+	serverConfig.InvocationBases[baseApiInvocationName] = baseInvocation
+	toolDefinitions.InvocationBases[baseApiInvocationName] = baseInvocation
 
 	if model.Paths == nil || model.Paths.PathItems == nil {
 		return nil, fmt.Errorf("no valid paths on the openapi document")
@@ -134,7 +163,7 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 				continue
 			}
 
-			tool := &mcpfile.Tool{
+			tool := &definitions.Tool{
 				Name:        toolName(pathName, operationMethod),
 				Title:       operation.Summary,
 				Description: operation.Description,
@@ -219,14 +248,14 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 				continue
 			}
 
-			server.Tools = append(server.Tools, tool)
+			toolDefinitions.Tools = append(toolDefinitions.Tools, tool)
 		}
 	}
 
 	// the only errors we should see at this point are from the tools themselves - let's validate them and filter out invalid tools
-	extends.SetBases(server.InvocationBases)
-	validTools := make([]*mcpfile.Tool, 0, len(server.Tools))
-	for _, t := range server.Tools {
+	extends.SetBases(toolDefinitions.InvocationBases)
+	validTools := make([]*definitions.Tool, 0, len(toolDefinitions.Tools))
+	for _, t := range toolDefinitions.Tools {
 		toolErr := t.Validate(invocation.InvocationValidator)
 		if toolErr != nil {
 			err = errors.Join(err, fmt.Errorf("skipping tool %s: %w", t.Name, toolErr))
@@ -235,35 +264,57 @@ func McpFileFromOpenApiV2Model(model *v2high.Swagger, host string) (*mcpfile.MCP
 		}
 	}
 
-	server.Tools = validTools
+	toolDefinitions.Tools = validTools
 
-	return server, err
+	return &ConvertedMCPFiles{
+		ToolDefinitions: toolDefinitions,
+		ServerConfig:    serverConfig,
+	}, err
 }
-func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MCPFile, error) {
+func McpFilesFromOpenApiV3Model(model *v3high.Document, host string) (*ConvertedMCPFiles, error) {
 	// 1. Set top level MCP file info
-	// 2. Create server in the MCP file, default to streamablehttp transport w. port 8080
-	// 3 for each (path, operation) in the document, add one tool to the server w. http invoke
-	server := &mcpfile.MCPFile{
-		FileVersion: mcpfile.MCPFileVersion,
-		MCPServer: mcpfile.MCPServer{
-			Runtime: &mcpfile.ServerRuntime{
-				TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
-				StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
-					Port: 8080,
-				},
-			},
-			Tools:           []*mcpfile.Tool{},
-			Version:         "0.0.1",
-			InvocationBases: map[string]*invocation.InvocationConfigWrapper{},
-		},
-	}
+	// 2. Create server config file with runtime configuration
+	// 3. Create tool definitions file with tools
+	// 4. For each (path, operation) in the document, add one tool w. http invoke
 
 	title := "mcpfile-generated"
 	if model.Info != nil && model.Info.Title != "" {
 		title = model.Info.Title
 	}
 
-	server.Name = title
+	version := "0.0.1"
+	if model.Info != nil && model.Info.Version != "" {
+		version = model.Info.Version
+	}
+
+	// Create server config file
+	serverConfig := &serverconfig.MCPServerConfigFile{
+		Kind:          serverconfig.KindMCPServerConfig,
+		SchemaVersion: serverconfig.SchemaVersion,
+		MCPServerConfig: serverconfig.MCPServerConfig{
+			Name:    title,
+			Version: version,
+			Runtime: &serverconfig.ServerRuntime{
+				TransportProtocol: serverconfig.TransportProtocolStreamableHttp,
+				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
+					Port: 8080,
+				},
+			},
+			InvocationBases: map[string]*invocation.InvocationConfigWrapper{},
+		},
+	}
+
+	// Create tool definitions file
+	toolDefinitions := &definitions.MCPToolDefinitionsFile{
+		Kind:          definitions.KindMCPToolDefinitions,
+		SchemaVersion: definitions.SchemaVersion,
+		MCPToolDefinitions: definitions.MCPToolDefinitions{
+			Name:            title,
+			Version:         version,
+			Tools:           []*definitions.Tool{},
+			InvocationBases: map[string]*invocation.InvocationConfigWrapper{},
+		},
+	}
 
 	baseUrl := ""
 	if len(model.Servers) > 0 {
@@ -281,7 +332,9 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 		},
 	}
 
-	server.InvocationBases[baseApiInvocationName] = baseInvocation
+	// Set invocation bases in both files
+	serverConfig.InvocationBases[baseApiInvocationName] = baseInvocation
+	toolDefinitions.InvocationBases[baseApiInvocationName] = baseInvocation
 
 	var err error
 
@@ -312,7 +365,7 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 				continue
 			}
 
-			tool := &mcpfile.Tool{
+			tool := &definitions.Tool{
 				Name:        toolName(pathName, operationMethod),
 				Title:       operation.Summary,
 				Description: operation.Description,
@@ -371,14 +424,14 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 
 			}
 
-			server.Tools = append(server.Tools, tool)
+			toolDefinitions.Tools = append(toolDefinitions.Tools, tool)
 		}
 	}
 
 	// the only errors we should see at this point are from the tools themselves - let's validate them and filter out invalid tools
-	extends.SetBases(server.InvocationBases)
-	validTools := make([]*mcpfile.Tool, 0, len(server.Tools))
-	for _, t := range server.Tools {
+	extends.SetBases(toolDefinitions.InvocationBases)
+	validTools := make([]*definitions.Tool, 0, len(toolDefinitions.Tools))
+	for _, t := range toolDefinitions.Tools {
 		toolErr := t.Validate(invocation.InvocationValidator)
 		if toolErr != nil {
 			err = errors.Join(err, fmt.Errorf("skipping tool %s: %w", t.Name, toolErr))
@@ -387,9 +440,12 @@ func McpFileFromOpenApiV3Model(model *v3high.Document, host string) (*mcpfile.MC
 		}
 	}
 
-	server.Tools = validTools
+	toolDefinitions.Tools = validTools
 
-	return server, err
+	return &ConvertedMCPFiles{
+		ToolDefinitions: toolDefinitions,
+		ServerConfig:    serverConfig,
+	}, err
 }
 
 func convertSchema(proxy *highbase.SchemaProxy, visited map[*highbase.SchemaProxy]*jsonschema.Schema) *jsonschema.Schema {

@@ -3,8 +3,6 @@ package mcpfile
 import (
 	"testing"
 
-	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
-	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,66 +13,59 @@ func TestMCPFileValidate(t *testing.T) {
 	}
 
 	t.Run("missing name should fail validation", func(t *testing.T) {
-		mcpServer := &MCPServer{
-			MCPToolDefinitions: definitions.MCPToolDefinitions{
+		mcpFile := &MCPServerConfigFile{
+			SchemaVersion: SchemaVersion,
+			MCPServerConfig: MCPServerConfig{
 				Version: "1.0.0",
-			},
-			MCPServerConfig: serverconfig.MCPServerConfig{
-				Version: "1.0.0",
-				Runtime: &serverconfig.ServerRuntime{
+				Runtime: &ServerRuntime{
 					TransportProtocol: TransportProtocolStreamableHttp,
-					StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
+					StreamableHTTPConfig: &StreamableHTTPConfig{
 						Port:     3000,
 						BasePath: DefaultBasePath,
 					},
 				},
 			},
 		}
-		err := mcpServer.Validate(mockValidator)
+		err := mcpFile.Validate(mockValidator)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "name is required")
 	})
 
 	t.Run("missing version should fail validation", func(t *testing.T) {
-		mcpServer := &MCPServer{
-			MCPToolDefinitions: definitions.MCPToolDefinitions{
+		mcpFile := &MCPServerConfigFile{
+			SchemaVersion: SchemaVersion,
+			MCPServerConfig: MCPServerConfig{
 				Name: "test-server",
-			},
-			MCPServerConfig: serverconfig.MCPServerConfig{
-				Name: "test-server",
-				Runtime: &serverconfig.ServerRuntime{
+				Runtime: &ServerRuntime{
 					TransportProtocol: TransportProtocolStreamableHttp,
-					StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
+					StreamableHTTPConfig: &StreamableHTTPConfig{
 						Port:     3000,
 						BasePath: DefaultBasePath,
 					},
 				},
 			},
 		}
-		err := mcpServer.Validate(mockValidator)
+		err := mcpFile.Validate(mockValidator)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "version is required")
 	})
 
 	t.Run("valid server should pass validation", func(t *testing.T) {
-		mcpServer := &MCPServer{
-			MCPToolDefinitions: definitions.MCPToolDefinitions{
+		mcpFile := &MCPServerConfigFile{
+			SchemaVersion: SchemaVersion,
+			MCPServerConfig: MCPServerConfig{
 				Name:    "test-server",
 				Version: "1.0.0",
-			},
-			MCPServerConfig: serverconfig.MCPServerConfig{
-				Name:    "test-server",
-				Version: "1.0.0",
-				Runtime: &serverconfig.ServerRuntime{
+				Runtime: &ServerRuntime{
 					TransportProtocol: TransportProtocolStreamableHttp,
-					StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
+					StreamableHTTPConfig: &StreamableHTTPConfig{
 						Port:     3000,
 						BasePath: DefaultBasePath,
 					},
 				},
 			},
 		}
-		err := mcpServer.Validate(mockValidator)
+		err := mcpFile.Validate(mockValidator)
 		assert.NoError(t, err)
 	})
 }

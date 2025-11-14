@@ -49,7 +49,7 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 		var (
 			backendServer       *httptest.Server
 			callbackServer      *httptest.Server
-			mcpConfig           *mcpfile.MCPFile
+			mcpConfig           *mcpfile.MCPServer
 			mcpServerCancelFunc context.CancelFunc
 		)
 
@@ -64,13 +64,7 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				mcpServer := &mcpfile.MCPServer{
-					Name:    mcpConfig.Name,
-					Version: mcpConfig.Version,
-					Runtime: mcpConfig.Runtime,
-					Tools:   mcpConfig.Tools,
-				}
-				err := mcpserver.RunServer(ctx, mcpServer)
+				err := mcpserver.RunServer(ctx, mcpConfig)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}
@@ -487,7 +481,7 @@ func createOAuthCallbackServer() *httptest.Server {
 	}))
 }
 
-func createTestMCPConfig(backendURL string, port int) *mcpfile.MCPFile {
+func createTestMCPConfig(backendURL string, port int) *mcpfile.MCPServer {
 	By("creating test MCP configuration")
 
 	mcpYAML := fmt.Sprintf(`

@@ -63,7 +63,7 @@ var _ = Describe("TLS Integration", Ordered, func() {
 
 		var (
 			backendServer       *httptest.Server
-			mcpConfig           *mcpfile.MCPFile
+			mcpConfig           *mcpfile.MCPServer
 			mcpServerCancelFunc context.CancelFunc
 		)
 
@@ -77,13 +77,7 @@ var _ = Describe("TLS Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				mcpServer := &mcpfile.MCPServer{
-					Name:    mcpConfig.Name,
-					Version: mcpConfig.Version,
-					Runtime: mcpConfig.Runtime,
-					Tools:   mcpConfig.Tools,
-				}
-				err := mcpserver.RunServer(ctx, mcpServer)
+				err := mcpserver.RunServer(ctx, mcpConfig)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}
@@ -333,7 +327,7 @@ func generateTestCertificates() (certFile, keyFile string, err error) {
 	return certTempFile.Name(), keyTempFile.Name(), nil
 }
 
-func createTestTLSMCPConfig(backendURL string, port int, certFile, keyFile string) *mcpfile.MCPFile {
+func createTestTLSMCPConfig(backendURL string, port int, certFile, keyFile string) *mcpfile.MCPServer {
 	By("creating test MCP configuration with TLS")
 
 	mcpYAML := fmt.Sprintf(`
