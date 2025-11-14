@@ -22,6 +22,10 @@ func TestQueryPrometheusFallbacksToRouteForSvcURL(t *testing.T) {
 		t.Fatalf("failed to parse MCP file: %v", err)
 	}
 
+	if err := mcpCfg.Validate(invocation.InvocationValidator); err != nil {
+		t.Fatalf("failed to validate MCP file: %v", err)
+	}
+
 	var tool *mcpfile.Tool
 	for _, ttool := range mcpCfg.Tools {
 		if ttool.Name == "query_prometheus" {
@@ -33,14 +37,9 @@ func TestQueryPrometheusFallbacksToRouteForSvcURL(t *testing.T) {
 		t.Fatalf("query_prometheus tool not found in MCP file")
 	}
 
-	rawConfig, err := invocation.ParseInvocation(tool.GetInvocationType(), tool.GetInvocationData(), tool)
-	if err != nil {
-		t.Fatalf("failed to parse CLI config: %v", err)
-	}
-
-	config, ok := rawConfig.(*mcpli.CliInvocationConfig)
+	config, ok := tool.GetInvocationConfig().(*mcpli.CliInvocationConfig)
 	if !ok {
-		t.Fatalf("unexpected config type %T", rawConfig)
+		t.Fatalf("unexpected config type %T", tool.GetInvocationConfig())
 	}
 
 	tmpDir := t.TempDir()
@@ -81,22 +80,19 @@ printf '%s'
 		t.Fatalf("failed to write fake curl script: %v", err)
 	}
 
-	args := make([]any, len(config.ParameterIndices))
-	setArg := func(name, value string) {
-		idx, ok := config.ParameterIndices[name]
-		if !ok {
-			t.Fatalf("missing parameter index for %s", name)
-		}
-		args[idx] = value
+	values := map[string]string{
+		"prometheus_url": "https://thanos-querier.openshift-monitoring.svc:9091",
+		"query":          `sum by (namespace,route,host) (rate(haproxy_server_ssl_verify_result_total{namespace="test-ingress",route="hello"}[5m]))`,
+		"start":          "2025-10-23T14:22:53Z",
+		"end":            "2025-10-23T14:32:53Z",
+		"step":           "60s",
 	}
 
-	setArg("prometheus_url", "https://thanos-querier.openshift-monitoring.svc:9091")
-	setArg("query", `sum by (namespace,route,host) (rate(haproxy_server_ssl_verify_result_total{namespace="test-ingress",route="hello"}[5m]))`)
-	setArg("start", "2025-10-23T14:22:53Z")
-	setArg("end", "2025-10-23T14:32:53Z")
-	setArg("step", "60s")
+	command := config.Command
+	for key, value := range values {
+		command = strings.ReplaceAll(command, "{"+key+"}", value)
+	}
 
-	command := fmt.Sprintf(config.Command, args...)
 	if testing.Verbose() {
 		t.Logf("rendered command:\n%s", command)
 	}
