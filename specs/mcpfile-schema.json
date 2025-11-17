@@ -102,50 +102,6 @@
       ],
       "description": "The configuration for making an HTTP request."
     },
-    "InvocationConfigWrapper": {
-      "oneOf": [
-        {
-          "properties": {
-            "http": {
-              "$ref": "#/$defs/HttpInvocationConfig"
-            }
-          },
-          "additionalProperties": false,
-          "type": "object",
-          "required": [
-            "http"
-          ],
-          "description": "An invocation configuration using HTTP."
-        },
-        {
-          "properties": {
-            "cli": {
-              "$ref": "#/$defs/CliInvocationConfig"
-            }
-          },
-          "additionalProperties": false,
-          "type": "object",
-          "required": [
-            "cli"
-          ],
-          "description": "An invocation configuration using CLI."
-        },
-        {
-          "properties": {
-            "extends": {
-              "$ref": "#/$defs/ExtendsConfig"
-            }
-          },
-          "additionalProperties": false,
-          "type": "object",
-          "required": [
-            "extends"
-          ],
-          "description": "An invocation configuration that extends a base configuration."
-        }
-      ],
-      "description": "A wrapper for invocation configurations. Must contain exactly one invocation type key (http, cli, or extends) with its corresponding configuration."
-    },
     "LoggingConfig": {
       "properties": {
         "level": {
@@ -209,7 +165,46 @@
         },
         "invocationBases": {
           "additionalProperties": {
-            "$ref": "#/$defs/InvocationConfigWrapper"
+            "oneOf": [
+              {
+                "properties": {
+                  "http": {
+                    "$ref": "#/$defs/HttpInvocationConfig"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "http"
+                ]
+              },
+              {
+                "properties": {
+                  "cli": {
+                    "$ref": "#/$defs/CliInvocationConfig"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "cli"
+                ]
+              },
+              {
+                "properties": {
+                  "extends": {
+                    "$ref": "#/$defs/ExtendsConfig"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "extends"
+                ]
+              }
+            ],
+            "type": "object",
+            "description": "Invocation configuration with exactly one type key (http, cli, or extends)"
           },
           "type": "object",
           "description": "InvocationBases contains base configs for invocations"
@@ -588,6 +583,42 @@
         "invocation": {
           "oneOf": [
             {
+              "properties": {
+                "http": {
+                  "$ref": "#/$defs/HttpInvocationConfig"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "http"
+              ]
+            },
+            {
+              "properties": {
+                "cli": {
+                  "$ref": "#/$defs/CliInvocationConfig"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "cli"
+              ]
+            },
+            {
+              "properties": {
+                "extends": {
+                  "$ref": "#/$defs/ExtendsConfig"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "extends"
+              ]
+            },
+            {
               "$ref": "#/$defs/HttpInvocationConfig"
             },
             {
@@ -597,6 +628,7 @@
               "$ref": "#/$defs/ExtendsConfig"
             }
           ],
+          "type": "object",
           "description": "Object describing how to invoke the prompt."
         },
         "requiredScopes": {
@@ -984,6 +1016,42 @@
         "invocation": {
           "oneOf": [
             {
+              "properties": {
+                "http": {
+                  "$ref": "#/$defs/HttpInvocationConfig"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "http"
+              ]
+            },
+            {
+              "properties": {
+                "cli": {
+                  "$ref": "#/$defs/CliInvocationConfig"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "cli"
+              ]
+            },
+            {
+              "properties": {
+                "extends": {
+                  "$ref": "#/$defs/ExtendsConfig"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "extends"
+              ]
+            },
+            {
               "$ref": "#/$defs/HttpInvocationConfig"
             },
             {
@@ -993,6 +1061,7 @@
               "$ref": "#/$defs/ExtendsConfig"
             }
           ],
+          "type": "object",
           "description": "Object describing how to invoke the resource."
         },
         "requiredScopes": {
@@ -1350,6 +1419,42 @@
         "invocation": {
           "oneOf": [
             {
+              "properties": {
+                "http": {
+                  "$ref": "#/$defs/HttpInvocationConfig"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "http"
+              ]
+            },
+            {
+              "properties": {
+                "cli": {
+                  "$ref": "#/$defs/CliInvocationConfig"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "cli"
+              ]
+            },
+            {
+              "properties": {
+                "extends": {
+                  "$ref": "#/$defs/ExtendsConfig"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "extends"
+              ]
+            },
+            {
               "$ref": "#/$defs/HttpInvocationConfig"
             },
             {
@@ -1359,6 +1464,7 @@
               "$ref": "#/$defs/ExtendsConfig"
             }
           ],
+          "type": "object",
           "description": "Object describing how to invoke the resource template."
         },
         "requiredScopes": {
@@ -1804,6 +1910,42 @@
         "invocation": {
           "oneOf": [
             {
+              "properties": {
+                "http": {
+                  "$ref": "#/$defs/HttpInvocationConfig"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "http"
+              ]
+            },
+            {
+              "properties": {
+                "cli": {
+                  "$ref": "#/$defs/CliInvocationConfig"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "cli"
+              ]
+            },
+            {
+              "properties": {
+                "extends": {
+                  "$ref": "#/$defs/ExtendsConfig"
+                }
+              },
+              "additionalProperties": false,
+              "type": "object",
+              "required": [
+                "extends"
+              ]
+            },
+            {
               "$ref": "#/$defs/HttpInvocationConfig"
             },
             {
@@ -1813,6 +1955,7 @@
               "$ref": "#/$defs/ExtendsConfig"
             }
           ],
+          "type": "object",
           "description": "Object describing how to execute the tool."
         },
         "requiredScopes": {
