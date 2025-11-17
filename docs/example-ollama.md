@@ -189,7 +189,7 @@ tools:
       url: http://localhost:11434/api/ps
 ```
 
-**Server Config File** (`ollama-server.yaml`):
+**Server Config File** (`ollama-server-config.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -252,7 +252,7 @@ Each tool follows this pattern:
 Start the gen-mcp server with both configuration files:
 
 ```bash
-genmcp run -t ollama-http.yaml -s ollama-server.yaml
+genmcp run -t ollama-http.yaml -s ollama-server-config.yaml
 ```
 
 You should see:
@@ -260,7 +260,7 @@ You should see:
 ```
 INFO    Starting MCP server on port 8009
 INFO    Loaded 5 tools from ollama-http.yaml
-INFO    Using server config from ollama-server.yaml
+INFO    Using server config from ollama-server-config.yaml
 ```
 
 ### Step 5: Test Your Integration
@@ -362,7 +362,7 @@ tools:
       command: ollama run {model} {prompt}
 ```
 
-**Server Config File** (`ollama-cli-server.yaml`):
+**Server Config File** (`ollama-cli-server-config.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -378,7 +378,7 @@ runtime:
 ### Running the CLI-Based Server
 
 ```bash
-genmcp run -t ollama-cli.yaml -s ollama-cli-server.yaml
+genmcp run -t ollama-cli.yaml -s ollama-cli-server-config.yaml
 ```
 
 ## Summary

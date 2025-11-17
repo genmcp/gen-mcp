@@ -114,7 +114,7 @@ cd ..
 genmcp convert http://localhost:9090/openapi.json
 ```
 
-gen-mcp will analyze the OpenAPI specification and create two files: a tool definitions file (`mcpfile.yaml`) and a server config file (`mcpfile-server.yaml`).
+gen-mcp will analyze the OpenAPI specification and create two files: a tool definitions file (`mcpfile.yaml`) and a server config file (`server-config.yaml`).
 
 You should see output like:
 
@@ -122,7 +122,7 @@ You should see output like:
 INFO    Fetching OpenAPI spec from http://localhost:9090/openapi.json
 INFO    Converted 7 endpoints to MCP tools
 INFO    Created mcpfile.yaml
-INFO    Created mcpfile-server.yaml
+INFO    Created server-config.yaml
 ```
 
 ### Step 5: Understanding the Generated Configuration
@@ -130,7 +130,7 @@ INFO    Created mcpfile-server.yaml
 gen-mcp creates two separate files:
 
 1. **Tool Definitions File** (`mcpfile.yaml`) - Contains all the tools, prompts, resources, and invocation bases
-2. **Server Config File** (`mcpfile-server.yaml`) - Contains the server runtime configuration
+2. **Server Config File** (`server-config.yaml`) - Contains the server runtime configuration
 
 Let's examine the generated files. Note that the tool definitions file includes all 7 tools from the API—we'll show a few key examples here to understand the structure:
 
@@ -327,7 +327,7 @@ For destructive operations:
     feature, call get_features-id with the feature's ID.
 ```
 
-**Server Config File** (`mcpfile-server.yaml`):
+**Server Config File** (`server-config.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -345,7 +345,7 @@ runtime:
 Start your customized MCP server with both files:
 
 ```bash
-genmcp run -t mcpfile.yaml -s mcpfile-server.yaml
+genmcp run -t mcpfile.yaml -s server-config.yaml
 ```
 
 You should see:

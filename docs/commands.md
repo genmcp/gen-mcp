@@ -14,10 +14,10 @@ The `genmcp` CLI provides commands for managing MCP servers, converting API spec
 
 | Command | Description | Common Usage |
 |---------|-------------|--------------|
-| [`run`](#run) | Start an MCP server | `genmcp run -t mcpfile.yaml -s mcpfile-server.yaml` |
+| [`run`](#run) | Start an MCP server | `genmcp run -t mcpfile.yaml -s server-config.yaml` |
 | [`stop`](#stop) | Stop a running server | `genmcp stop -f mcpfile.yaml` |
 | [`convert`](#convert) | Convert OpenAPI to MCP | `genmcp convert openapi.json` |
-| [`build`](#build) | Build container image | `genmcp build -f mcpfile.yaml -s mcpfile-server.yaml --tag myapi:latest` |
+| [`build`](#build) | Build container image | `genmcp build -f mcpfile.yaml -s server-config.yaml --tag myapi:latest` |
 | [`version`](#version) | Display version info | `genmcp version` |
 
 ---
@@ -37,7 +37,7 @@ genmcp run [flags]
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
 | `--tool-definitions` | `-t` | `mcpfile.yaml` | Path to the tool definitions file (MCPToolDefinitions) |
-| `--server-config` | `-s` | `mcpfile-server.yaml` | Path to the server config file (MCPServerConfig) |
+| `--server-config` | `-s` | `server-config.yaml` | Path to the server config file (MCPServerConfig) |
 | `--detach` | `-d` | `false` | Run server in background (detached mode) |
 
 #### How It Works
@@ -57,20 +57,20 @@ The `run` command:
 
 **Basic usage:**
 ```bash
-# Run with default files (mcpfile.yaml and mcpfile-server.yaml)
+# Run with default files (mcpfile.yaml and server-config.yaml)
 genmcp run
 
 # Run with specific files
 genmcp run -t ./config/tools.yaml -s ./config/server.yaml
 
 # Run with absolute paths
-genmcp run -t /path/to/mcpfile.yaml -s /path/to/mcpfile-server.yaml
+genmcp run -t /path/to/mcpfile.yaml -s /path/to/server-config.yaml
 ```
 
 **Detached mode (background):**
 ```bash
 # Start server in background
-genmcp run -t mcpfile.yaml -s mcpfile-server.yaml --detach
+genmcp run -t mcpfile.yaml -s server-config.yaml --detach
 
 # Server runs independently, can close terminal
 # Use 'genmcp stop' to terminate later
@@ -81,7 +81,7 @@ genmcp run -t mcpfile.yaml -s mcpfile-server.yaml --detach
 ```bash
 # Development: Run in foreground with logs visible
 cd examples/ollama
-genmcp run -t ollama-http.yaml -s ollama-server.yaml
+genmcp run -t ollama-http.yaml -s ollama-server-config.yaml
 
 # Production: Run in background
 genmcp run -t /etc/genmcp/tools.yaml -s /etc/genmcp/server.yaml -d
@@ -274,7 +274,7 @@ tools:
         method: GET               # From OpenAPI method
 ```
 
-**Server Config File** (`mcpfile-server.yaml`):
+**Server Config File** (`server-config.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -315,7 +315,7 @@ genmcp build [flags]
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
 | `--file` | `-f` | `mcpfile.yaml` | Path to tool definitions file to include in image |
-| `--server-config` | `-s` | `mcpserver.yaml` | Path to server config file to include in image |
+| `--server-config` | `-s` | `server-config.yaml` | Path to server config file to include in image |
 | `--tag` | | *(required)* | Image tag (e.g., `myregistry/myapi:v1.0`) |
 | `--base-image` | | *(auto)* | Base container image to build on |
 | `--platform` | | `multi-arch` | Target platform (e.g., `linux/amd64`) |
@@ -527,11 +527,11 @@ export PATH=$PATH:/path/to/genmcp
 
 ```bash
 # Check MCP files validity
-genmcp run -t mcpfile.yaml -s mcpfile-server.yaml
+genmcp run -t mcpfile.yaml -s server-config.yaml
 # Look for validation errors in output
 
 # Verify files exist
-ls -la mcpfile.yaml mcpfile-server.yaml
+ls -la mcpfile.yaml server-config.yaml
 
 # Check port availability (for streamablehttp)
 lsof -i :8080
@@ -560,7 +560,7 @@ podman info
 docker login myregistry.com
 
 # Try single platform first
-genmcp build -f mcpfile.yaml -s mcpfile-server.yaml --tag test:latest --platform linux/amd64
+genmcp build -f mcpfile.yaml -s server-config.yaml --tag test:latest --platform linux/amd64
 ```
 
 ---

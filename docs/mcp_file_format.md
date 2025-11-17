@@ -553,7 +553,7 @@ tools:
         url: http://localhost:9090/features
 ```
 
-**Server Config File** (`mcpfile-server.yaml`):
+**Server Config File** (`server-config.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -590,7 +590,7 @@ tools:
         url: http://localhost:8080/health
 ```
 
-**Server Config File** (`mcpfile-server.yaml`):
+**Server Config File** (`server-config.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -714,7 +714,7 @@ tools:
       - admin:read
 ```
 
-**Server Config File** (`mcpfile-server.yaml`):
+**Server Config File** (`server-config.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -749,7 +749,7 @@ tools:
         url: https://api.example.com/secure
 ```
 
-**Server Config File** (`mcpfile-server.yaml`):
+**Server Config File** (`server-config.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -788,7 +788,7 @@ tools:
         url: https://api.example.com/admin/action
 ```
 
-**Server Config File** (`mcpfile-server.yaml`):
+**Server Config File** (`server-config.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -828,7 +828,7 @@ tools:
         url: https://api.example.com/admin/secure-action
 ```
 
-**Server Config File** (`mcpfile-server.yaml`):
+**Server Config File** (`server-config.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -893,7 +893,7 @@ tools:
             omitIfFalse: true
 ```
 
-**Server Config File** (`mcpfile-server.yaml`):
+**Server Config File** (`server-config.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -914,24 +914,24 @@ schemaVersion: "0.2.0"
 name: user-service
 version: "2.1.0"
 tools:
-  - name: get_user
-    title: "Get User"
-    description: "Retrieves a user by their ID."
-    inputSchema:
-      type: object
-      properties:
-        userId:
-          type: string
-          description: "The ID of the user to retrieve."
-      required:
-        - userId
-    invocation:
-      http:
-        method: GET
-        url: http://localhost:8080/users/{userId}
+- name: get_user
+  title: "Get User"
+  description: "Retrieves a user by their ID."
+  inputSchema:
+    type: object
+    properties:
+      userId:
+        type: string
+        description: "The ID of the user to retrieve."
+    required:
+    - userId
+  invocation:
+    http:
+      method: GET
+      url: http://localhost:8080/users/{userId}
 ```
 
-**Server Config File** (`mcpfile-server.yaml`):
+**Server Config File** (`server-config.yaml`):
 
 ```yaml
 kind: MCPServerConfig
