@@ -18,12 +18,12 @@ import (
 	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/genmcp/gen-mcp/pkg/invocation/utils"
-	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	"github.com/genmcp/gen-mcp/pkg/oauth"
 	"github.com/genmcp/gen-mcp/pkg/observability/logging"
 )
 
+// TODO: not used?
 func MakeServer(mcpServer *mcpserver.MCPServer) (*mcp.Server, error) {
 	logger := mcpServer.MCPServerConfig.Runtime.GetBaseLogger()
 	logger.Debug("Creating MCP server",
@@ -32,7 +32,7 @@ func MakeServer(mcpServer *mcpserver.MCPServer) (*mcp.Server, error) {
 
 	// apply the runtime overrides to the mcp server
 	// if something goes wrong in the env vars, we warn but continue
-	envOverrider := mcpfile.NewEnvRuntimeOverrider()
+	envOverrider := serverconfig.NewEnvRuntimeOverrider()
 	if err := envOverrider.ApplyOverrides(mcpServer.MCPServerConfig.Runtime); err != nil {
 		logger.Warn("Failed to apply overrides from env vars to the mcp server",
 			zap.String("server_name", mcpServer.Name()),
@@ -92,7 +92,7 @@ func RunServer(ctx context.Context, mcpServerConfig *mcpserver.MCPServer) error 
 	case serverconfig.TransportProtocolStreamableHttp:
 		logger.Info("Running server with streamable HTTP transport")
 		return runStreamableHttpServer(ctx, mcpServerConfig)
-	case mcpfile.TransportProtocolStdio:
+	case serverconfig.TransportProtocolStdio:
 		logger.Info("Running server with stdio transport")
 		return runStdioServer(ctx, mcpServerConfig)
 	default:
@@ -140,7 +140,7 @@ func RunServers(ctx context.Context, toolDefinitionsPath, serverConfigPath strin
 
 	// Apply runtime overrides from environment variables
 	// if something goes wrong in the env vars, we warn but continue
-	envOverrider := mcpfile.NewEnvRuntimeOverrider()
+	envOverrider := serverconfig.NewEnvRuntimeOverrider()
 	if err := envOverrider.ApplyOverrides(mcpServer.MCPServerConfig.Runtime); err != nil {
 		logger.Warn("Failed to apply overrides from env vars to the mcp server",
 			zap.String("server_name", mcpServer.Name()),

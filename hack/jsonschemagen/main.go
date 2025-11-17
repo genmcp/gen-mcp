@@ -12,6 +12,7 @@ import (
 
 	"github.com/invopop/jsonschema"
 
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	"github.com/genmcp/gen-mcp/pkg/invocation/cli"
 	"github.com/genmcp/gen-mcp/pkg/invocation/extends"
 	"github.com/genmcp/gen-mcp/pkg/invocation/http"
@@ -408,7 +409,7 @@ func main() {
 
 	// Build paths
 	specsDir := filepath.Join("..", "..", "specs")
-	versionedFile := filepath.Join(specsDir, fmt.Sprintf("mcpfile-schema-%s.json", mcpfile.MCPFileVersion))
+	versionedFile := filepath.Join(specsDir, fmt.Sprintf("mcpfile-schema-%s.json", definitions.SchemaVersion))
 	latestFile := filepath.Join(specsDir, "mcpfile-schema.json")
 
 	// Write versioned schema

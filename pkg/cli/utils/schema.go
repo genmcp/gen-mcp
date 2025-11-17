@@ -3,13 +3,13 @@ package utils
 import (
 	"fmt"
 
-	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 )
 
 func AppendSchemaHeader(bytes []byte) []byte {
 	schemaHeader := fmt.Sprintf(
 		"# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/mcpfile-schema-%s.json\n\n",
-		mcpfile.MCPFileVersion,
+		definitions.SchemaVersion,
 	)
 
 	return append([]byte(schemaHeader), bytes...)

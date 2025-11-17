@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	// TODO: move this to a upper-level package
 	SchemaVersion                 = "0.2.0"
 	PrimitiveTypeTool             = "tool"
 	PrimitiveTypePrompt           = "prompt"
