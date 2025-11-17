@@ -89,7 +89,7 @@ func RunServer(ctx context.Context, mcpServerConfig *mcpserver.MCPServer) error 
 		zap.String("transport_protocol", mcpServerConfig.MCPServerConfig.Runtime.TransportProtocol))
 
 	switch strings.ToLower(mcpServerConfig.MCPServerConfig.Runtime.TransportProtocol) {
-	case mcpfile.TransportProtocolStreamableHttp:
+	case serverconfig.TransportProtocolStreamableHttp:
 		logger.Info("Running server with streamable HTTP transport")
 		return runStreamableHttpServer(ctx, mcpServerConfig)
 	case mcpfile.TransportProtocolStdio:

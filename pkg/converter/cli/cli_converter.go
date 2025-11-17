@@ -10,7 +10,6 @@ import (
 	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/genmcp/gen-mcp/pkg/invocation/cli"
-	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	"github.com/google/jsonschema-go/jsonschema"
 )
@@ -74,7 +73,7 @@ func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpserver.MCPServer
 			Name:    "cli-generated-server",
 			Version: "0.0.1",
 			Runtime: &serverconfig.ServerRuntime{
-				TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
+				TransportProtocol: serverconfig.TransportProtocolStreamableHttp,
 				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 					Port: 7008,
 				},

@@ -7,9 +7,8 @@ import (
 
 const (
 	// TODO: is this duplicated?
-	MCPFileVersion                  = "0.2.0"
-	TransportProtocolStreamableHttp = "streamablehttp"
-	TransportProtocolStdio          = "stdio"
+	MCPFileVersion         = "0.2.0"
+	TransportProtocolStdio = "stdio"
 )
 
 var _ invocation.Primitive = (*definitions.Tool)(nil)

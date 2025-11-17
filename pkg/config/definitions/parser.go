@@ -11,10 +11,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const (
-	DefaultBasePath = "/mcp"
-)
-
 func ParseMCPFile(path string) (*MCPToolDefinitionsFile, error) {
 	mcpFile := &MCPToolDefinitionsFile{}
 
