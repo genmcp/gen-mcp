@@ -1,10 +1,7 @@
-mcpFileVersion: 0.1.0
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
 name: Ollama
 version: 0.0.1
-runtime:
-  streamableHttpConfig:
-    port: 7008
-  transportProtocol: streamablehttp
 tools:
 - name: start_ollama
   title: Start Ollama

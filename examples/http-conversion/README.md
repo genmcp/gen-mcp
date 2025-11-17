@@ -35,15 +35,15 @@ Use gen-mcp to automatically generate a starter configuration from the API:
 genmcp convert http://localhost:9090/openapi.json
 ```
 
-This creates an initial `mcpfile.yaml` based on the OpenAPI specification.
+This creates two files:
+- `mcpfile.yaml` - Tool definitions (tools, prompts, resources)
+- `mcpfile-server.yaml` - Server configuration (runtime settings)
 
 ### 3. Customize the Configuration
 
-Edit the generated `mcpfile.yaml` to:
-- Select which endpoints should be exposed as MCP tools
-- Improve tool descriptions to help AI models understand when to use each tool
-- Add usage instructions or constraints in descriptions
-- Configure input validation schemas
+Edit the generated files to:
+- **Tool Definitions File** (`mcpfile.yaml`): Select which endpoints should be exposed as MCP tools, improve tool descriptions, add usage instructions, configure input validation schemas
+- **Server Config File** (`mcpfile-server.yaml`): Configure runtime settings like port, logging, authentication
 
 Example customizations in this demo:
 - Clear, specific descriptions for each tool
@@ -53,10 +53,10 @@ Example customizations in this demo:
 
 ### 4. Start the MCP Server
 
-Launch the gen-mcp server:
+Launch the gen-mcp server with both files:
 
 ```bash
-genmcp run -f mcpfile.yaml
+genmcp run -t mcpfile.yaml -s mcpfile-server.yaml
 ```
 
 The MCP server will run on port 8080 (as configured) and expose the HTTP endpoints as MCP tools that AI assistants can call seamlessly.
