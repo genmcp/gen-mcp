@@ -16,6 +16,7 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/invocation/extends"
 	"github.com/genmcp/gen-mcp/pkg/invocation/http"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	googlejsonschema "github.com/google/jsonschema-go/jsonschema"
 )
 
@@ -328,12 +329,12 @@ func createJSONSchemaMetaSchema() *jsonschema.Schema {
 
 func main() {
 	// Use a slice to guarantee the processing order.
-	// mcpfile.MCPServer will be processed first.
+	// config.MCPServer will be processed first.
 	types := []schemaType{
 		{
-			Type: &mcpfile.MCPServer{},
-			Base: "github.com/genmcp/gen-mcp/pkg/mcpfile",
-			Path: "../../pkg/mcpfile",
+			Type: &mcpserver.MCPServer{},
+			Base: "github.com/genmcp/gen-mcp/pkg/config",
+			Path: "../../pkg/config",
 		},
 		{
 			Type: &http.HttpInvocationConfig{},

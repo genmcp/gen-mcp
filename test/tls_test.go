@@ -65,7 +65,7 @@ var _ = Describe("TLS Integration", Ordered, func() {
 
 		var (
 			backendServer       *httptest.Server
-			mcpConfig           *mcpfile.MCPServer
+			mcpConfig           *config.MCPServer
 			mcpServerCancelFunc context.CancelFunc
 		)
 
@@ -329,7 +329,7 @@ func generateTestCertificates() (certFile, keyFile string, err error) {
 	return certTempFile.Name(), keyTempFile.Name(), nil
 }
 
-func createTestTLSMCPConfig(backendURL string, port int, certFile, keyFile string) *mcpfile.MCPServer {
+func createTestTLSMCPConfig(backendURL string, port int, certFile, keyFile string) *config.MCPServer {
 	By("creating test MCP configuration with TLS")
 
 	toolDefsYAML := fmt.Sprintf(`
@@ -391,7 +391,7 @@ runtime:
 	serverConfig, err := serverconfig.ParseMCPFile(serverConfigFile.Name())
 	Expect(err).NotTo(HaveOccurred())
 
-	return &mcpfile.MCPServer{
+	return &config.MCPServer{
 		MCPToolDefinitions: toolDefs.MCPToolDefinitions,
 		MCPServerConfig:    serverConfig.MCPServerConfig,
 	}

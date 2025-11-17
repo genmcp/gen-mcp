@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 )
 
 const (
@@ -16,7 +16,7 @@ const (
 
 // Middleware returns a middleware function that checks if the Authorization Header is set and otherwise returns a 401
 // with the WWW-Authenticate header containing information about the Protected Resource Endpoint
-func Middleware(config *mcpfile.MCPServer) func(http.Handler) http.Handler {
+func Middleware(config *mcpserver.MCPServer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		httpConfig := config.MCPServerConfig.Runtime.StreamableHTTPConfig
 
@@ -82,7 +82,7 @@ func write401(w http.ResponseWriter, r *http.Request, body string) {
 	}
 }
 
-func ProtectedResourceMetadataHandler(config *mcpfile.MCPServer) http.HandlerFunc {
+func ProtectedResourceMetadataHandler(config *mcpserver.MCPServer) http.HandlerFunc {
 	httpConfig := config.MCPServerConfig.Runtime.StreamableHTTPConfig
 
 	// Only create OAuth handler if configured

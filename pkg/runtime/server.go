@@ -1,4 +1,4 @@
-package mcpserver
+package runtime
 
 import (
 	"context"
@@ -11,18 +11,20 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.uber.org/zap"
 
+	_ "github.com/genmcp/gen-mcp/pkg/invocation/cli"
+	_ "github.com/genmcp/gen-mcp/pkg/invocation/http"
+
 	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/invocation"
-	_ "github.com/genmcp/gen-mcp/pkg/invocation/cli"
-	_ "github.com/genmcp/gen-mcp/pkg/invocation/http"
 	"github.com/genmcp/gen-mcp/pkg/invocation/utils"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	"github.com/genmcp/gen-mcp/pkg/oauth"
 	"github.com/genmcp/gen-mcp/pkg/observability/logging"
 )
 
-func MakeServer(mcpServer *mcpfile.MCPServer) (*mcp.Server, error) {
+func MakeServer(mcpServer *mcpserver.MCPServer) (*mcp.Server, error) {
 	logger := mcpServer.MCPServerConfig.Runtime.GetBaseLogger()
 	logger.Debug("Creating MCP server",
 		zap.String("server_name", mcpServer.Name()),
@@ -64,11 +66,11 @@ func MakeServer(mcpServer *mcpfile.MCPServer) (*mcp.Server, error) {
 
 // makeServerWithoutValidation creates a server without performing validation
 // This is used internally when validation has already been performed
-func makeServerWithoutValidation(mcpServer *mcpfile.MCPServer) (*mcp.Server, error) {
+func makeServerWithoutValidation(mcpServer *mcpserver.MCPServer) (*mcp.Server, error) {
 	return makeServerWithTools(mcpServer, mcpServer.MCPToolDefinitions.Tools)
 }
 
-func RunServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
+func RunServer(ctx context.Context, mcpServerConfig *mcpserver.MCPServer) error {
 	logger := mcpServerConfig.MCPServerConfig.Runtime.GetBaseLogger()
 	logger.Info("Starting MCP server",
 		zap.String("server_name", mcpServerConfig.Name()),
@@ -160,14 +162,14 @@ func parseServerConfigFile(filePath string) (*serverconfig.MCPServerConfigFile, 
 
 // TODO: remove
 // combineFilesToMCPServer combines tool definitions and server config into an MCPServer struct
-func combineFilesToMCPServer(toolDefs *definitions.MCPToolDefinitionsFile, serverConfig *serverconfig.MCPServerConfigFile) *mcpfile.MCPServer {
-	return &mcpfile.MCPServer{
+func combineFilesToMCPServer(toolDefs *definitions.MCPToolDefinitionsFile, serverConfig *serverconfig.MCPServerConfigFile) *mcpserver.MCPServer {
+	return &mcpserver.MCPServer{
 		MCPToolDefinitions: toolDefs.MCPToolDefinitions,
 		MCPServerConfig:    serverConfig.MCPServerConfig,
 	}
 }
 
-func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
+func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpserver.MCPServer) error {
 	logger := mcpServerConfig.MCPServerConfig.Runtime.GetBaseLogger()
 	port := mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.Port
 	basePath := mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.BasePath
@@ -257,7 +259,7 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpfile.MCPSe
 	}
 }
 
-func runStdioServer(ctx context.Context, mcpServerConfig *mcpfile.MCPServer) error {
+func runStdioServer(ctx context.Context, mcpServerConfig *mcpserver.MCPServer) error {
 	logger := mcpServerConfig.MCPServerConfig.Runtime.GetBaseLogger()
 	logger.Info("Setting up stdio server",
 		zap.String("server_name", mcpServerConfig.Name()),
@@ -505,7 +507,7 @@ func createAuthorizedResourceTemplateHandler(resourceTemplate *definitions.Resou
 
 // makeServerWithTools makes a server using the server metadata in mcpServer but with the tools specified in tools
 // this is useful for creating servers with filtered tool lists
-func makeServerWithTools(mcpServer *mcpfile.MCPServer, tools []*definitions.Tool) (*mcp.Server, error) {
+func makeServerWithTools(mcpServer *mcpserver.MCPServer, tools []*definitions.Tool) (*mcp.Server, error) {
 	logger := mcpServer.MCPServerConfig.Runtime.GetBaseLogger()
 	logger.Debug("Building MCP server with tools",
 		zap.String("server_name", mcpServer.Name()),

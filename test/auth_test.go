@@ -51,7 +51,7 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 		var (
 			backendServer       *httptest.Server
 			callbackServer      *httptest.Server
-			mcpConfig           *mcpfile.MCPServer
+			mcpConfig           *config.MCPServer
 			mcpServerCancelFunc context.CancelFunc
 		)
 
@@ -483,7 +483,7 @@ func createOAuthCallbackServer() *httptest.Server {
 	}))
 }
 
-func createTestMCPConfig(backendURL string, port int) *mcpfile.MCPServer {
+func createTestMCPConfig(backendURL string, port int) *config.MCPServer {
 	By("creating test MCP configuration")
 
 	toolDefsYAML := fmt.Sprintf(`
@@ -567,7 +567,7 @@ runtime:
 	serverConfig, err := serverconfig.ParseMCPFile(serverConfigFile.Name())
 	Expect(err).NotTo(HaveOccurred())
 
-	return &mcpfile.MCPServer{
+	return &config.MCPServer{
 		MCPToolDefinitions: toolDefs.MCPToolDefinitions,
 		MCPServerConfig:    serverConfig.MCPServerConfig,
 	}

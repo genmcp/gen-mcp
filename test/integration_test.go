@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/genmcp/gen-mcp/pkg/config"
 	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
-	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -29,7 +29,7 @@ var _ = Describe("Basic Integration", Ordered, func() {
 
 		var (
 			backendServer       *httptest.Server
-			mcpConfig           *mcpfile.MCPServer
+			mcpConfig           *config.MCPServer
 			mcpServerCancelFunc context.CancelFunc
 		)
 
@@ -210,7 +210,7 @@ var _ = Describe("Basic Integration", Ordered, func() {
 		)
 
 		var (
-			mcpConfig           *mcpfile.MCPServer
+			mcpConfig           *config.MCPServer
 			mcpServerCancelFunc context.CancelFunc
 		)
 
@@ -375,7 +375,7 @@ func createMockBackendServerIntegration() *httptest.Server {
 	}))
 }
 
-func createBasicTestMCPConfig(backendURL string, port int) *mcpfile.MCPServer {
+func createBasicTestMCPConfig(backendURL string, port int) *config.MCPServer {
 	By("creating basic test MCP configuration")
 
 	toolDefsYAML := fmt.Sprintf(`
@@ -461,13 +461,13 @@ runtime:
 	serverConfig, err := serverconfig.ParseMCPFile(serverConfigFile.Name())
 	Expect(err).NotTo(HaveOccurred())
 
-	return &mcpfile.MCPServer{
+	return &config.MCPServer{
 		MCPToolDefinitions: toolDefs.MCPToolDefinitions,
 		MCPServerConfig:    serverConfig.MCPServerConfig,
 	}
 }
 
-func createCLITestMCPConfig(port int) *mcpfile.MCPServer {
+func createCLITestMCPConfig(port int) *config.MCPServer {
 	By("creating CLI test MCP configuration")
 
 	toolDefsYAML := fmt.Sprintf(`
@@ -548,7 +548,7 @@ runtime:
 	serverConfig, err := serverconfig.ParseMCPFile(serverConfigFile.Name())
 	Expect(err).NotTo(HaveOccurred())
 
-	return &mcpfile.MCPServer{
+	return &config.MCPServer{
 		MCPToolDefinitions: toolDefs.MCPToolDefinitions,
 		MCPServerConfig:    serverConfig.MCPServerConfig,
 	}

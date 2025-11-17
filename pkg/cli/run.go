@@ -10,7 +10,7 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/cli/utils"
 	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
-	"github.com/genmcp/gen-mcp/pkg/mcpserver"
+	"github.com/genmcp/gen-mcp/pkg/runtime"
 	"github.com/spf13/cobra"
 )
 
@@ -80,7 +80,7 @@ func executeRunCmd(cobraCmd *cobra.Command, args []string) {
 
 	if !detach {
 		// Run servers directly in the current process
-		err := mcpserver.RunServers(context.Background(), toolDefinitionsPath, serverConfigPath)
+		err := runtime.RunServers(context.Background(), toolDefinitionsPath, serverConfigPath)
 		if err != nil {
 			fmt.Printf("genmcp-server failed with %s\n", err.Error())
 		}

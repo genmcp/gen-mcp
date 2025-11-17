@@ -1,4 +1,4 @@
-package mcpserver
+package runtime
 
 import (
 	"context"
@@ -11,18 +11,18 @@ import (
 	"go.uber.org/zap"
 
 	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
-	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	"github.com/genmcp/gen-mcp/pkg/oauth"
 )
 
 type ServerManager struct {
-	mcpServer           *mcpfile.MCPServer
+	mcpServer           *mcpserver.MCPServer
 	mu                  sync.RWMutex
 	scopedServers       map[string]*mcp.Server // set of MCP Servers by oauth scopes
 	filteredToolServers map[string]*mcp.Server // as a fallback, the set of MCP Servers that have the same set of filtered tools
 }
 
-func NewServerManager(server *mcpfile.MCPServer) *ServerManager {
+func NewServerManager(server *mcpserver.MCPServer) *ServerManager {
 	logger := server.MCPServerConfig.Runtime.GetBaseLogger()
 	logger.Debug("Creating new server manager",
 		zap.String("server_name", server.Name()),

@@ -11,6 +11,7 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/genmcp/gen-mcp/pkg/invocation/cli"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
@@ -46,7 +47,7 @@ func ExtractCLICommandInfo(cliCommand string, commandItems *[]CommandItem) (bool
 	return true, nil
 }
 
-func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpfile.MCPServer, error) {
+func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpserver.MCPServer, error) {
 	if commandItems == nil || len(*commandItems) == 0 {
 		return nil, fmt.Errorf("no command items provided")
 	}
@@ -63,7 +64,7 @@ func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpfile.MCPServer, 
 	}
 
 	// Create MCP server
-	mcpServer := &mcpfile.MCPServer{
+	mcpServer := &mcpserver.MCPServer{
 		MCPToolDefinitions: definitions.MCPToolDefinitions{
 			Name:    "cli-generated-server",
 			Version: "0.0.1",
