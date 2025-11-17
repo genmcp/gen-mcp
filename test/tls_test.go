@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
+	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -330,18 +332,11 @@ func generateTestCertificates() (certFile, keyFile string, err error) {
 func createTestTLSMCPConfig(backendURL string, port int, certFile, keyFile string) *mcpfile.MCPServer {
 	By("creating test MCP configuration with TLS")
 
-	mcpYAML := fmt.Sprintf(`
-mcpFileVersion: 0.1.0
+	toolDefsYAML := fmt.Sprintf(`
+kind: MCPToolDefinitions
+schemaVersion: 0.2.0
 name: test-tls-server
 version: "1.0"
-runtime:
-  streamableHttpConfig:
-    port: %d
-    basePath: "/mcp"
-    tls:
-      certFile: %s
-      keyFile: %s
-  transportProtocol: streamablehttp
 tools:
   - name: get_status
     description: "Get server status"
@@ -357,26 +352,47 @@ tools:
       http:
         url: "%s/status"
         method: "GET"
-`, port, certFile, keyFile, backendURL)
+`, backendURL)
 
-	tmpfile, err := os.CreateTemp("", "mcp-tls-*.yaml")
+	serverConfigYAML := fmt.Sprintf(`
+kind: MCPServerConfig
+schemaVersion: 0.2.0
+name: test-tls-server
+version: "1.0"
+runtime:
+  streamableHttpConfig:
+    port: %d
+    basePath: "/mcp"
+    tls:
+      certFile: %s
+      keyFile: %s
+  transportProtocol: streamablehttp
+`, port, certFile, keyFile)
+
+	toolDefsFile, err := os.CreateTemp("", "mcp-tls-tooldefs-*.yaml")
 	Expect(err).NotTo(HaveOccurred())
-	defer func() {
-		err := tmpfile.Close()
-		if err != nil {
-			fmt.Printf("closing temp mcp file failed, may cause issues with test: %s\n", err.Error())
-		}
-	}()
+	defer os.Remove(toolDefsFile.Name())
 
-	_, err = tmpfile.WriteString(mcpYAML)
+	_, err = toolDefsFile.WriteString(toolDefsYAML)
+	Expect(err).NotTo(HaveOccurred())
+	toolDefsFile.Close()
+
+	serverConfigFile, err := os.CreateTemp("", "mcp-tls-serverconfig-*.yaml")
+	Expect(err).NotTo(HaveOccurred())
+	defer os.Remove(serverConfigFile.Name())
+
+	_, err = serverConfigFile.WriteString(serverConfigYAML)
+	Expect(err).NotTo(HaveOccurred())
+	serverConfigFile.Close()
+
+	toolDefs, err := definitions.ParseMCPFile(toolDefsFile.Name())
 	Expect(err).NotTo(HaveOccurred())
 
-	config, err := mcpfile.ParseMCPFile(tmpfile.Name())
+	serverConfig, err := serverconfig.ParseMCPFile(serverConfigFile.Name())
 	Expect(err).NotTo(HaveOccurred())
 
-	// Clean up the temporary config file immediately since ParseMCPFile has read it
-	err = os.Remove(tmpfile.Name())
-	Expect(err).NotTo(HaveOccurred())
-
-	return config
+	return &mcpfile.MCPServer{
+		MCPToolDefinitions: toolDefs.MCPToolDefinitions,
+		MCPServerConfig:    serverConfig.MCPServerConfig,
+	}
 }

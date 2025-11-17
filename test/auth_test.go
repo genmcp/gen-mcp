@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
+	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -484,19 +486,11 @@ func createOAuthCallbackServer() *httptest.Server {
 func createTestMCPConfig(backendURL string, port int) *mcpfile.MCPServer {
 	By("creating test MCP configuration")
 
-	mcpYAML := fmt.Sprintf(`
-mcpFileVersion: 0.1.0
+	toolDefsYAML := fmt.Sprintf(`
+kind: MCPToolDefinitions
+schemaVersion: 0.2.0
 name: test-oauth-server-full-flow
 version: "1.0"
-runtime:
-  streamableHttpConfig:
-    port: %d
-    basePath: "/mcp"
-    auth:
-      authorizationServers:
-        - %s/realms/%s
-      jwksUri: "%s/realms/%s/protocol/openid-connect/certs"
-  transportProtocol: streamablehttp
 tools:
   - name: get_status
     description: "Get server status"
@@ -533,21 +527,48 @@ tools:
     requiredScopes:
       - "read"
       - "user:read"
-`, port, keycloakBaseURL, masterRealm, keycloakBaseURL, masterRealm, backendURL, backendURL)
+`, backendURL, backendURL)
 
-	tmpfile, err := os.CreateTemp("", "mcp-oauth-*.yaml")
-	Expect(err).NotTo(HaveOccurred())
-	defer func() {
-		err := os.Remove(tmpfile.Name())
-		Expect(err).NotTo(HaveOccurred())
-	}()
+	serverConfigYAML := fmt.Sprintf(`
+kind: MCPServerConfig
+schemaVersion: 0.2.0
+name: test-oauth-server-full-flow
+version: "1.0"
+runtime:
+  streamableHttpConfig:
+    port: %d
+    basePath: "/mcp"
+    auth:
+      authorizationServers:
+        - %s/realms/%s
+      jwksUri: "%s/realms/%s/protocol/openid-connect/certs"
+  transportProtocol: streamablehttp
+`, port, keycloakBaseURL, masterRealm, keycloakBaseURL, masterRealm)
 
-	_, err = tmpfile.WriteString(mcpYAML)
+	toolDefsFile, err := os.CreateTemp("", "mcp-oauth-tooldefs-*.yaml")
 	Expect(err).NotTo(HaveOccurred())
-	err = tmpfile.Close()
+	defer os.Remove(toolDefsFile.Name())
+
+	_, err = toolDefsFile.WriteString(toolDefsYAML)
+	Expect(err).NotTo(HaveOccurred())
+	toolDefsFile.Close()
+
+	serverConfigFile, err := os.CreateTemp("", "mcp-oauth-serverconfig-*.yaml")
+	Expect(err).NotTo(HaveOccurred())
+	defer os.Remove(serverConfigFile.Name())
+
+	_, err = serverConfigFile.WriteString(serverConfigYAML)
+	Expect(err).NotTo(HaveOccurred())
+	serverConfigFile.Close()
+
+	toolDefs, err := definitions.ParseMCPFile(toolDefsFile.Name())
 	Expect(err).NotTo(HaveOccurred())
 
-	config, err := mcpfile.ParseMCPFile(tmpfile.Name())
+	serverConfig, err := serverconfig.ParseMCPFile(serverConfigFile.Name())
 	Expect(err).NotTo(HaveOccurred())
-	return config
+
+	return &mcpfile.MCPServer{
+		MCPToolDefinitions: toolDefs.MCPToolDefinitions,
+		MCPServerConfig:    serverConfig.MCPServerConfig,
+	}
 }
