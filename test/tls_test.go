@@ -3,6 +3,7 @@ package test
 import (
 	"errors"
 
+	"github.com/genmcp/gen-mcp/pkg/runtime"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -24,7 +25,6 @@ import (
 
 	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
-	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -65,7 +65,7 @@ var _ = Describe("TLS Integration", Ordered, func() {
 
 		var (
 			backendServer       *httptest.Server
-			mcpConfig           *config.MCPServer
+			mcpConfig           *mcpserver.MCPServer
 			mcpServerCancelFunc context.CancelFunc
 		)
 
@@ -79,7 +79,7 @@ var _ = Describe("TLS Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				err := mcpserver.RunServer(ctx, mcpConfig)
+				err := runtime.RunServer(ctx, mcpConfig)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}
@@ -329,7 +329,7 @@ func generateTestCertificates() (certFile, keyFile string, err error) {
 	return certTempFile.Name(), keyTempFile.Name(), nil
 }
 
-func createTestTLSMCPConfig(backendURL string, port int, certFile, keyFile string) *config.MCPServer {
+func createTestTLSMCPConfig(backendURL string, port int, certFile, keyFile string) *mcpserver.MCPServer {
 	By("creating test MCP configuration with TLS")
 
 	toolDefsYAML := fmt.Sprintf(`
@@ -391,7 +391,7 @@ runtime:
 	serverConfig, err := serverconfig.ParseMCPFile(serverConfigFile.Name())
 	Expect(err).NotTo(HaveOccurred())
 
-	return &config.MCPServer{
+	return &mcpserver.MCPServer{
 		MCPToolDefinitions: toolDefs.MCPToolDefinitions,
 		MCPServerConfig:    serverConfig.MCPServerConfig,
 	}

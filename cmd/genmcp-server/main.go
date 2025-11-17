@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/genmcp/gen-mcp/pkg/mcpserver"
+	"github.com/genmcp/gen-mcp/pkg/runtime"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := mcpserver.RunServers(context.Background(), toolDefinitionsPath, serverConfigPath); err != nil {
+	if err := runtime.RunServers(context.Background(), toolDefinitionsPath, serverConfigPath); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}

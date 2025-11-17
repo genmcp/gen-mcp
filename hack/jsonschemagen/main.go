@@ -16,7 +16,6 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/invocation/cli"
 	"github.com/genmcp/gen-mcp/pkg/invocation/extends"
 	"github.com/genmcp/gen-mcp/pkg/invocation/http"
-	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	googlejsonschema "github.com/google/jsonschema-go/jsonschema"
 )
