@@ -75,16 +75,15 @@ curl http://localhost:11434
 
 ### Step 2: Understanding the Configuration
 
-Here's the complete `ollama-http.yaml` configuration file that defines the MCP tools:
+GenMCP uses two separate files. Here's the complete configuration:
+
+**Tool Definitions File** (`ollama-http.yaml`):
 
 ```yaml
-mcpFileVersion: "0.1.0"
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
 name: ollama
 version: "1.0.0"
-runtime:
-  transportProtocol: streamablehttp
-  streamableHttpConfig:
-    port: 8009
 tools:
 - name: generate
   title: "Generate a response"
@@ -190,11 +189,24 @@ tools:
       url: http://localhost:11434/api/ps
 ```
 
+**Server Config File** (`ollama-server.yaml`):
+
+```yaml
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
+name: ollama
+version: "1.0.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8009
+```
+
 ### Step 3: Configuration Breakdown
 
 Let's understand each section:
 
-#### Runtime Configuration
+#### Runtime Configuration (Server Config File)
 
 ```yaml
 runtime:
@@ -206,7 +218,7 @@ runtime:
 - `transportProtocol: streamablehttp`: Uses HTTP streaming protocol for real-time communication
 - `port: 8009`: The MCP server will listen on this port
 
-#### Tool Definition Structure
+#### Tool Definition Structure (Tool Definitions File)
 
 Each tool follows this pattern:
 
@@ -237,10 +249,10 @@ Each tool follows this pattern:
 
 ### Step 4: Run the MCP Server
 
-Start the gen-mcp server with your configuration:
+Start the gen-mcp server with both configuration files:
 
 ```bash
-genmcp run -f ollama-http.yaml
+genmcp run -t ollama-http.yaml -s ollama-server.yaml
 ```
 
 You should see:
@@ -248,6 +260,7 @@ You should see:
 ```
 INFO    Starting MCP server on port 8009
 INFO    Loaded 5 tools from ollama-http.yaml
+INFO    Using server config from ollama-server.yaml
 ```
 
 ### Step 5: Test Your Integration
@@ -279,16 +292,15 @@ Example tool calls:
 
 The CLI approach is simpler but more limited. Here's the complete configuration:
 
-### CLI Configuration File
+### CLI Configuration Files
+
+**Tool Definitions File** (`ollama-cli.yaml`):
 
 ```yaml
-mcpFileVersion: 0.1.0
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
 name: Ollama
 version: 0.0.1
-runtime:
-  streamableHttpConfig:
-    port: 7008
-  transportProtocol: streamablehttp
 tools:
 - name: start_ollama
   title: Start Ollama
@@ -338,37 +350,48 @@ tools:
     properties:
       model:
         type: string
-        description: The model to use
+        description: The name of the model to use
       prompt:
         type: string
-        description: The prompt to give the model
+        description: The prompt to generate a response for
+    required:
+      - model
+      - prompt
   invocation:
     cli:
-      command: 'ollama run {model} {prompt}'
-      templateVariables:
-        prompt:
-          format: '"{prompt}"'
+      command: ollama run {model} {prompt}
 ```
 
-### CLI Configuration Explained
-
-The key difference is the `invocation` type:
+**Server Config File** (`ollama-cli-server.yaml`):
 
 ```yaml
-invocation:
-  cli:
-    command: ollama pull {model}
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
+name: Ollama
+version: 0.0.1
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 7008
 ```
 
-- **command**: The shell command to execute
-- **{model}**: Template variable replaced with input parameter
-- **templateVariables**: Advanced formatting for parameters
-
-### Running the CLI Integration
+### Running the CLI-Based Server
 
 ```bash
-genmcp run -f ollama-cli.yaml
+genmcp run -t ollama-cli.yaml -s ollama-cli-server.yaml
 ```
+
+## Summary
+
+Both HTTP and CLI integrations require two files:
+- **Tool Definitions File**: Defines the tools (what capabilities are available)
+- **Server Config File**: Defines runtime configuration (how the server runs)
+
+For HTTP-based integrations, tools call Ollama's REST API. For CLI-based integrations, tools execute shell commands directly.
+
+## Next Steps
+
+- **Read the MCP File Format Guide**: Deep dive into [configuration options]({{ '/mcp_file_format.html' | relative_url }})
 
 ## Understanding Input Schema Validation
 

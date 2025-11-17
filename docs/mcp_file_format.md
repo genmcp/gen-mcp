@@ -8,18 +8,32 @@ description: Complete reference guide for the GenMCP file format
 
 ## 1. Introduction
 
-The MCP (Model Context Protocol) file is a YAML-based configuration that defines the capabilities of an MCP server. It specifies the tools available, their input and output schemas, and how they should be invoked. This document details version `0.1.0` of the file format.
+GenMCP uses **two separate YAML configuration files** to define an MCP server:
 
-## 2. Top-Level Object
+1. **Tool Definitions File** - Defines the capabilities (tools, prompts, resources, resource templates) and invocation bases
+2. **Server Config File** - Defines the server runtime configuration (transport protocol, logging, authentication, TLS)
 
-The root of the configuration is a single top-level object with the following fields:
+This separation allows you to:
+- Share tool definitions across different server configurations
+- Version tool definitions and server configuration independently
+- Deploy the same tools with different runtime settings (dev, staging, production)
+
+Both files use schema version `0.2.0` and must be provided when running an MCP server with the `genmcp run` command.
+
+## 2. Tool Definitions File
+
+The Tool Definitions File defines what capabilities your MCP server provides. It contains tools, prompts, resources, resource templates, and invocation bases.
+
+### 2.1. Top-Level Object
+
+The root of the Tool Definitions File has the following structure:
 
 | Field | Type | Description | Required |
 |---|---|---|---|
-| `mcpFileVersion` | string | The version of the MCP file format. Must be `"0.1.0"`. | Yes |
+| `kind` | string | Must be `"MCPToolDefinitions"`. | Yes |
+| `schemaVersion` | string | The version of the MCP file format. Must be `"0.2.0"`. | Yes |
 | `name` | string | The name of the server. | Yes |
 | `version` | string | The semantic version of the server's toolset. | Yes |
-| `runtime` | `ServerRuntime` | The runtime settings for the server. If omitted, it defaults to `streamablehttp` on port `3000`. | No |
 | `instructions` | string | A set of instructions provided by the server to the client about how to use the server. | No |
 | `invocationBases` | object | A set of reusable base configurations for invocations. Each key is a unique identifier, and each value is an invocation configuration (either `http` or `cli`). See [Section 6.3](#63-invocation-bases) for details. | No |
 | `tools` | array of `Tool` | The tools provided by this server. | No |
@@ -27,16 +41,13 @@ The root of the configuration is a single top-level object with the following fi
 | `resources` | array of `Resource` | The resources provided by this server. | No |
 | `resourceTemplates` | array of `ResourceTemplate` | The resource templates provided by this server. | No |
 
-### Example
+### Example: Tool Definitions File
 
 ```yaml
-mcpFileVersion: 0.1.0
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
 name: my-awesome-server
 version: 1.2.3
-runtime:
-  transportProtocol: streamablehttp
-  streamableHttpConfig:
-    port: 8080
 instructions: |
   To clone and analyze a repository:
   1. First use clone_repo to clone the repository locally
@@ -49,10 +60,59 @@ invocationBases:
       method: GET
       url: https://api.github.com/repos/{owner}/{repo}
 tools:
-  # ... tool definitions
+  - name: clone_repo
+    description: "Clones a git repository"
+    inputSchema:
+      type: object
+      properties:
+        repoUrl:
+          type: string
+      required:
+        - repoUrl
+    invocation:
+      cli:
+        command: "git clone {repoUrl}"
 ```
 
-## 3. ServerRuntime Object
+## 3. Server Config File
+
+The Server Config File defines how the MCP server runs, including transport protocol, logging, authentication, and TLS settings.
+
+### 3.1. Top-Level Object
+
+The root of the Server Config File has the following structure:
+
+| Field | Type | Description | Required |
+|---|---|---|---|
+| `kind` | string | Must be `"MCPServerConfig"`. | Yes |
+| `schemaVersion` | string | The version of the MCP file format. Must be `"0.2.0"`. | Yes |
+| `name` | string | The name of the server. Should match the name in the Tool Definitions File. | Yes |
+| `version` | string | The semantic version of the server. Should match the version in the Tool Definitions File. | Yes |
+| `runtime` | `ServerRuntime` | The runtime settings for the server. If omitted, defaults to `streamablehttp` on port `3000`. | No |
+| `instructions` | string | A set of instructions provided by the server to the client about how to use the server. | No |
+| `invocationBases` | object | A set of reusable base configurations for invocations. Can be defined here or in the Tool Definitions File. | No |
+
+**Note**: The `instructions` and `invocationBases` fields can be defined in either file. If defined in both, the values are merged (with the Server Config File taking precedence for `instructions`).
+
+### Example: Server Config File
+
+```yaml
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
+name: my-awesome-server
+version: 1.2.3
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8080
+    basePath: /mcp
+  loggingConfig:
+    level: info
+    encoding: json
+    enableMcpLogs: true
+```
+
+## 4. ServerRuntime Object
 
 The `ServerRuntime` object specifies the transport protocol and its configuration for the server.
 
@@ -63,35 +123,35 @@ The `ServerRuntime` object specifies the transport protocol and its configuratio
 | `stdioConfig` | `StdioConfig` | Configuration for the `stdio` transport protocol. Required if `transportProtocol` is `stdio`. | No |
 | `loggingConfig` | `LoggingConfig` | Configuration for server logging. | No |
 
-### 3.1. StreamableHTTPConfig Object
+### 4.1. StreamableHTTPConfig Object
 
 | Field | Type | Description | Required |
 |---|---|---|---|
 | `port` | integer | The port for the server to listen on. | Yes |
 | `basePath` | string | The base path for the MCP server. Defaults to `/mcp`. | No |
-| `stateless` | boolean | Indicates whether the server is stateless. | No |
-| `auth` | `AuthConfig` | OAuth 2.0 configuration for protected resource. | No |
-| `tls` | `TLSConfig` | TLS configuration for the HTTP server. | No |
+| `stateless` | boolean | Indicates whether the server is stateless. Defaults to `true`. | No |
+| `auth` | `AuthConfig` | OAuth 2.0 configuration for protected resources. | No |
+| `tls` | `TLSConfig` | TLS configuration for HTTPS. | No |
 
-### 3.2. TLSConfig Object
+### 4.2. TLSConfig Object
 
 | Field | Type | Description | Required |
 |---|---|---|---|
 | `certFile` | string | The absolute path to the server's public certificate file on the runtime host where the MCP server will execute. | Yes |
 | `keyFile` | string | The absolute path to the server's private key file on the runtime host where the MCP server will execute. | Yes |
 
-### 3.3. AuthConfig Object
+### 4.3. AuthConfig Object
 
 | Field | Type | Description | Required |
 |---|---|---|---|
 | `authorizationServers` | array of string | List of authorization server URLs for OAuth 2.0 token validation. | No |
 | `jwksUri` | string | JSON Web Key Set URI for token signature verification. If no value is given but `authorizationServers` is set, gen-mcp will try to find a JWKS endpoint using different fallback paths.| No |
 
-### 3.4. StdioConfig Object
+### 4.4. StdioConfig Object
 
 This object is currently empty and serves as a placeholder for future configuration options.
 
-### 3.5. LoggingConfig Object
+### 4.5. LoggingConfig Object
 
 | Field | Type | Description | Required |
 |---|---|---|---|
@@ -107,11 +167,11 @@ This object is currently empty and serves as a placeholder for future configurat
 
 **Note**: When `enableMcpLogs` is true, all MCP log entries are sent to MCP clients regardless of the configured `level`. The MCP client determines which log levels to actually display or process.
 
-## 4. Primitive Objects
+## 5. Primitive Objects
 
-The MCP file format supports four types of primitive objects: Tools, Prompts, Resources, and Resource Templates. Each primitive object represents a capability that can be invoked by an MCP client.
+The MCP file format supports four types of primitive objects: Tools, Prompts, Resources, and Resource Templates. Each primitive object represents a capability that can be invoked by an MCP client. These are defined in the **Tool Definitions File**.
 
-### 4.1. Tool Object
+### 5.1. Tool Object
 
 A `Tool` object describes a specific, invokable function.
 
@@ -124,8 +184,18 @@ A `Tool` object describes a specific, invokable function.
 | `outputSchema` | `JsonSchema` | A JSON Schema object defining the structure of the tool's output. | No |
 | `invocation` | `Invocation` | An object describing how to execute the tool. Can be `http`, `cli`, or `extends`. | Yes |
 | `requiredScopes` | array of string | OAuth 2.0 scopes required to execute this tool. Only relevant when the server uses OAuth authentication. | No |
+| `annotations` | `ToolAnnotations` | Annotations to indicate tool behaviour to the client. | No |
 
-### 4.2. Prompt Object
+#### 5.1.1. ToolAnnotations Object
+
+| Field | Type | Description | Required |
+|---|---|---|---|
+| `destructiveHint` | boolean | If true, the tool may perform destructive updates to its environment. If false, the tool performs only additive updates. | No |
+| `idempotentHint` | boolean | If true, calling the tool repeatedly with the same arguments will have no additional effect on its environment. | No |
+| `openWorldHint` | boolean | If true, this tool may interact with an "open world" or external entities. If false, this tool's domain of interaction is closed. | No |
+| `readOnlyHint` | boolean | If true, the tool does not modify its environment. | No |
+
+### 5.2. Prompt Object
 
 A `Prompt` object describes a natural-language or LLM-style function invocation.
 
@@ -140,7 +210,7 @@ A `Prompt` object describes a natural-language or LLM-style function invocation.
 | `invocation` | `Invocation` | An object describing how to execute the prompt. Can be `http`, `cli`, or `extends`. | Yes |
 | `requiredScopes` | array of string | OAuth 2.0 scopes required to execute this prompt. Only relevant when the server uses OAuth authentication. | No |
 
-#### 4.2.1. PromptArgument Object
+#### 5.2.1. PromptArgument Object
 
 | Field | Type | Description | Required |
 |---|---|---|---|
@@ -149,7 +219,7 @@ A `Prompt` object describes a natural-language or LLM-style function invocation.
 | `description` | string | Detailed explanation of the argument. | No |
 | `required` | boolean | Indicates if the argument is mandatory. | No |
 
-### 4.3. Resource Object
+### 5.3. Resource Object
 
 A `Resource` object represents a retrievable or executable resource.
 
@@ -161,12 +231,12 @@ A `Resource` object represents a retrievable or executable resource.
 | `mimeType` | string | The MIME type of this resource, if known. | No |
 | `size` | integer | The size of the raw resource content in bytes, if known. | No |
 | `uri` | string | The URI of this resource. | Yes |
-| `inputSchema` | `JsonSchema` | A JSON Schema object defining the parameters the resource accepts. | Yes |
+| `inputSchema` | `JsonSchema` | A JSON Schema object defining the parameters the resource accepts. Optional for resources without inputs. | No |
 | `outputSchema` | `JsonSchema` | A JSON Schema object defining the structure of the resource's output. | No |
 | `invocation` | `Invocation` | An object describing how to invoke the resource. Can be `http`, `cli`, or `extends`. | Yes |
 | `requiredScopes` | array of string | OAuth 2.0 scopes required to access this resource. Only relevant when the server uses OAuth authentication. | No |
 
-### 4.4. ResourceTemplate Object
+### 5.4. ResourceTemplate Object
 
 A `ResourceTemplate` object represents a reusable URI-based template for resources.
 
@@ -182,7 +252,7 @@ A `ResourceTemplate` object represents a reusable URI-based template for resourc
 | `invocation` | `Invocation` | An object describing how to invoke the resource template. Can be `http`, `cli`, or `extends`. | Yes |
 | `requiredScopes` | array of string | OAuth 2.0 scopes required to access this resource template. Only relevant when the server uses OAuth authentication. | No |
 
-## 5. JsonSchema Object
+## 6. JsonSchema Object
 
 The `inputSchema` and `outputSchema` fields use the JSON Schema standard to define data structures.
 
@@ -208,11 +278,11 @@ inputSchema:
     - location
 ```
 
-## 6. Invocation Object
+## 7. Invocation Object
 
 The `invocation` object specifies how a tool, prompt, resource, or resource template is executed. It must contain exactly one of the following types: `http`, `cli`, or `extends`.
 
-### 6.1. HTTP Invocation
+### 7.1. HTTP Invocation
 
 The `http` invocation type is used for tools that are called via an HTTP request.
 
@@ -276,7 +346,7 @@ invocation:
     url: http://localhost:8080/users/{headers.X-User-Id}
 ```
 
-### 6.2. CLI Invocation
+### 7.2. CLI Invocation
 
 The `cli` invocation type is used for tools that are executed via a shell command.
 
@@ -310,11 +380,11 @@ invocation:
         omitIfFalse: true
 ```
 
-### 6.3. Invocation Bases
+### 7.3. Invocation Bases
 
 Invocation bases allow you to define reusable configurations that can be referenced by multiple tools, prompts, resources, or resource templates. This reduces duplication and makes it easier to maintain consistent configuration across primitives.
 
-The `invocationBases` field is defined at the top level of the MCP file and contains named base configurations:
+The `invocationBases` field can be defined in either the **Tool Definitions File** or the **Server Config File** (or both, with values merged). It contains named base configurations:
 
 ```yaml
 invocationBases:
@@ -332,7 +402,7 @@ invocationBases:
 
 Each key in `invocationBases` is a unique identifier for the base configuration, and the value is an invocation configuration (either `http` or `cli`).
 
-### 6.4. Extends Invocation
+### 7.4. Extends Invocation
 
 The `extends` invocation type allows you to reference and modify a base configuration defined in `invocationBases`. This provides a powerful way to compose configurations by reusing common settings and making targeted modifications.
 
@@ -460,22 +530,17 @@ tools:
           url: "/simple"  # Adds the fixed endpoint
 ```
 
-## 7. Complete Examples
+## 8. Complete Examples
 
-### 7.1. Basic Logging Configuration
+### 8.1. Basic Example with Two Files
+
+**Tool Definitions File** (`mcpfile.yaml`):
 
 ```yaml
-mcpFileVersion: "0.1.0"
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
 name: Feature Request API
 version: "0.0.1"
-runtime:
-  transportProtocol: streamablehttp
-  streamableHttpConfig:
-    port: 8008
-  loggingConfig:
-    enableMcpLogs: true
-    encoding: "console"
-    level: "debug"
 tools:
   - name: get_features
     title: "Get all features"
@@ -488,10 +553,48 @@ tools:
         url: http://localhost:9090/features
 ```
 
-### 7.2. Advanced Logging Configuration
+**Server Config File** (`mcpfile-server.yaml`):
 
 ```yaml
-mcpFileVersion: "0.1.0"
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
+name: Feature Request API
+version: "0.0.1"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8008
+  loggingConfig:
+    enableMcpLogs: true
+    encoding: "console"
+    level: "debug"
+```
+
+### 8.2. Advanced Logging Configuration
+
+**Tool Definitions File** (`mcpfile.yaml`):
+
+```yaml
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
+name: Production API
+version: "1.0.0"
+tools:
+  - name: health_check
+    description: "Returns the health status of the service"
+    inputSchema:
+      type: object
+    invocation:
+      http:
+        method: GET
+        url: http://localhost:8080/health
+```
+
+**Server Config File** (`mcpfile-server.yaml`):
+
+```yaml
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
 name: Production API
 version: "1.0.0"
 runtime:
@@ -514,57 +617,17 @@ runtime:
       service: "mcp-api"
       version: "1.0.0"
     enableMcpLogs: true
-tools:
-  - name: health_check
-    description: "Returns the health status of the service"
-    inputSchema:
-      type: object
-    invocation:
-      http:
-        method: GET
-        url: http://localhost:8080/health
 ```
 
-### 7.3. Disabled MCP Logging
+### 8.3. Using Invocation Bases and Extends
+
+**Tool Definitions File** (`mcpfile.yaml`):
 
 ```yaml
-mcpFileVersion: "0.1.0"
-name: Silent API
-version: "1.0.0"
-runtime:
-  transportProtocol: streamablehttp
-  streamableHttpConfig:
-    port: 8080
-  loggingConfig:
-    level: "warn"
-    encoding: "json"
-    enableMcpLogs: false
-    outputPaths:
-      - "/var/log/system.log"
-tools:
-  - name: process_data
-    description: "Processes data without sending logs to MCP clients"
-    inputSchema:
-      type: object
-    invocation:
-      http:
-        method: POST
-        url: http://localhost:8080/process
-```
-
-### 7.4. Using Invocation Bases and Extends
-
-This example demonstrates how to use `invocationBases` and the `extends` invocation type to reduce configuration duplication:
-
-```yaml
-mcpFileVersion: "0.1.0"
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
 name: user-management-api
 version: "1.0.0"
-runtime:
-  transportProtocol: streamablehttp
-  streamableHttpConfig:
-    port: 8080
-
 invocationBases:
   # Base configuration for user API calls
   baseUserApi:
@@ -651,14 +714,46 @@ tools:
       - admin:read
 ```
 
-## 8. Security Configuration Examples
-
-### 8.1. TLS Configuration
-
-To enable HTTPS for your MCP server, configure TLS in the `streamableHttpConfig`:
+**Server Config File** (`mcpfile-server.yaml`):
 
 ```yaml
-mcpFileVersion: "0.1.0"
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
+name: user-management-api
+version: "1.0.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8080
+```
+
+## 9. Security Configuration Examples
+
+### 9.1. TLS Configuration
+
+**Tool Definitions File** (`mcpfile.yaml`):
+
+```yaml
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
+name: secure-server
+version: "1.0.0"
+tools:
+  - name: secure_endpoint
+    description: "A secure endpoint"
+    inputSchema:
+      type: object
+    invocation:
+      http:
+        method: GET
+        url: https://api.example.com/secure
+```
+
+**Server Config File** (`mcpfile-server.yaml`):
+
+```yaml
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
 name: secure-server
 version: "1.0.0"
 runtime:
@@ -670,12 +765,34 @@ runtime:
       keyFile: /etc/ssl/private/server.key
 ```
 
-### 8.2. OAuth 2.0 Configuration
+### 9.2. OAuth 2.0 Configuration
 
-To protect your MCP server with OAuth 2.0 authentication:
+**Tool Definitions File** (`mcpfile.yaml`):
 
 ```yaml
-mcpFileVersion: "0.1.0"
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
+name: protected-server
+version: "1.0.0"
+tools:
+  - name: admin_tool
+    description: "Administrative tool requiring elevated permissions"
+    requiredScopes:
+      - admin:write
+      - users:manage
+    inputSchema:
+      type: object
+    invocation:
+      http:
+        method: POST
+        url: https://api.example.com/admin/action
+```
+
+**Server Config File** (`mcpfile-server.yaml`):
+
+```yaml
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
 name: protected-server
 version: "1.0.0"
 runtime:
@@ -687,21 +804,35 @@ runtime:
         - https://auth.example.com
         - https://keycloak.company.com/auth/realms/mcp
       jwksUri: https://auth.example.com/.well-known/jwks.json
-tools:
-  - name: admin_tool
-    description: "Administrative tool requiring elevated permissions"
-    requiredScopes:
-      - admin:write
-      - users:manage
-    # ... rest of tool definition
 ```
 
-### 8.3. Combined TLS and OAuth Configuration
+### 9.3. Combined TLS and OAuth Configuration
 
-For maximum security, combine both TLS and OAuth:
+**Tool Definitions File** (`mcpfile.yaml`):
 
 ```yaml
-mcpFileVersion: "0.1.0"
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
+name: secure-protected-server
+version: "1.0.0"
+tools:
+  - name: secure_admin_tool
+    description: "Secure administrative tool"
+    requiredScopes:
+      - admin:write
+    inputSchema:
+      type: object
+    invocation:
+      http:
+        method: POST
+        url: https://api.example.com/admin/secure-action
+```
+
+**Server Config File** (`mcpfile-server.yaml`):
+
+```yaml
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
 name: secure-protected-server
 version: "1.0.0"
 runtime:
@@ -717,14 +848,15 @@ runtime:
       jwksUri: https://auth.example.com/.well-known/jwks.json
 ```
 
-## 9. Complete Example for a CLI
+## 10. Complete Example for a CLI
+
+**Tool Definitions File** (`mcpfile.yaml`):
 
 ```yaml
-mcpFileVersion: "0.1.0"
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
 name: git-tools
 version: "1.0.0"
-runtime:
-  transportProtocol: stdio
 instructions: |
   This server provides Git repository management tools. For typical workflows:
   1. Use clone_repo to get a local copy of a repository
@@ -761,30 +893,53 @@ tools:
             omitIfFalse: true
 ```
 
-## 10. Complete Example for an HTTP Server
+**Server Config File** (`mcpfile-server.yaml`):
 
 ```yaml
-mcpFileVersion: "0.1.0"
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
+name: git-tools
+version: "1.0.0"
+runtime:
+  transportProtocol: stdio
+```
+
+## 11. Complete Example for an HTTP Server
+
+**Tool Definitions File** (`mcpfile.yaml`):
+
+```yaml
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
+name: user-service
+version: "2.1.0"
+tools:
+  - name: get_user
+    title: "Get User"
+    description: "Retrieves a user by their ID."
+    inputSchema:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: "The ID of the user to retrieve."
+      required:
+        - userId
+    invocation:
+      http:
+        method: GET
+        url: http://localhost:8080/users/{userId}
+```
+
+**Server Config File** (`mcpfile-server.yaml`):
+
+```yaml
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
 name: user-service
 version: "2.1.0"
 runtime:
-transportProtocol: streamablehttp
-streamableHttpConfig:
-  port: 3000
-tools:
-- name: get_user
-  title: "Get User"
-  description: "Retrieves a user by their ID."
-  inputSchema:
-    type: object
-    properties:
-      userId:
-        type: string
-        description: "The ID of the user to retrieve."
-    required:
-    - userId
-  invocation:
-    http:
-      method: GET
-      url: http://localhost:8080/users/{userId}
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 3000
 ```

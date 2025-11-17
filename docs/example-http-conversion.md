@@ -114,7 +114,7 @@ cd ..
 genmcp convert http://localhost:9090/openapi.json
 ```
 
-gen-mcp will analyze the OpenAPI specification and create an `mcpfile.yaml` file with all endpoints defined as MCP tools.
+gen-mcp will analyze the OpenAPI specification and create two files: a tool definitions file (`mcpfile.yaml`) and a server config file (`mcpfile-server.yaml`).
 
 You should see output like:
 
@@ -122,20 +122,25 @@ You should see output like:
 INFO    Fetching OpenAPI spec from http://localhost:9090/openapi.json
 INFO    Converted 7 endpoints to MCP tools
 INFO    Created mcpfile.yaml
+INFO    Created mcpfile-server.yaml
 ```
 
 ### Step 5: Understanding the Generated Configuration
 
-Let's examine the generated `mcpfile.yaml`. Note that the full configuration includes all 7 tools from the API—we'll show a few key examples here to understand the structure:
+gen-mcp creates two separate files:
+
+1. **Tool Definitions File** (`mcpfile.yaml`) - Contains all the tools, prompts, resources, and invocation bases
+2. **Server Config File** (`mcpfile-server.yaml`) - Contains the server runtime configuration
+
+Let's examine the generated files. Note that the tool definitions file includes all 7 tools from the API—we'll show a few key examples here to understand the structure:
+
+**Tool Definitions File** (`mcpfile.yaml`):
 
 ```yaml
-mcpFileVersion: 0.1.0
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
 name: Feature Request API
 version: 0.0.1
-runtime:
-  transportProtocol: streamablehttp
-  streamableHttpConfig:
-    port: 8080
 
 invocationBases:
   baseApi:
@@ -322,12 +327,25 @@ For destructive operations:
     feature, call get_features-id with the feature's ID.
 ```
 
+**Server Config File** (`mcpfile-server.yaml`):
+
+```yaml
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
+name: Feature Request API
+version: 0.0.1
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8080
+```
+
 ### Step 8: Run the MCP Server
 
-Start your customized MCP server:
+Start your customized MCP server with both files:
 
 ```bash
-genmcp run -f mcpfile.yaml
+genmcp run -t mcpfile.yaml -s mcpfile-server.yaml
 ```
 
 You should see:
