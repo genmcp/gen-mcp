@@ -102,6 +102,7 @@ func RunServer(ctx context.Context, mcpServerConfig *mcpserver.MCPServer) error 
 	}
 }
 
+// TODO: remove
 // RunServers runs all servers defined in the MCP files
 // It accepts both tool definitions and server config file paths
 func RunServers(ctx context.Context, toolDefinitionsPath, serverConfigPath string) error {

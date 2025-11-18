@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/genmcp/gen-mcp/pkg/config"
 	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/mcpserver"
+	"github.com/genmcp/gen-mcp/pkg/runtime"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -29,7 +29,7 @@ var _ = Describe("Basic Integration", Ordered, func() {
 
 		var (
 			backendServer       *httptest.Server
-			mcpConfig           *config.MCPServer
+			mcpConfig           *mcpserver.MCPServer
 			mcpServerCancelFunc context.CancelFunc
 		)
 
@@ -43,7 +43,7 @@ var _ = Describe("Basic Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				err := mcpserver.RunServer(ctx, mcpConfig)
+				err := runtime.RunServer(ctx, mcpConfig)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}
@@ -210,7 +210,7 @@ var _ = Describe("Basic Integration", Ordered, func() {
 		)
 
 		var (
-			mcpConfig           *config.MCPServer
+			mcpConfig           *mcpserver.MCPServer
 			mcpServerCancelFunc context.CancelFunc
 		)
 
@@ -223,7 +223,7 @@ var _ = Describe("Basic Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				err := mcpserver.RunServer(ctx, mcpConfig)
+				err := runtime.RunServer(ctx, mcpConfig)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}
@@ -375,7 +375,7 @@ func createMockBackendServerIntegration() *httptest.Server {
 	}))
 }
 
-func createBasicTestMCPConfig(backendURL string, port int) *config.MCPServer {
+func createBasicTestMCPConfig(backendURL string, port int) *mcpserver.MCPServer {
 	By("creating basic test MCP configuration")
 
 	toolDefsYAML := fmt.Sprintf(`
@@ -461,16 +461,16 @@ runtime:
 	serverConfig, err := serverconfig.ParseMCPFile(serverConfigFile.Name())
 	Expect(err).NotTo(HaveOccurred())
 
-	return &config.MCPServer{
+	return &mcpserver.MCPServer{
 		MCPToolDefinitions: toolDefs.MCPToolDefinitions,
 		MCPServerConfig:    serverConfig.MCPServerConfig,
 	}
 }
 
-func createCLITestMCPConfig(port int) *config.MCPServer {
+func createCLITestMCPConfig(port int) *mcpserver.MCPServer {
 	By("creating CLI test MCP configuration")
 
-	toolDefsYAML := fmt.Sprintf(`
+	toolDefsYAML := `
 kind: MCPToolDefinitions
 schemaVersion: 0.2.0
 name: test-cli-server
@@ -512,7 +512,7 @@ resources:
     invocation:
       cli:
         command: "echo 'test-server-cli-server version 1.0 running'"
-`, port)
+`
 
 	serverConfigYAML := fmt.Sprintf(`
 kind: MCPServerConfig
@@ -548,7 +548,7 @@ runtime:
 	serverConfig, err := serverconfig.ParseMCPFile(serverConfigFile.Name())
 	Expect(err).NotTo(HaveOccurred())
 
-	return &config.MCPServer{
+	return &mcpserver.MCPServer{
 		MCPToolDefinitions: toolDefs.MCPToolDefinitions,
 		MCPServerConfig:    serverConfig.MCPServerConfig,
 	}
