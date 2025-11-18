@@ -22,7 +22,7 @@
       "required": [
         "command"
       ],
-      "description": "Configuration for executing a command-line tool."
+      "description": "CliInvocationConfig is the configuration for executing a command-line tool."
     },
     "ExtendsConfig": {
       "properties": {
@@ -82,7 +82,7 @@
         "method",
         "url"
       ],
-      "description": "The configuration for making an HTTP request."
+      "description": "HttpInvocationConfig is tthe configuration for making an HTTP request."
     },
     "InvocationConfigWrapper": {
       "oneOf": [
@@ -1294,7 +1294,7 @@
       "required": [
         "format"
       ],
-      "description": "The formatting for a single parameter in the command template"
+      "description": "TemplateVariable is the formatting for a single parameter in the command template."
     },
     "Tool": {
       "properties": {
