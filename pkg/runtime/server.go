@@ -23,47 +23,6 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/observability/logging"
 )
 
-// TODO: not used?
-func MakeServer(mcpServer *mcpserver.MCPServer) (*mcp.Server, error) {
-	logger := mcpServer.MCPServerConfig.Runtime.GetBaseLogger()
-	logger.Debug("Creating MCP server",
-		zap.String("server_name", mcpServer.Name()),
-		zap.String("server_version", mcpServer.Version()))
-
-	// apply the runtime overrides to the mcp server
-	// if something goes wrong in the env vars, we warn but continue
-	envOverrider := serverconfig.NewEnvRuntimeOverrider()
-	if err := envOverrider.ApplyOverrides(mcpServer.MCPServerConfig.Runtime); err != nil {
-		logger.Warn("Failed to apply overrides from env vars to the mcp server",
-			zap.String("server_name", mcpServer.Name()),
-			zap.Error(err))
-	}
-
-	// Validate the server configuration before creating the server
-	if err := mcpServer.Validate(invocation.InvocationValidator); err != nil {
-		logger.Error("Server configuration validation failed",
-			zap.String("server_name", mcpServer.Name()),
-			zap.Error(err))
-		return nil, fmt.Errorf("invalid server configuration: %w", err)
-	}
-
-	logger.Info("Server configuration validated successfully",
-		zap.String("server_name", mcpServer.Name()))
-
-	server, err := makeServerWithoutValidation(mcpServer)
-	if err != nil {
-		logger.Error("Failed to create server",
-			zap.String("server_name", mcpServer.Name()),
-			zap.Error(err))
-		return nil, err
-	}
-
-	logger.Info("MCP server created successfully",
-		zap.String("server_name", mcpServer.Name()),
-		zap.String("server_version", mcpServer.Version()))
-	return server, nil
-}
-
 // makeServerWithoutValidation creates a server without performing validation
 // This is used internally when validation has already been performed
 func makeServerWithoutValidation(mcpServer *mcpserver.MCPServer) (*mcp.Server, error) {
@@ -118,7 +77,10 @@ func RunServer(ctx context.Context, toolDefinitionsPath, serverConfigPath string
 	}
 
 	// Combine into MCPServer struct
-	mcpServer := combineFilesToMCPServer(toolDefsFile, serverConfigFile)
+	mcpServer := &mcpserver.MCPServer{
+		MCPToolDefinitions: toolDefsFile.MCPToolDefinitions,
+		MCPServerConfig:    serverConfigFile.MCPServerConfig,
+	}
 
 	// Now we can get the logger from the runtime config
 	logger := mcpServer.MCPServerConfig.Runtime.GetBaseLogger()
@@ -158,15 +120,6 @@ func parseToolDefinitionsFile(filePath string) (*definitions.MCPToolDefinitionsF
 // parseServerConfigFile parses a server config file
 func parseServerConfigFile(filePath string) (*serverconfig.MCPServerConfigFile, error) {
 	return serverconfig.ParseMCPFile(filePath)
-}
-
-// TODO: remove
-// combineFilesToMCPServer combines tool definitions and server config into an MCPServer struct
-func combineFilesToMCPServer(toolDefs *definitions.MCPToolDefinitionsFile, serverConfig *serverconfig.MCPServerConfigFile) *mcpserver.MCPServer {
-	return &mcpserver.MCPServer{
-		MCPToolDefinitions: toolDefs.MCPToolDefinitions,
-		MCPServerConfig:    serverConfig.MCPServerConfig,
-	}
 }
 
 func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpserver.MCPServer) error {

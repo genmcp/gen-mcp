@@ -8,7 +8,6 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 )
 
-// TODO: remove?
 type InvocationValidator func(primitive invocation.Primitive) error
 
 func (m *MCPToolDefinitionsFile) Validate(invocationValidator InvocationValidator) error {
