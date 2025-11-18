@@ -441,19 +441,25 @@ runtime:
 
 	toolDefsFile, err := os.CreateTemp("", "mcp-tooldefs-*.yaml")
 	Expect(err).NotTo(HaveOccurred())
-	defer os.Remove(toolDefsFile.Name())
+	defer func() {
+		err := os.Remove(toolDefsFile.Name())
+		Expect(err).NotTo(HaveOccurred())
+	}()
 
 	_, err = toolDefsFile.WriteString(toolDefsYAML)
 	Expect(err).NotTo(HaveOccurred())
-	toolDefsFile.Close()
+	_ = toolDefsFile.Close()
 
 	serverConfigFile, err := os.CreateTemp("", "mcp-serverconfig-*.yaml")
 	Expect(err).NotTo(HaveOccurred())
-	defer os.Remove(serverConfigFile.Name())
+	defer func() {
+		err := os.Remove(serverConfigFile.Name())
+		Expect(err).NotTo(HaveOccurred())
+	}()
 
 	_, err = serverConfigFile.WriteString(serverConfigYAML)
 	Expect(err).NotTo(HaveOccurred())
-	serverConfigFile.Close()
+	_ = serverConfigFile.Close()
 
 	toolDefs, err := definitions.ParseMCPFile(toolDefsFile.Name())
 	Expect(err).NotTo(HaveOccurred())
@@ -528,19 +534,25 @@ runtime:
 
 	toolDefsFile, err := os.CreateTemp("", "mcp-cli-tooldefs-*.yaml")
 	Expect(err).NotTo(HaveOccurred())
-	defer os.Remove(toolDefsFile.Name())
+	defer func() {
+		err := os.Remove(toolDefsFile.Name())
+		Expect(err).NotTo(HaveOccurred())
+	}()
 
 	_, err = toolDefsFile.WriteString(toolDefsYAML)
 	Expect(err).NotTo(HaveOccurred())
-	toolDefsFile.Close()
+	_ = toolDefsFile.Close()
 
 	serverConfigFile, err := os.CreateTemp("", "mcp-cli-serverconfig-*.yaml")
 	Expect(err).NotTo(HaveOccurred())
-	defer os.Remove(serverConfigFile.Name())
+	defer func() {
+		err := os.Remove(serverConfigFile.Name())
+		Expect(err).NotTo(HaveOccurred())
+	}()
 
 	_, err = serverConfigFile.WriteString(serverConfigYAML)
 	Expect(err).NotTo(HaveOccurred())
-	serverConfigFile.Close()
+	_ = serverConfigFile.Close()
 
 	toolDefs, err := definitions.ParseMCPFile(toolDefsFile.Name())
 	Expect(err).NotTo(HaveOccurred())

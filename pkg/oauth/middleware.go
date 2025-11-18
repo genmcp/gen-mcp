@@ -18,7 +18,7 @@ const (
 // with the WWW-Authenticate header containing information about the Protected Resource Endpoint
 func Middleware(config *mcpserver.MCPServer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		httpConfig := config.MCPServerConfig.Runtime.StreamableHTTPConfig
+		httpConfig := config.Runtime.StreamableHTTPConfig
 
 		// Only create OAuth handler if auth configured
 		if httpConfig.Auth == nil {
@@ -83,7 +83,7 @@ func write401(w http.ResponseWriter, r *http.Request, body string) {
 }
 
 func ProtectedResourceMetadataHandler(config *mcpserver.MCPServer) http.HandlerFunc {
-	httpConfig := config.MCPServerConfig.Runtime.StreamableHTTPConfig
+	httpConfig := config.Runtime.StreamableHTTPConfig
 
 	// Only create OAuth handler if configured
 	if httpConfig.Auth == nil {
@@ -94,7 +94,7 @@ func ProtectedResourceMetadataHandler(config *mcpserver.MCPServer) http.HandlerF
 
 	// Add the scopes, which are defined in the tools
 	var scopes []string
-	for _, tool := range config.MCPToolDefinitions.Tools {
+	for _, tool := range config.Tools {
 		for _, requiredScope := range tool.RequiredScopes {
 			if !slices.Contains(scopes, requiredScope) {
 				scopes = append(scopes, requiredScope)

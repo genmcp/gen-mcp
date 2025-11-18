@@ -26,15 +26,15 @@ import (
 // makeServerWithoutValidation creates a server without performing validation
 // This is used internally when validation has already been performed
 func makeServerWithoutValidation(mcpServer *mcpserver.MCPServer) (*mcp.Server, error) {
-	return makeServerWithTools(mcpServer, mcpServer.MCPToolDefinitions.Tools)
+	return makeServerWithTools(mcpServer, mcpServer.Tools)
 }
 
 func DoRunServer(ctx context.Context, mcpServer *mcpserver.MCPServer) error {
-	logger := mcpServer.MCPServerConfig.Runtime.GetBaseLogger()
+	logger := mcpServer.Runtime.GetBaseLogger()
 	logger.Info("Starting MCP server",
 		zap.String("server_name", mcpServer.Name()),
 		zap.String("server_version", mcpServer.Version()),
-		zap.String("transport_protocol", mcpServer.MCPServerConfig.Runtime.TransportProtocol))
+		zap.String("transport_protocol", mcpServer.Runtime.TransportProtocol))
 
 	// Validate the server configuration before running
 	if err := mcpServer.Validate(invocation.InvocationValidator); err != nil {
@@ -45,9 +45,9 @@ func DoRunServer(ctx context.Context, mcpServer *mcpserver.MCPServer) error {
 	}
 
 	logger.Debug("Server configuration validated, selecting transport protocol",
-		zap.String("transport_protocol", mcpServer.MCPServerConfig.Runtime.TransportProtocol))
+		zap.String("transport_protocol", mcpServer.Runtime.TransportProtocol))
 
-	switch strings.ToLower(mcpServer.MCPServerConfig.Runtime.TransportProtocol) {
+	switch strings.ToLower(mcpServer.Runtime.TransportProtocol) {
 	case serverconfig.TransportProtocolStreamableHttp:
 		logger.Info("Running server with streamable HTTP transport")
 		return runStreamableHttpServer(ctx, mcpServer)
@@ -56,7 +56,7 @@ func DoRunServer(ctx context.Context, mcpServer *mcpserver.MCPServer) error {
 		return runStdioServer(ctx, mcpServer)
 	default:
 		logger.Error("Invalid transport protocol specified",
-			zap.String("transport_protocol", mcpServer.MCPServerConfig.Runtime.TransportProtocol))
+			zap.String("transport_protocol", mcpServer.Runtime.TransportProtocol))
 		return fmt.Errorf("tried running invalid transport protocol")
 	}
 }
@@ -83,7 +83,7 @@ func RunServer(ctx context.Context, toolDefinitionsPath, serverConfigPath string
 	}
 
 	// Now we can get the logger from the runtime config
-	logger := mcpServer.MCPServerConfig.Runtime.GetBaseLogger()
+	logger := mcpServer.Runtime.GetBaseLogger()
 	logger.Info("Starting servers from MCP files",
 		zap.String("tool_definitions_path", toolDefinitionsPath),
 		zap.String("server_config_path", serverConfigPath),
@@ -103,7 +103,7 @@ func RunServer(ctx context.Context, toolDefinitionsPath, serverConfigPath string
 	// Apply runtime overrides from environment variables
 	// if something goes wrong in the env vars, we warn but continue
 	envOverrider := serverconfig.NewEnvRuntimeOverrider()
-	if err := envOverrider.ApplyOverrides(mcpServer.MCPServerConfig.Runtime); err != nil {
+	if err := envOverrider.ApplyOverrides(mcpServer.Runtime); err != nil {
 		logger.Warn("Failed to apply overrides from env vars to the mcp server",
 			zap.String("server_name", mcpServer.Name()),
 			zap.Error(err))
@@ -123,10 +123,10 @@ func parseServerConfigFile(filePath string) (*serverconfig.MCPServerConfigFile, 
 }
 
 func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpserver.MCPServer) error {
-	logger := mcpServerConfig.MCPServerConfig.Runtime.GetBaseLogger()
-	port := mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.Port
-	basePath := mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.BasePath
-	stateless := mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.Stateless
+	logger := mcpServerConfig.Runtime.GetBaseLogger()
+	port := mcpServerConfig.Runtime.StreamableHTTPConfig.Port
+	basePath := mcpServerConfig.Runtime.StreamableHTTPConfig.BasePath
+	stateless := mcpServerConfig.Runtime.StreamableHTTPConfig.Stateless
 
 	logger.Info("Setting up streamable HTTP server",
 		zap.Int("port", port),
@@ -160,7 +160,7 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpserver.MCP
 	logger.Debug("Registered MCP handler", zap.String("path", basePath))
 
 	// Set up OAuth protected resource metadata endpoint under / if needed
-	if mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.Auth != nil {
+	if mcpServerConfig.Runtime.StreamableHTTPConfig.Auth != nil {
 		logger.Debug("Setting up OAuth protected resource metadata endpoint")
 		mux.HandleFunc(oauth.ProtectedResourceMetadataEndpoint, oauth.ProtectedResourceMetadataHandler(mcpServerConfig))
 		logger.Debug("Registered OAuth metadata handler", zap.String("path", oauth.ProtectedResourceMetadataEndpoint))
@@ -177,13 +177,13 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpserver.MCP
 	errCh := make(chan error, 1)
 	go func() {
 		var err error
-		if mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.TLS != nil {
+		if mcpServerConfig.Runtime.StreamableHTTPConfig.TLS != nil {
 			logger.Info("Starting HTTPS server with TLS",
-				zap.String("cert_file", mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.TLS.CertFile),
-				zap.String("key_file", mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.TLS.KeyFile))
+				zap.String("cert_file", mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.CertFile),
+				zap.String("key_file", mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.KeyFile))
 			err = srv.ListenAndServeTLS(
-				mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.TLS.CertFile,
-				mcpServerConfig.MCPServerConfig.Runtime.StreamableHTTPConfig.TLS.KeyFile,
+				mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.CertFile,
+				mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.KeyFile,
 			)
 		} else {
 			logger.Info("Starting HTTP server")
@@ -213,7 +213,7 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpserver.MCP
 }
 
 func runStdioServer(ctx context.Context, mcpServerConfig *mcpserver.MCPServer) error {
-	logger := mcpServerConfig.MCPServerConfig.Runtime.GetBaseLogger()
+	logger := mcpServerConfig.Runtime.GetBaseLogger()
 	logger.Info("Setting up stdio server",
 		zap.String("server_name", mcpServerConfig.Name()),
 		zap.String("server_version", mcpServerConfig.Version()))
@@ -461,7 +461,7 @@ func createAuthorizedResourceTemplateHandler(resourceTemplate *definitions.Resou
 // makeServerWithTools makes a server using the server metadata in mcpServer but with the tools specified in tools
 // this is useful for creating servers with filtered tool lists
 func makeServerWithTools(mcpServer *mcpserver.MCPServer, tools []*definitions.Tool) (*mcp.Server, error) {
-	logger := mcpServer.MCPServerConfig.Runtime.GetBaseLogger()
+	logger := mcpServer.Runtime.GetBaseLogger()
 	logger.Debug("Building MCP server with tools",
 		zap.String("server_name", mcpServer.Name()),
 		zap.String("server_version", mcpServer.Version()),
