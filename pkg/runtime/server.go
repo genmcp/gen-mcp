@@ -70,42 +70,41 @@ func makeServerWithoutValidation(mcpServer *mcpserver.MCPServer) (*mcp.Server, e
 	return makeServerWithTools(mcpServer, mcpServer.MCPToolDefinitions.Tools)
 }
 
-func RunServer(ctx context.Context, mcpServerConfig *mcpserver.MCPServer) error {
-	logger := mcpServerConfig.MCPServerConfig.Runtime.GetBaseLogger()
+func DoRunServer(ctx context.Context, mcpServer *mcpserver.MCPServer) error {
+	logger := mcpServer.MCPServerConfig.Runtime.GetBaseLogger()
 	logger.Info("Starting MCP server",
-		zap.String("server_name", mcpServerConfig.Name()),
-		zap.String("server_version", mcpServerConfig.Version()),
-		zap.String("transport_protocol", mcpServerConfig.MCPServerConfig.Runtime.TransportProtocol))
+		zap.String("server_name", mcpServer.Name()),
+		zap.String("server_version", mcpServer.Version()),
+		zap.String("transport_protocol", mcpServer.MCPServerConfig.Runtime.TransportProtocol))
 
 	// Validate the server configuration before running
-	if err := mcpServerConfig.Validate(invocation.InvocationValidator); err != nil {
+	if err := mcpServer.Validate(invocation.InvocationValidator); err != nil {
 		logger.Error("Server configuration validation failed before running",
-			zap.String("server_name", mcpServerConfig.Name()),
+			zap.String("server_name", mcpServer.Name()),
 			zap.Error(err))
 		return fmt.Errorf("invalid server configuration: %w", err)
 	}
 
 	logger.Debug("Server configuration validated, selecting transport protocol",
-		zap.String("transport_protocol", mcpServerConfig.MCPServerConfig.Runtime.TransportProtocol))
+		zap.String("transport_protocol", mcpServer.MCPServerConfig.Runtime.TransportProtocol))
 
-	switch strings.ToLower(mcpServerConfig.MCPServerConfig.Runtime.TransportProtocol) {
+	switch strings.ToLower(mcpServer.MCPServerConfig.Runtime.TransportProtocol) {
 	case serverconfig.TransportProtocolStreamableHttp:
 		logger.Info("Running server with streamable HTTP transport")
-		return runStreamableHttpServer(ctx, mcpServerConfig)
+		return runStreamableHttpServer(ctx, mcpServer)
 	case serverconfig.TransportProtocolStdio:
 		logger.Info("Running server with stdio transport")
-		return runStdioServer(ctx, mcpServerConfig)
+		return runStdioServer(ctx, mcpServer)
 	default:
 		logger.Error("Invalid transport protocol specified",
-			zap.String("transport_protocol", mcpServerConfig.MCPServerConfig.Runtime.TransportProtocol))
+			zap.String("transport_protocol", mcpServer.MCPServerConfig.Runtime.TransportProtocol))
 		return fmt.Errorf("tried running invalid transport protocol")
 	}
 }
 
-// TODO: remove
-// RunServers runs all servers defined in the MCP files
-// It accepts both tool definitions and server config file paths
-func RunServers(ctx context.Context, toolDefinitionsPath, serverConfigPath string) error {
+// RunServer runs the server defined in the given config files.
+// It accepts both tool definitions and server config file paths.
+func RunServer(ctx context.Context, toolDefinitionsPath, serverConfigPath string) error {
 	// Parse tool definitions file
 	toolDefsFile, err := parseToolDefinitionsFile(toolDefinitionsPath)
 	if err != nil {
@@ -148,7 +147,7 @@ func RunServers(ctx context.Context, toolDefinitionsPath, serverConfigPath strin
 			zap.Error(err))
 	}
 
-	return RunServer(ctx, mcpServer)
+	return DoRunServer(ctx, mcpServer)
 }
 
 // parseToolDefinitionsFile parses a tool definitions file

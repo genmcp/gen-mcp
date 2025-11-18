@@ -43,7 +43,7 @@ var _ = Describe("Basic Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				err := runtime.RunServer(ctx, mcpConfig)
+				err := runtime.DoRunServer(ctx, mcpConfig)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}
@@ -223,7 +223,7 @@ var _ = Describe("Basic Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				err := runtime.RunServer(ctx, mcpConfig)
+				err := runtime.DoRunServer(ctx, mcpConfig)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}

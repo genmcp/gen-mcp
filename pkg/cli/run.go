@@ -80,7 +80,7 @@ func executeRunCmd(cobraCmd *cobra.Command, args []string) {
 
 	if !detach {
 		// Run servers directly in the current process
-		err := runtime.RunServers(context.Background(), toolDefinitionsPath, serverConfigPath)
+		err := runtime.RunServer(context.Background(), toolDefinitionsPath, serverConfigPath)
 		if err != nil {
 			fmt.Printf("genmcp-server failed with %s\n", err.Error())
 		}

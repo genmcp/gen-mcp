@@ -28,7 +28,7 @@ func (m *MCPServerConfigFile) Validate() error {
 	return err
 }
 
-func (s *MCPServerConfig) Validate(invocationValidator InvocationValidator) error {
+func (s *MCPServerConfig) Validate() error {
 	var err error = nil
 	if s.Name == "" {
 		err = errors.Join(err, fmt.Errorf("invalid server: name is required"))

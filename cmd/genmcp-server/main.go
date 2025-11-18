@@ -22,7 +22,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := runtime.RunServers(context.Background(), toolDefinitionsPath, serverConfigPath); err != nil {
+	if err := runtime.RunServer(context.Background(), toolDefinitionsPath, serverConfigPath); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
