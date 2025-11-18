@@ -1,4 +1,4 @@
-package mcpfile
+package server
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ import (
 type InvocationValidator func(primitive invocation.Primitive) error
 
 // TODO: remove param
-func (m *MCPServerConfigFile) Validate(invocationValidator InvocationValidator) error {
+func (m *MCPServerConfigFile) Validate() error {
 	var err error = nil
 	if m.Name == "" {
 		err = errors.Join(err, fmt.Errorf("invalid mcpfile: name is required"))

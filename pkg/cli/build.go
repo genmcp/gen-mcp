@@ -18,7 +18,6 @@ func init() {
 	rootCmd.AddCommand(buildCmd)
 	buildCmd.Flags().StringVar(&baseImage, "base-image", "", "base image to build the genmcp image on top of")
 	buildCmd.Flags().StringVarP(&mcpToolDefinitionsPath, "file", "f", "mcpfile.yaml", "MCP tool definitions file")
-	// TODO: rename
 	buildCmd.Flags().StringVarP(&mcpServerConfigPath, "server-config", "s", "mcpserver.yaml", "MCP server configuration file")
 	buildCmd.Flags().StringVar(&platform, "platform", "", "platform to build for (e.g., linux/amd64). If not specified, builds multi-arch image for linux/amd64 and linux/arm64")
 	buildCmd.Flags().StringVar(&imageTag, "tag", "", "image tag for the registry")

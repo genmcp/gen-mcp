@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/genmcp/gen-mcp/pkg/config"
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 	cliInv "github.com/genmcp/gen-mcp/pkg/invocation/cli"
 	httpInv "github.com/genmcp/gen-mcp/pkg/invocation/http"
@@ -23,14 +24,14 @@ func TestParseMcpFile(t *testing.T) {
 			testFileName: "no-servers.yaml",
 			expected: &MCPToolDefinitionsFile{
 				Kind:          KindMCPToolDefinitions,
-				SchemaVersion: SchemaVersion,
+				SchemaVersion: config.SchemaVersion,
 			},
 		},
 		"no tools": {
 			testFileName: "one-server-no-tools.yaml",
 			expected: &MCPToolDefinitionsFile{
 				Kind:          KindMCPToolDefinitions,
-				SchemaVersion: SchemaVersion,
+				SchemaVersion: config.SchemaVersion,
 				MCPToolDefinitions: MCPToolDefinitions{
 					Name:    "test-server",
 					Version: "1.0.0",
@@ -41,7 +42,7 @@ func TestParseMcpFile(t *testing.T) {
 			testFileName: "one-server-instructions.yaml",
 			expected: &MCPToolDefinitionsFile{
 				Kind:          KindMCPToolDefinitions,
-				SchemaVersion: SchemaVersion,
+				SchemaVersion: config.SchemaVersion,
 				MCPToolDefinitions: MCPToolDefinitions{
 					Name:         "test-server",
 					Version:      "1.0.0",
@@ -53,7 +54,7 @@ func TestParseMcpFile(t *testing.T) {
 			testFileName: "one-server-tools.yaml",
 			expected: &MCPToolDefinitionsFile{
 				Kind:          KindMCPToolDefinitions,
-				SchemaVersion: SchemaVersion,
+				SchemaVersion: config.SchemaVersion,
 				MCPToolDefinitions: MCPToolDefinitions{
 					Name:    "test-server",
 					Version: "1.0.0",
@@ -94,7 +95,7 @@ func TestParseMcpFile(t *testing.T) {
 			testFileName: "one-server-tools-http-params.yaml",
 			expected: &MCPToolDefinitionsFile{
 				Kind:          KindMCPToolDefinitions,
-				SchemaVersion: SchemaVersion,
+				SchemaVersion: config.SchemaVersion,
 				MCPToolDefinitions: MCPToolDefinitions{
 					Name:    "test-server",
 					Version: "1.0.0",
@@ -129,7 +130,7 @@ func TestParseMcpFile(t *testing.T) {
 			testFileName: "one-server-cli-tools.yaml",
 			expected: &MCPToolDefinitionsFile{
 				Kind:          KindMCPToolDefinitions,
-				SchemaVersion: SchemaVersion,
+				SchemaVersion: config.SchemaVersion,
 				MCPToolDefinitions: MCPToolDefinitions{
 					Name:    "test-server",
 					Version: "1.0.0",
@@ -181,7 +182,7 @@ func TestParseMcpFile(t *testing.T) {
 			testFileName: "one-server-prompts.yaml",
 			expected: &MCPToolDefinitionsFile{
 				Kind:          KindMCPToolDefinitions,
-				SchemaVersion: SchemaVersion,
+				SchemaVersion: config.SchemaVersion,
 				MCPToolDefinitions: MCPToolDefinitions{
 					Name:    "test-server",
 					Version: "1.0.0",
@@ -223,7 +224,7 @@ func TestParseMcpFile(t *testing.T) {
 			testFileName: "one-server-resources.yaml",
 			expected: &MCPToolDefinitionsFile{
 				Kind:          KindMCPToolDefinitions,
-				SchemaVersion: SchemaVersion,
+				SchemaVersion: config.SchemaVersion,
 				MCPToolDefinitions: MCPToolDefinitions{
 					Name:    "test-server",
 					Version: "1.0.0",
@@ -251,7 +252,7 @@ func TestParseMcpFile(t *testing.T) {
 			testFileName: "one-server-resource-templates.yaml",
 			expected: &MCPToolDefinitionsFile{
 				Kind:          KindMCPToolDefinitions,
-				SchemaVersion: SchemaVersion,
+				SchemaVersion: config.SchemaVersion,
 				MCPToolDefinitions: MCPToolDefinitions{
 					Name:    "test-server",
 					Version: "1.0.0",
@@ -292,7 +293,7 @@ func TestParseMcpFile(t *testing.T) {
 			testFileName: "full-demo.yaml",
 			expected: &MCPToolDefinitionsFile{
 				Kind:          KindMCPToolDefinitions,
-				SchemaVersion: SchemaVersion,
+				SchemaVersion: config.SchemaVersion,
 				MCPToolDefinitions: MCPToolDefinitions{
 					Name:    "git-github-example",
 					Version: "1.0.0",

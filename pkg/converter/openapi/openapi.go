@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/genmcp/gen-mcp/pkg/config"
 	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/invocation"
@@ -75,7 +76,7 @@ func McpFilesFromOpenApiV2Model(model *v2high.Swagger, host string) (*ConvertedM
 	// Create server config file
 	serverConfig := &serverconfig.MCPServerConfigFile{
 		Kind:          serverconfig.KindMCPServerConfig,
-		SchemaVersion: serverconfig.SchemaVersion,
+		SchemaVersion: config.SchemaVersion,
 		MCPServerConfig: serverconfig.MCPServerConfig{
 			Name:    title,
 			Version: version,
@@ -92,7 +93,7 @@ func McpFilesFromOpenApiV2Model(model *v2high.Swagger, host string) (*ConvertedM
 	// Create tool definitions file
 	toolDefinitions := &definitions.MCPToolDefinitionsFile{
 		Kind:          definitions.KindMCPToolDefinitions,
-		SchemaVersion: definitions.SchemaVersion,
+		SchemaVersion: config.SchemaVersion,
 		MCPToolDefinitions: definitions.MCPToolDefinitions{
 			Name:            title,
 			Version:         version,
@@ -290,7 +291,7 @@ func McpFilesFromOpenApiV3Model(model *v3high.Document, host string) (*Converted
 	// Create server config file
 	serverConfig := &serverconfig.MCPServerConfigFile{
 		Kind:          serverconfig.KindMCPServerConfig,
-		SchemaVersion: serverconfig.SchemaVersion,
+		SchemaVersion: config.SchemaVersion,
 		MCPServerConfig: serverconfig.MCPServerConfig{
 			Name:    title,
 			Version: version,
@@ -307,7 +308,7 @@ func McpFilesFromOpenApiV3Model(model *v3high.Document, host string) (*Converted
 	// Create tool definitions file
 	toolDefinitions := &definitions.MCPToolDefinitionsFile{
 		Kind:          definitions.KindMCPToolDefinitions,
-		SchemaVersion: definitions.SchemaVersion,
+		SchemaVersion: config.SchemaVersion,
 		MCPToolDefinitions: definitions.MCPToolDefinitions{
 			Name:            title,
 			Version:         version,

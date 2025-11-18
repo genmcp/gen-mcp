@@ -1,4 +1,4 @@
-package mcpfile
+package server
 
 import (
 	"os"

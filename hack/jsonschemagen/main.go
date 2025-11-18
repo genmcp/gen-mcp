@@ -12,6 +12,7 @@ import (
 
 	"github.com/invopop/jsonschema"
 
+	"github.com/genmcp/gen-mcp/pkg/config"
 	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/invocation/cli"
@@ -413,7 +414,7 @@ func generateSchema(rootType interface{}, rootBase, rootPath string, schemaID, s
 }
 
 func main() {
-	schemaVersion := definitions.SchemaVersion
+	schemaVersion := config.SchemaVersion
 	specsDir := filepath.Join("..", "..", "specs")
 
 	// Generate Tool Definitions schema

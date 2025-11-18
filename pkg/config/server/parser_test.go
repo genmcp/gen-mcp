@@ -1,9 +1,10 @@
-package mcpfile
+package server
 
 import (
 	"fmt"
 	"testing"
 
+	"github.com/genmcp/gen-mcp/pkg/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,14 +19,14 @@ func TestParseMcpFile(t *testing.T) {
 			testFileName: "no-servers.yaml",
 			expected: &MCPServerConfigFile{
 				Kind:          KindMCPServerConfig,
-				SchemaVersion: SchemaVersion,
+				SchemaVersion: config.SchemaVersion,
 			},
 		},
 		"stateful": {
 			testFileName: "one-server-stateful.yaml",
 			expected: &MCPServerConfigFile{
 				Kind:          KindMCPServerConfig,
-				SchemaVersion: SchemaVersion,
+				SchemaVersion: config.SchemaVersion,
 				MCPServerConfig: MCPServerConfig{
 					Name:    "test-server",
 					Version: "1.0.0",
@@ -44,7 +45,7 @@ func TestParseMcpFile(t *testing.T) {
 			testFileName: "server-runtime-stdio.yaml",
 			expected: &MCPServerConfigFile{
 				Kind:          KindMCPServerConfig,
-				SchemaVersion: SchemaVersion,
+				SchemaVersion: config.SchemaVersion,
 				MCPServerConfig: MCPServerConfig{
 					Name:    "test-server",
 					Version: "1.0.0",
@@ -58,7 +59,7 @@ func TestParseMcpFile(t *testing.T) {
 			testFileName: "full-demo.yaml",
 			expected: &MCPServerConfigFile{
 				Kind:          KindMCPServerConfig,
-				SchemaVersion: SchemaVersion,
+				SchemaVersion: config.SchemaVersion,
 				MCPServerConfig: MCPServerConfig{
 					Name:    "git-github-example",
 					Version: "1.0.0",
@@ -76,7 +77,7 @@ func TestParseMcpFile(t *testing.T) {
 			testFileName: "one-server-tls.yaml",
 			expected: &MCPServerConfigFile{
 				Kind:          KindMCPServerConfig,
-				SchemaVersion: SchemaVersion,
+				SchemaVersion: config.SchemaVersion,
 				MCPServerConfig: MCPServerConfig{
 					Name:    "test-server",
 					Version: "1.0.0",

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/genmcp/gen-mcp/pkg/config"
 	"github.com/genmcp/gen-mcp/pkg/invocation/extends"
 	"github.com/google/jsonschema-go/jsonschema"
 	"sigs.k8s.io/yaml"
@@ -61,8 +62,8 @@ func (m *MCPToolDefinitionsFile) UnmarshalJSON(data []byte) error {
 		}
 	}
 
-	if m.SchemaVersion != SchemaVersion {
-		return fmt.Errorf("invalid schema version %s, expected %s - please migrate your file and handle any breaking changes", m.SchemaVersion, SchemaVersion)
+	if m.SchemaVersion != config.SchemaVersion {
+		return fmt.Errorf("invalid schema version %s, expected %s - please migrate your file and handle any breaking changes", m.SchemaVersion, config.SchemaVersion)
 	}
 
 	// Unmarshal the rest into MCPToolDefinitions

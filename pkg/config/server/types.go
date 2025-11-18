@@ -1,4 +1,4 @@
-package mcpfile
+package server
 
 import (
 	"fmt"
@@ -10,9 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// TODO: not used?
 const (
-	SchemaVersion                   = "0.2.0"
 	TransportProtocolStreamableHttp = "streamablehttp"
 	TransportProtocolStdio          = "stdio"
 	KindMCPServerConfig             = "MCPServerConfig"

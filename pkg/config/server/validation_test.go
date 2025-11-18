@@ -1,20 +1,16 @@
-package mcpfile
+package server
 
 import (
 	"testing"
 
-	"github.com/genmcp/gen-mcp/pkg/invocation"
+	"github.com/genmcp/gen-mcp/pkg/config"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMCPFileValidate(t *testing.T) {
-	mockValidator := func(primitive invocation.Primitive) error {
-		return nil
-	}
-
+func TestServerFileValidate(t *testing.T) {
 	t.Run("missing name should fail validation", func(t *testing.T) {
-		mcpFile := &MCPServerConfigFile{
-			SchemaVersion: SchemaVersion,
+		serverConfig := &MCPServerConfigFile{
+			SchemaVersion: config.SchemaVersion,
 			MCPServerConfig: MCPServerConfig{
 				Version: "1.0.0",
 				Runtime: &ServerRuntime{
@@ -26,14 +22,14 @@ func TestMCPFileValidate(t *testing.T) {
 				},
 			},
 		}
-		err := mcpFile.Validate(mockValidator)
+		err := serverConfig.Validate()
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "name is required")
 	})
 
 	t.Run("missing version should fail validation", func(t *testing.T) {
-		mcpFile := &MCPServerConfigFile{
-			SchemaVersion: SchemaVersion,
+		serverConfig := &MCPServerConfigFile{
+			SchemaVersion: config.SchemaVersion,
 			MCPServerConfig: MCPServerConfig{
 				Name: "test-server",
 				Runtime: &ServerRuntime{
@@ -45,14 +41,14 @@ func TestMCPFileValidate(t *testing.T) {
 				},
 			},
 		}
-		err := mcpFile.Validate(mockValidator)
+		err := serverConfig.Validate()
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "version is required")
 	})
 
 	t.Run("valid server should pass validation", func(t *testing.T) {
-		mcpFile := &MCPServerConfigFile{
-			SchemaVersion: SchemaVersion,
+		serverConfig := &MCPServerConfigFile{
+			SchemaVersion: config.SchemaVersion,
 			MCPServerConfig: MCPServerConfig{
 				Name:    "test-server",
 				Version: "1.0.0",
@@ -65,7 +61,7 @@ func TestMCPFileValidate(t *testing.T) {
 				},
 			},
 		}
-		err := mcpFile.Validate(mockValidator)
+		err := serverConfig.Validate()
 		assert.NoError(t, err)
 	})
 }

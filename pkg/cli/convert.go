@@ -15,9 +15,7 @@ import (
 
 func init() {
 	rootCmd.AddCommand(convertCmd)
-	// TODO: change it to mcpfile
 	convertCmd.Flags().StringVarP(&toolDefinitionsPath, "file", "f", "mcpfile.yaml", "the path to write the tool definitions file to")
-	// TODO: rename
 	convertCmd.Flags().StringVarP(&serverConfigPath, "server-config", "s", "mcpfile-server.yaml", "the path to write the server config file to")
 	convertCmd.Flags().StringVarP(&host, "host", "H", "", "the base host for the API, if different than in the OpenAPI spec")
 }
