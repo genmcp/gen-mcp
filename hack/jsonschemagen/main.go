@@ -422,7 +422,7 @@ func main() {
 		&definitions.MCPToolDefinitionsFile{},
 		"github.com/genmcp/gen-mcp/pkg/config/definitions",
 		"../../pkg/config/definitions",
-		fmt.Sprintf("https://github.com/genmcp/gen-mcp/pkg/config/definitions/tool-definitions-schema-%s", schemaVersion),
+		fmt.Sprintf("https://github.com/genmcp/gen-mcp/pkg/config/definitions/mcpfile-schema-%s", schemaVersion),
 		"#/$defs/MCPToolDefinitionsFile",
 	)
 
@@ -432,8 +432,8 @@ func main() {
 	}
 
 	// Write Tool Definitions schema files
-	toolDefsVersionedFile := filepath.Join(specsDir, fmt.Sprintf("tool-definitions-schema-%s.json", schemaVersion))
-	toolDefsLatestFile := filepath.Join(specsDir, "tool-definitions-schema.json")
+	toolDefsVersionedFile := filepath.Join(specsDir, fmt.Sprintf("mcpfile-schema-%s.json", schemaVersion))
+	toolDefsLatestFile := filepath.Join(specsDir, "mcpfile-schema.json")
 
 	if err := os.WriteFile(toolDefsVersionedFile, toolDefsSchemaJSON, 0644); err != nil {
 		log.Fatalf("Failed to write versioned tool definitions schema: %v", err)
@@ -451,7 +451,7 @@ func main() {
 		&serverconfig.MCPServerConfigFile{},
 		"github.com/genmcp/gen-mcp/pkg/config/server",
 		"../../pkg/config/server",
-		fmt.Sprintf("https://github.com/genmcp/gen-mcp/pkg/config/server/server-config-schema-%s", schemaVersion),
+		fmt.Sprintf("https://github.com/genmcp/gen-mcp/pkg/config/server/mcpserver-schema-%s", schemaVersion),
 		"#/$defs/MCPServerConfigFile",
 	)
 
@@ -461,8 +461,8 @@ func main() {
 	}
 
 	// Write Server Config schema files
-	serverConfigVersionedFile := filepath.Join(specsDir, fmt.Sprintf("server-config-schema-%s.json", schemaVersion))
-	serverConfigLatestFile := filepath.Join(specsDir, "server-config-schema.json")
+	serverConfigVersionedFile := filepath.Join(specsDir, fmt.Sprintf("mcpserver-schema-%s.json", schemaVersion))
+	serverConfigLatestFile := filepath.Join(specsDir, "mcpserver-schema.json")
 
 	if err := os.WriteFile(serverConfigVersionedFile, serverConfigSchemaJSON, 0644); err != nil {
 		log.Fatalf("Failed to write versioned server config schema: %v", err)

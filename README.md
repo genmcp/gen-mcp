@@ -230,7 +230,7 @@ To make use of the schemas, add a `yaml-language-server` comment at the top of y
 
 **Tool Definitions File:**
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/tool-definitions-schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/mcpfile-schema.json
 kind: MCPToolDefinitions
 schemaVersion: "0.2.0"
 name: ...
@@ -238,7 +238,7 @@ name: ...
 
 **Server Config File:**
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/server-config-schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/mcpserver-schema.json
 kind: MCPServerConfig
 schemaVersion: "0.2.0"
 name: ...

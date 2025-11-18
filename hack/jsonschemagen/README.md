@@ -37,21 +37,21 @@ This will generate the schema files inside the `specs` directory relative to the
 The tool generates four files (two for each file type):
 
 ### Tool Definitions Schema
-- **`../../specs/tool-definitions-schema-<version>.json`** — The versioned JSON schema for tool definitions files, where `<version>` is taken from `definitions.SchemaVersion`.
-- **`../../specs/tool-definitions-schema.json`** — The "latest" schema, identical in content to the versioned one.
+- **`../../specs/mcpfile-schema-<version>.json`** — The versioned JSON schema for tool definitions files, where `<version>` is taken from `definitions.SchemaVersion`.
+- **`../../specs/mcpfile-schema.json`** — The "latest" schema, identical in content to the versioned one.
 
 ### Server Config Schema
-- **`../../specs/server-config-schema-<version>.json`** — The versioned JSON schema for server config files, where `<version>` is taken from `definitions.SchemaVersion`.
-- **`../../specs/server-config-schema.json`** — The "latest" schema, identical in content to the versioned one.
+- **`../../specs/mcpserver-schema-<version>.json`** — The versioned JSON schema for server config files, where `<version>` is taken from `definitions.SchemaVersion`.
+- **`../../specs/mcpserver-schema.json`** — The "latest" schema, identical in content to the versioned one.
 
 Example output:
 
 ```
 specs/
-├── tool-definitions-schema-0.2.0.json
-├── tool-definitions-schema.json
-├── server-config-schema-0.2.0.json
-└── server-config-schema.json
+├── mcpfile-schema-0.2.0.json
+├── mcpfile-schema.json
+├── mcpserver-schema-0.2.0.json
+└── mcpserver-schema.json
 ```
 
 ## Using the Generated Schemas
@@ -60,7 +60,7 @@ The schemas can be referenced in YAML files using the `yaml-language-server` dir
 
 **Tool Definitions File:**
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/tool-definitions-schema-0.2.0.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/mcpfile-schema-0.2.0.json
 
 kind: MCPToolDefinitions
 schemaVersion: "0.2.0"
@@ -69,7 +69,7 @@ schemaVersion: "0.2.0"
 
 **Server Config File:**
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/server-config-schema-0.2.0.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/mcpserver-schema-0.2.0.json
 
 kind: MCPServerConfig
 schemaVersion: "0.2.0"

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/genmcp/gen-mcp/pkg/config/server/server-config-schema-0.2.0",
+  "$id": "https://github.com/genmcp/gen-mcp/pkg/config/server/mcpserver-schema-0.2.0",
   "$ref": "#/$defs/MCPServerConfigFile",
   "$defs": {
     "AuthConfig": {

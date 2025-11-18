@@ -553,7 +553,7 @@ tools:
         url: http://localhost:9090/features
 ```
 
-**Server Config File** (`server-config.yaml`):
+**Server Config File** (`mcpserver.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -590,7 +590,7 @@ tools:
         url: http://localhost:8080/health
 ```
 
-**Server Config File** (`server-config.yaml`):
+**Server Config File** (`mcpserver.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -714,7 +714,7 @@ tools:
       - admin:read
 ```
 
-**Server Config File** (`server-config.yaml`):
+**Server Config File** (`mcpserver.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -749,7 +749,7 @@ tools:
         url: https://api.example.com/secure
 ```
 
-**Server Config File** (`server-config.yaml`):
+**Server Config File** (`mcpserver.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -788,7 +788,7 @@ tools:
         url: https://api.example.com/admin/action
 ```
 
-**Server Config File** (`server-config.yaml`):
+**Server Config File** (`mcpserver.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -828,7 +828,7 @@ tools:
         url: https://api.example.com/admin/secure-action
 ```
 
-**Server Config File** (`server-config.yaml`):
+**Server Config File** (`mcpserver.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -893,7 +893,7 @@ tools:
             omitIfFalse: true
 ```
 
-**Server Config File** (`server-config.yaml`):
+**Server Config File** (`mcpserver.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -931,7 +931,7 @@ tools:
       url: http://localhost:8080/users/{userId}
 ```
 
-**Server Config File** (`server-config.yaml`):
+**Server Config File** (`mcpserver.yaml`):
 
 ```yaml
 kind: MCPServerConfig

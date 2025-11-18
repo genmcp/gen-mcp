@@ -168,7 +168,7 @@ func TestImageBuilder_Build(t *testing.T) {
 				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpToolDefsData, nil)
 
 				// Mock MCP server config file operations
-				mcpServerConfigData := []byte("fake-mcp-server-config-data")
+				mcpServerConfigData := []byte("fake-mcp-mcpserver-data")
 				mcpServerConfigInfo := &mockFileInfo{name: "mcpserver.yaml", size: int64(len(mcpServerConfigData))}
 				mfs.On("Stat", "/test/mcpserver.yaml").Return(mcpServerConfigInfo, nil)
 				mfs.On("ReadFile", "/test/mcpserver.yaml").Return(mcpServerConfigData, nil)
@@ -199,7 +199,7 @@ func TestImageBuilder_Build(t *testing.T) {
 				mfs.On("Stat", "/custom/mcpfile.yaml").Return(mcpToolDefsInfo, nil)
 				mfs.On("ReadFile", "/custom/mcpfile.yaml").Return(mcpToolDefsData, nil)
 
-				mcpServerConfigData := []byte("custom-mcp-server-config-data")
+				mcpServerConfigData := []byte("custom-mcp-mcpserver-data")
 				mcpServerConfigInfo := &mockFileInfo{name: "mcpserver.yaml", size: int64(len(mcpServerConfigData))}
 				mfs.On("Stat", "/custom/mcpserver.yaml").Return(mcpServerConfigInfo, nil)
 				mfs.On("ReadFile", "/custom/mcpserver.yaml").Return(mcpServerConfigData, nil)
@@ -289,7 +289,7 @@ func TestImageBuilder_Build(t *testing.T) {
 				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil)
 				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpToolDefsData, nil)
 
-				mcpServerConfigData := []byte("fake-mcp-server-config-data")
+				mcpServerConfigData := []byte("fake-mcp-mcpserver-data")
 				mcpServerConfigInfo := &mockFileInfo{name: "mcpserver.yaml", size: int64(len(mcpServerConfigData))}
 				mfs.On("Stat", "/test/mcpserver.yaml").Return(mcpServerConfigInfo, nil)
 				mfs.On("ReadFile", "/test/mcpserver.yaml").Return(mcpServerConfigData, nil)
@@ -589,7 +589,7 @@ func TestImageBuilder_BuildMultiArch(t *testing.T) {
 				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpToolDefsData, nil).Times(2)
 
 				// Mock MCP server config file operations
-				mcpServerConfigData := []byte("fake-mcp-server-config-data")
+				mcpServerConfigData := []byte("fake-mcp-mcpserver-data")
 				mcpServerConfigInfo := &mockFileInfo{name: "mcpserver.yaml", size: int64(len(mcpServerConfigData))}
 				mfs.On("Stat", "/test/mcpserver.yaml").Return(mcpServerConfigInfo, nil).Times(2)
 				mfs.On("ReadFile", "/test/mcpserver.yaml").Return(mcpServerConfigData, nil).Times(2)
@@ -648,7 +648,7 @@ func TestImageBuilder_BuildMultiArch(t *testing.T) {
 				mfs.On("ReadFile", "/custom/mcpfile.yaml").Return(mcpToolDefsData, nil).Times(2)
 
 				// Mock MCP server config file operations
-				mcpServerConfigData := []byte("custom-mcp-server-config-data")
+				mcpServerConfigData := []byte("custom-mcp-mcpserver-data")
 				mcpServerConfigInfo := &mockFileInfo{name: "mcpserver.yaml", size: int64(len(mcpServerConfigData))}
 				mfs.On("Stat", "/custom/mcpserver.yaml").Return(mcpServerConfigInfo, nil).Times(2)
 				mfs.On("ReadFile", "/custom/mcpserver.yaml").Return(mcpServerConfigData, nil).Times(2)
@@ -685,7 +685,7 @@ func TestImageBuilder_BuildMultiArch(t *testing.T) {
 				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil).Maybe()
 				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpToolDefsData, nil).Maybe()
 
-				mcpServerConfigData := []byte("fake-mcp-server-config-data")
+				mcpServerConfigData := []byte("fake-mcp-mcpserver-data")
 				mcpServerConfigInfo := &mockFileInfo{name: "mcpserver.yaml", size: int64(len(mcpServerConfigData))}
 				mfs.On("Stat", "/test/mcpserver.yaml").Return(mcpServerConfigInfo, nil).Maybe()
 				mfs.On("ReadFile", "/test/mcpserver.yaml").Return(mcpServerConfigData, nil).Maybe()

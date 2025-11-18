@@ -1,26 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/genmcp/gen-mcp/pkg/mcpserver/mcp-server",
-  "$ref": "#/$defs/MCPServer",
+  "$id": "https://github.com/genmcp/gen-mcp/pkg/config/definitions/mcpfile-schema-0.2.0",
+  "$ref": "#/$defs/MCPToolDefinitionsFile",
   "$defs": {
-    "AuthConfig": {
-      "properties": {
-        "authorizationServers": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array",
-          "description": "List of authorization server URLs for token validation."
-        },
-        "jwksUri": {
-          "type": "string",
-          "description": "URI for the JSON Web Key Set (JWKS) used for token verification."
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "description": "AuthConfig defines OAuth 2.0 authorization settings."
-    },
     "CliInvocationConfig": {
       "properties": {
         "command": {
@@ -146,126 +128,79 @@
       ],
       "description": "A wrapper for invocation configurations. Must contain exactly one invocation type key (http, cli, or extends) with its corresponding configuration."
     },
-    "LoggingConfig": {
+    "MCPToolDefinitionsFile": {
       "properties": {
-        "level": {
+        "kind": {
           "type": "string"
         },
-        "development": {
-          "type": "boolean"
-        },
-        "disableCaller": {
-          "type": "boolean"
-        },
-        "disableStacktrace": {
-          "type": "boolean"
-        },
-        "encoding": {
+        "schemaVersion": {
           "type": "string"
         },
-        "outputPaths": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "errorOutputPaths": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "initialFields": {
-          "type": "object"
-        },
-        "enableMcpLogs": {
-          "type": "boolean"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object"
-    },
-    "MCPServer": {
-      "properties": {
         "name": {
-          "type": "string",
-          "description": "Name of the MCP server."
+          "type": "string"
         },
         "version": {
-          "type": "string",
-          "description": "Semantic version of the MCP server."
+          "type": "string"
         },
         "instructions": {
-          "type": "string",
-          "description": "A set of instructions provided by the server to the client about how to use the server"
+          "type": "string"
         },
         "invocationBases": {
           "additionalProperties": {
             "$ref": "#/$defs/InvocationConfigWrapper"
           },
-          "type": "object",
-          "description": "InvocationBases contains base configs for invocations"
+          "type": "object"
         },
         "tools": {
           "items": {
             "$ref": "#/$defs/Tool"
           },
-          "type": "array",
-          "description": "List of tools provided by the server."
+          "type": "array"
         },
         "prompts": {
           "items": {
             "$ref": "#/$defs/Prompt"
           },
-          "type": "array",
-          "description": "List of prompts provided by the server."
+          "type": "array"
         },
         "resources": {
           "items": {
             "$ref": "#/$defs/Resource"
           },
-          "type": "array",
-          "description": "Set of resources available to the server."
+          "type": "array"
         },
         "resourceTemplates": {
           "items": {
             "$ref": "#/$defs/ResourceTemplate"
           },
-          "type": "array",
-          "description": "Set of resource templates available to the server."
-        },
-        "runtime": {
-          "$ref": "#/$defs/ServerRuntime",
-          "description": "Runtime configuration for the MCP server."
+          "type": "array"
         }
       },
       "additionalProperties": false,
       "type": "object",
       "required": [
+        "kind",
         "name",
+        "schemaVersion",
         "version"
       ]
     },
     "Prompt": {
       "properties": {
         "name": {
-          "type": "string",
-          "description": "Unique identifier for the prompt."
+          "type": "string"
         },
         "title": {
-          "type": "string",
-          "description": "Human-readable title for display purposes."
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "description": "Detailed description of what the prompt does."
+          "type": "string"
         },
         "arguments": {
           "items": {
             "$ref": "#/$defs/PromptArgument"
           },
-          "type": "array",
-          "description": "List of template arguments for the prompt."
+          "type": "array"
         },
         "inputSchema": {
           "properties": {
@@ -420,8 +355,7 @@
             }
           },
           "additionalProperties": true,
-          "type": "object",
-          "description": "Schema describing input parameters."
+          "type": "object"
         },
         "outputSchema": {
           "properties": {
@@ -576,8 +510,7 @@
             }
           },
           "additionalProperties": true,
-          "type": "object",
-          "description": "Optional schema describing prompt output."
+          "type": "object"
         },
         "invocation": {
           "oneOf": [
@@ -590,15 +523,13 @@
             {
               "$ref": "#/$defs/ExtendsConfig"
             }
-          ],
-          "description": "Object describing how to invoke the prompt."
+          ]
         },
         "requiredScopes": {
           "items": {
             "type": "string"
           },
-          "type": "array",
-          "description": "OAuth scopes required to invoke this prompt."
+          "type": "array"
         }
       },
       "additionalProperties": false,
@@ -608,60 +539,48 @@
         "description",
         "inputSchema",
         "invocation"
-      ],
-      "description": "Prompt represents a natural-language or LLM-style function invocation."
+      ]
     },
     "PromptArgument": {
       "properties": {
         "name": {
-          "type": "string",
-          "description": "Unique identifier for the argument."
+          "type": "string"
         },
         "title": {
-          "type": "string",
-          "description": "Human-readable title for display."
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "description": "Detailed explanation of the argument."
+          "type": "string"
         },
         "required": {
-          "type": "boolean",
-          "description": "Indicates if the argument is mandatory."
+          "type": "boolean"
         }
       },
       "additionalProperties": false,
       "type": "object",
       "required": [
         "name"
-      ],
-      "description": "PromptArgument defines a variable that can be substituted into a prompt template."
+      ]
     },
     "Resource": {
       "properties": {
         "name": {
-          "type": "string",
-          "description": "Unique identifier for the resource."
+          "type": "string"
         },
         "title": {
-          "type": "string",
-          "description": "Human-readable title for display purposes."
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "description": "Detailed description of the resource."
+          "type": "string"
         },
         "mimeType": {
-          "type": "string",
-          "description": "The MIME type of this resource, if known."
+          "type": "string"
         },
         "size": {
-          "type": "integer",
-          "description": "The size of the raw resource content in bytes, if known."
+          "type": "integer"
         },
         "uri": {
-          "type": "string",
-          "description": "The URI of this resource."
+          "type": "string"
         },
         "inputSchema": {
           "properties": {
@@ -816,8 +735,7 @@
             }
           },
           "additionalProperties": true,
-          "type": "object",
-          "description": "Schema describing input parameters (optional for resources without inputs)."
+          "type": "object"
         },
         "outputSchema": {
           "properties": {
@@ -972,8 +890,7 @@
             }
           },
           "additionalProperties": true,
-          "type": "object",
-          "description": "Optional schema describing resource output."
+          "type": "object"
         },
         "invocation": {
           "oneOf": [
@@ -986,15 +903,13 @@
             {
               "$ref": "#/$defs/ExtendsConfig"
             }
-          ],
-          "description": "Object describing how to invoke the resource."
+          ]
         },
         "requiredScopes": {
           "items": {
             "type": "string"
           },
-          "type": "array",
-          "description": "OAuth scopes required to access this resource."
+          "type": "array"
         }
       },
       "additionalProperties": false,
@@ -1004,30 +919,24 @@
         "description",
         "uri",
         "invocation"
-      ],
-      "description": "Resource represents a retrievable or executable resource."
+      ]
     },
     "ResourceTemplate": {
       "properties": {
         "name": {
-          "type": "string",
-          "description": "Unique identifier for the resource template."
+          "type": "string"
         },
         "title": {
-          "type": "string",
-          "description": "Human-readable title for display purposes."
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "description": "Detailed description of the resource template."
+          "type": "string"
         },
         "mimeType": {
-          "type": "string",
-          "description": "MIME type for resources matching this template."
+          "type": "string"
         },
         "uriTemplate": {
-          "type": "string",
-          "description": "URI template (RFC 6570) used to construct resource URIs."
+          "type": "string"
         },
         "inputSchema": {
           "properties": {
@@ -1182,8 +1091,7 @@
             }
           },
           "additionalProperties": true,
-          "type": "object",
-          "description": "Schema describing input parameters."
+          "type": "object"
         },
         "outputSchema": {
           "properties": {
@@ -1338,8 +1246,7 @@
             }
           },
           "additionalProperties": true,
-          "type": "object",
-          "description": "Optional schema describing resource output."
+          "type": "object"
         },
         "invocation": {
           "oneOf": [
@@ -1352,15 +1259,13 @@
             {
               "$ref": "#/$defs/ExtendsConfig"
             }
-          ],
-          "description": "Object describing how to invoke the resource template."
+          ]
         },
         "requiredScopes": {
           "items": {
             "type": "string"
           },
-          "type": "array",
-          "description": "OAuth scopes required to access this resource template."
+          "type": "array"
         }
       },
       "additionalProperties": false,
@@ -1371,85 +1276,7 @@
         "uriTemplate",
         "inputSchema",
         "invocation"
-      ],
-      "description": "ResourceTemplate represents a reusable URI-based template for resources."
-    },
-    "ServerRuntime": {
-      "properties": {
-        "transportProtocol": {
-          "type": "string",
-          "description": "Transport protocol to use (streamablehttp or stdio)."
-        },
-        "streamableHttpConfig": {
-          "$ref": "#/$defs/StreamableHTTPConfig",
-          "description": "Configuration for streamable HTTP transport protocol."
-        },
-        "stdioConfig": {
-          "$ref": "#/$defs/StdioConfig",
-          "description": "Configuration for stdio transport protocol."
-        },
-        "loggingConfig": {
-          "$ref": "#/$defs/LoggingConfig",
-          "description": "Configuration for the server logging"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "required": [
-        "transportProtocol"
-      ],
-      "description": "ServerRuntime defines transport protocol and associated configuration."
-    },
-    "StdioConfig": {
-      "properties": {},
-      "additionalProperties": false,
-      "type": "object",
-      "description": "StdioConfig defines configuration for stdio transport protocol."
-    },
-    "StreamableHTTPConfig": {
-      "properties": {
-        "port": {
-          "type": "integer",
-          "description": "Port number to listen on."
-        },
-        "basePath": {
-          "type": "string",
-          "description": "Base path for the MCP server (default: /mcp)."
-        },
-        "stateless": {
-          "type": "boolean",
-          "description": "Indicates whether the server is stateless (default: true when unset)."
-        },
-        "auth": {
-          "$ref": "#/$defs/AuthConfig",
-          "description": "OAuth 2.0 configuration for protected resources."
-        },
-        "tls": {
-          "$ref": "#/$defs/TLSConfig",
-          "description": "TLS configuration for HTTPS."
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "required": [
-        "port"
-      ],
-      "description": "StreamableHTTPConfig defines configuration for the HTTP-based runtime."
-    },
-    "TLSConfig": {
-      "properties": {
-        "certFile": {
-          "type": "string",
-          "description": "Absolute path to the server's public certificate."
-        },
-        "keyFile": {
-          "type": "string",
-          "description": "Absolute path to the server's private key."
-        }
-      },
-      "additionalProperties": false,
-      "type": "object",
-      "description": "TLSConfig defines paths to TLS certificate and private key files."
+      ]
     },
     "TemplateVariable": {
       "properties": {
@@ -1472,16 +1299,13 @@
     "Tool": {
       "properties": {
         "name": {
-          "type": "string",
-          "description": "Unique identifier for the tool."
+          "type": "string"
         },
         "title": {
-          "type": "string",
-          "description": "Human-readable title for display purposes."
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "description": "Detailed description of the tool's purpose."
+          "type": "string"
         },
         "inputSchema": {
           "properties": {
@@ -1636,8 +1460,7 @@
             }
           },
           "additionalProperties": true,
-          "type": "object",
-          "description": "JSON Schema describing input parameters."
+          "type": "object"
         },
         "outputSchema": {
           "properties": {
@@ -1792,8 +1615,7 @@
             }
           },
           "additionalProperties": true,
-          "type": "object",
-          "description": "Optional JSON Schema describing output."
+          "type": "object"
         },
         "invocation": {
           "oneOf": [
@@ -1806,19 +1628,16 @@
             {
               "$ref": "#/$defs/ExtendsConfig"
             }
-          ],
-          "description": "Object describing how to execute the tool."
+          ]
         },
         "requiredScopes": {
           "items": {
             "type": "string"
           },
-          "type": "array",
-          "description": "OAuth scopes required to invoke this tool."
+          "type": "array"
         },
         "annotations": {
-          "$ref": "#/$defs/ToolAnnotations",
-          "description": "Annotations to indicate tool behaviour to the client."
+          "$ref": "#/$defs/ToolAnnotations"
         }
       },
       "additionalProperties": false,
@@ -1828,26 +1647,21 @@
         "description",
         "inputSchema",
         "invocation"
-      ],
-      "description": "Tool represents an executable capability of the MCP server."
+      ]
     },
     "ToolAnnotations": {
       "properties": {
         "destructiveHint": {
-          "type": "boolean",
-          "description": "If true, the tool may perform destructive updates to its environment. If\nfalse, the tool performs only additive updates"
+          "type": "boolean"
         },
         "idempotentHint": {
-          "type": "boolean",
-          "description": "If true, calling the tool repeatedly with the same arguments will have no additional\neffect on its environment"
+          "type": "boolean"
         },
         "openWorldHint": {
-          "type": "boolean",
-          "description": "If true, this tool may interact with an \"open world\" or external entities. If\nfalse, this tool's domain of interaction is closed. For example, the world of\na web search tool is open, whereas that of a memory tool is not."
+          "type": "boolean"
         },
         "readOnlyHint": {
-          "type": "boolean",
-          "description": "If true, the tool does not modify its environment"
+          "type": "boolean"
         }
       },
       "additionalProperties": false,

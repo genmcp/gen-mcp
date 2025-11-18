@@ -147,7 +147,7 @@ genmcp run
     <p><strong>Option B: Create Custom Tools</strong></p>
     <div class="code-example">
 {% highlight bash %}
-# Create mcpfile.yaml and server-config.yaml with your tools (see documentation)
+# Create mcpfile.yaml and mcpserver.yaml with your tools (see documentation)
 genmcp run
 {% endhighlight %}
     </div>
