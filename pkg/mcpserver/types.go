@@ -13,6 +13,7 @@ type MCPServer struct {
 	definitions.MCPToolDefinitions
 
 	// Server configuration (runtime, etc.)
+	//nolint:govet
 	serverconfig.MCPServerConfig
 }
 
