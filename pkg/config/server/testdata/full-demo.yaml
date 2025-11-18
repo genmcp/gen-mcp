@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../../../specs/mcpfile-schema.json
+# yaml-language-server: $schema=../../../specs/server-config-schema.json
 kind: MCPServerConfig
 schemaVersion: 0.2.0
 name: git-github-example

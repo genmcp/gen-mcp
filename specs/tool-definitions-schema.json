@@ -1,0 +1,1671 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/genmcp/gen-mcp/pkg/config/definitions/tool-definitions-schema-0.2.0",
+  "$ref": "#/$defs/MCPToolDefinitionsFile",
+  "$defs": {
+    "CliInvocationConfig": {
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "The command-line string to be executed. It can contain placeholders in the form of '{paramName}' which correspond to parameters defined in the input schema."
+        },
+        "templateVariables": {
+          "additionalProperties": {
+            "$ref": "#/$defs/TemplateVariable"
+          },
+          "type": "object",
+          "description": "Defines how input parameters are formatted into the command string.\nThe map key corresponds to the parameter name from the input schema."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "command"
+      ],
+      "description": "Configuration for executing a command-line tool."
+    },
+    "ExtendsConfig": {
+      "properties": {
+        "from": {
+          "type": "string",
+          "description": "From specifies the invocation base to extend from."
+        },
+        "extend": {
+          "type": "object",
+          "description": "Extend adds or merges new fields into the base configuration (e.g., append to arrays, merge maps)."
+        },
+        "override": {
+          "type": "object",
+          "description": "Override replaces fields in the base configuration with new values."
+        },
+        "remove": {
+          "type": "object",
+          "description": "Remove deletes specific fields from the base configuration (e.g., remove map keys, clear strings)."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "from"
+      ],
+      "description": "ExtendsConfig allows extending an invocation base with modifications."
+    },
+    "HttpInvocationConfig": {
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "The URL for the HTTP request.\n\nIt can contain placeholders in the form of {paramName} which correspond to parameters from the input schema.\nIt can contain placeholders in the form of {headers.paramName} which correspond to headers from the incoming\nhttp request (won't work in stdio).\nIt can contain placeholders in the form of ${ENV_VAR_NAME} or {env.ENV_VAR_NAME} which correspond to env vars"
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "The headers for the HTTP request.\n\nValues can contain placeholders in the form of {paramName} which correspond to parameters from the input schema.\nValues can contain placeholders in the form of {headers.paramName} which correspond to headers from the incoming\nhttp request (won't work in stdio).\nValues can contain placeholders in the form of ${ENV_VAR_NAME} or {env.ENV_VAR_NAME} which correspond to env vars"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "HEAD"
+          ],
+          "description": "The HTTP method to be used for the request (e.g., \"GET\", \"POST\")."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "method",
+        "url"
+      ],
+      "description": "The configuration for making an HTTP request."
+    },
+    "InvocationConfigWrapper": {
+      "oneOf": [
+        {
+          "properties": {
+            "http": {
+              "$ref": "#/$defs/HttpInvocationConfig"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "http"
+          ],
+          "description": "An invocation configuration using HTTP."
+        },
+        {
+          "properties": {
+            "cli": {
+              "$ref": "#/$defs/CliInvocationConfig"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "cli"
+          ],
+          "description": "An invocation configuration using CLI."
+        },
+        {
+          "properties": {
+            "extends": {
+              "$ref": "#/$defs/ExtendsConfig"
+            }
+          },
+          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "extends"
+          ],
+          "description": "An invocation configuration that extends a base configuration."
+        }
+      ],
+      "description": "A wrapper for invocation configurations. Must contain exactly one invocation type key (http, cli, or extends) with its corresponding configuration."
+    },
+    "MCPToolDefinitionsFile": {
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "schemaVersion": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "instructions": {
+          "type": "string"
+        },
+        "invocationBases": {
+          "additionalProperties": {
+            "$ref": "#/$defs/InvocationConfigWrapper"
+          },
+          "type": "object"
+        },
+        "tools": {
+          "items": {
+            "$ref": "#/$defs/Tool"
+          },
+          "type": "array"
+        },
+        "prompts": {
+          "items": {
+            "$ref": "#/$defs/Prompt"
+          },
+          "type": "array"
+        },
+        "resources": {
+          "items": {
+            "$ref": "#/$defs/Resource"
+          },
+          "type": "array"
+        },
+        "resourceTemplates": {
+          "items": {
+            "$ref": "#/$defs/ResourceTemplate"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "kind",
+        "name",
+        "schemaVersion",
+        "version"
+      ]
+    },
+    "Prompt": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "arguments": {
+          "items": {
+            "$ref": "#/$defs/PromptArgument"
+          },
+          "type": "array"
+        },
+        "inputSchema": {
+          "properties": {
+            "type": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "string",
+                    "number",
+                    "integer",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ],
+              "description": "The type of the value. Can be a single type or an array of types."
+            },
+            "properties": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "An object where each key is a property name and each value is a schema."
+            },
+            "required": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "description": "An array of required property names."
+            },
+            "additionalProperties": {
+              "description": "Whether additional properties are allowed (boolean) or a schema they must match (object)."
+            },
+            "items": {
+              "description": "Schema for array items. Can be a single schema or an array of schemas for tuple validation."
+            },
+            "description": {
+              "type": "string",
+              "description": "A description of the schema's purpose."
+            },
+            "title": {
+              "type": "string",
+              "description": "A short title for the schema."
+            },
+            "default": {
+              "description": "The default value for this schema."
+            },
+            "enum": {
+              "type": "array",
+              "description": "An array of allowed values."
+            },
+            "const": {
+              "description": "A constant value that must match exactly."
+            },
+            "$ref": {
+              "type": "string",
+              "description": "A reference to another schema definition (e.g., '#/$defs/MyType')."
+            },
+            "$defs": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "A container for reusable schema definitions."
+            },
+            "definitions": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "Legacy container for reusable schema definitions. Use $defs instead."
+            },
+            "allOf": {
+              "type": "array",
+              "description": "Must match all of the schemas in the array."
+            },
+            "anyOf": {
+              "type": "array",
+              "description": "Must match at least one of the schemas in the array."
+            },
+            "oneOf": {
+              "type": "array",
+              "description": "Must match exactly one of the schemas in the array."
+            },
+            "not": {
+              "description": "Must not match this schema."
+            },
+            "minimum": {
+              "type": "number",
+              "description": "Minimum value for numbers."
+            },
+            "maximum": {
+              "type": "number",
+              "description": "Maximum value for numbers."
+            },
+            "exclusiveMinimum": {
+              "type": "number",
+              "description": "Exclusive minimum value for numbers."
+            },
+            "exclusiveMaximum": {
+              "type": "number",
+              "description": "Exclusive maximum value for numbers."
+            },
+            "multipleOf": {
+              "type": "number",
+              "description": "Value must be a multiple of this number."
+            },
+            "minLength": {
+              "type": "integer",
+              "description": "Minimum length for strings."
+            },
+            "maxLength": {
+              "type": "integer",
+              "description": "Maximum length for strings."
+            },
+            "pattern": {
+              "type": "string",
+              "description": "Regular expression pattern that strings must match."
+            },
+            "format": {
+              "type": "string",
+              "description": "Format hint for strings (e.g., 'email', 'uri', 'date-time', 'uuid')."
+            },
+            "minItems": {
+              "type": "integer",
+              "description": "Minimum number of items in arrays."
+            },
+            "maxItems": {
+              "type": "integer",
+              "description": "Maximum number of items in arrays."
+            },
+            "uniqueItems": {
+              "type": "boolean",
+              "description": "Whether array items must be unique."
+            },
+            "minProperties": {
+              "type": "integer",
+              "description": "Minimum number of properties in objects."
+            },
+            "maxProperties": {
+              "type": "integer",
+              "description": "Maximum number of properties in objects."
+            },
+            "patternProperties": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "Schemas for properties matching regex patterns."
+            }
+          },
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "type": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "string",
+                    "number",
+                    "integer",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ],
+              "description": "The type of the value. Can be a single type or an array of types."
+            },
+            "properties": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "An object where each key is a property name and each value is a schema."
+            },
+            "required": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "description": "An array of required property names."
+            },
+            "additionalProperties": {
+              "description": "Whether additional properties are allowed (boolean) or a schema they must match (object)."
+            },
+            "items": {
+              "description": "Schema for array items. Can be a single schema or an array of schemas for tuple validation."
+            },
+            "description": {
+              "type": "string",
+              "description": "A description of the schema's purpose."
+            },
+            "title": {
+              "type": "string",
+              "description": "A short title for the schema."
+            },
+            "default": {
+              "description": "The default value for this schema."
+            },
+            "enum": {
+              "type": "array",
+              "description": "An array of allowed values."
+            },
+            "const": {
+              "description": "A constant value that must match exactly."
+            },
+            "$ref": {
+              "type": "string",
+              "description": "A reference to another schema definition (e.g., '#/$defs/MyType')."
+            },
+            "$defs": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "A container for reusable schema definitions."
+            },
+            "definitions": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "Legacy container for reusable schema definitions. Use $defs instead."
+            },
+            "allOf": {
+              "type": "array",
+              "description": "Must match all of the schemas in the array."
+            },
+            "anyOf": {
+              "type": "array",
+              "description": "Must match at least one of the schemas in the array."
+            },
+            "oneOf": {
+              "type": "array",
+              "description": "Must match exactly one of the schemas in the array."
+            },
+            "not": {
+              "description": "Must not match this schema."
+            },
+            "minimum": {
+              "type": "number",
+              "description": "Minimum value for numbers."
+            },
+            "maximum": {
+              "type": "number",
+              "description": "Maximum value for numbers."
+            },
+            "exclusiveMinimum": {
+              "type": "number",
+              "description": "Exclusive minimum value for numbers."
+            },
+            "exclusiveMaximum": {
+              "type": "number",
+              "description": "Exclusive maximum value for numbers."
+            },
+            "multipleOf": {
+              "type": "number",
+              "description": "Value must be a multiple of this number."
+            },
+            "minLength": {
+              "type": "integer",
+              "description": "Minimum length for strings."
+            },
+            "maxLength": {
+              "type": "integer",
+              "description": "Maximum length for strings."
+            },
+            "pattern": {
+              "type": "string",
+              "description": "Regular expression pattern that strings must match."
+            },
+            "format": {
+              "type": "string",
+              "description": "Format hint for strings (e.g., 'email', 'uri', 'date-time', 'uuid')."
+            },
+            "minItems": {
+              "type": "integer",
+              "description": "Minimum number of items in arrays."
+            },
+            "maxItems": {
+              "type": "integer",
+              "description": "Maximum number of items in arrays."
+            },
+            "uniqueItems": {
+              "type": "boolean",
+              "description": "Whether array items must be unique."
+            },
+            "minProperties": {
+              "type": "integer",
+              "description": "Minimum number of properties in objects."
+            },
+            "maxProperties": {
+              "type": "integer",
+              "description": "Maximum number of properties in objects."
+            },
+            "patternProperties": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "Schemas for properties matching regex patterns."
+            }
+          },
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "invocation": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/HttpInvocationConfig"
+            },
+            {
+              "$ref": "#/$defs/CliInvocationConfig"
+            },
+            {
+              "$ref": "#/$defs/ExtendsConfig"
+            }
+          ]
+        },
+        "requiredScopes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name",
+        "description",
+        "inputSchema",
+        "invocation"
+      ]
+    },
+    "PromptArgument": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name"
+      ]
+    },
+    "Resource": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "mimeType": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "inputSchema": {
+          "properties": {
+            "type": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "string",
+                    "number",
+                    "integer",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ],
+              "description": "The type of the value. Can be a single type or an array of types."
+            },
+            "properties": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "An object where each key is a property name and each value is a schema."
+            },
+            "required": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "description": "An array of required property names."
+            },
+            "additionalProperties": {
+              "description": "Whether additional properties are allowed (boolean) or a schema they must match (object)."
+            },
+            "items": {
+              "description": "Schema for array items. Can be a single schema or an array of schemas for tuple validation."
+            },
+            "description": {
+              "type": "string",
+              "description": "A description of the schema's purpose."
+            },
+            "title": {
+              "type": "string",
+              "description": "A short title for the schema."
+            },
+            "default": {
+              "description": "The default value for this schema."
+            },
+            "enum": {
+              "type": "array",
+              "description": "An array of allowed values."
+            },
+            "const": {
+              "description": "A constant value that must match exactly."
+            },
+            "$ref": {
+              "type": "string",
+              "description": "A reference to another schema definition (e.g., '#/$defs/MyType')."
+            },
+            "$defs": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "A container for reusable schema definitions."
+            },
+            "definitions": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "Legacy container for reusable schema definitions. Use $defs instead."
+            },
+            "allOf": {
+              "type": "array",
+              "description": "Must match all of the schemas in the array."
+            },
+            "anyOf": {
+              "type": "array",
+              "description": "Must match at least one of the schemas in the array."
+            },
+            "oneOf": {
+              "type": "array",
+              "description": "Must match exactly one of the schemas in the array."
+            },
+            "not": {
+              "description": "Must not match this schema."
+            },
+            "minimum": {
+              "type": "number",
+              "description": "Minimum value for numbers."
+            },
+            "maximum": {
+              "type": "number",
+              "description": "Maximum value for numbers."
+            },
+            "exclusiveMinimum": {
+              "type": "number",
+              "description": "Exclusive minimum value for numbers."
+            },
+            "exclusiveMaximum": {
+              "type": "number",
+              "description": "Exclusive maximum value for numbers."
+            },
+            "multipleOf": {
+              "type": "number",
+              "description": "Value must be a multiple of this number."
+            },
+            "minLength": {
+              "type": "integer",
+              "description": "Minimum length for strings."
+            },
+            "maxLength": {
+              "type": "integer",
+              "description": "Maximum length for strings."
+            },
+            "pattern": {
+              "type": "string",
+              "description": "Regular expression pattern that strings must match."
+            },
+            "format": {
+              "type": "string",
+              "description": "Format hint for strings (e.g., 'email', 'uri', 'date-time', 'uuid')."
+            },
+            "minItems": {
+              "type": "integer",
+              "description": "Minimum number of items in arrays."
+            },
+            "maxItems": {
+              "type": "integer",
+              "description": "Maximum number of items in arrays."
+            },
+            "uniqueItems": {
+              "type": "boolean",
+              "description": "Whether array items must be unique."
+            },
+            "minProperties": {
+              "type": "integer",
+              "description": "Minimum number of properties in objects."
+            },
+            "maxProperties": {
+              "type": "integer",
+              "description": "Maximum number of properties in objects."
+            },
+            "patternProperties": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "Schemas for properties matching regex patterns."
+            }
+          },
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "type": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "string",
+                    "number",
+                    "integer",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ],
+              "description": "The type of the value. Can be a single type or an array of types."
+            },
+            "properties": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "An object where each key is a property name and each value is a schema."
+            },
+            "required": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "description": "An array of required property names."
+            },
+            "additionalProperties": {
+              "description": "Whether additional properties are allowed (boolean) or a schema they must match (object)."
+            },
+            "items": {
+              "description": "Schema for array items. Can be a single schema or an array of schemas for tuple validation."
+            },
+            "description": {
+              "type": "string",
+              "description": "A description of the schema's purpose."
+            },
+            "title": {
+              "type": "string",
+              "description": "A short title for the schema."
+            },
+            "default": {
+              "description": "The default value for this schema."
+            },
+            "enum": {
+              "type": "array",
+              "description": "An array of allowed values."
+            },
+            "const": {
+              "description": "A constant value that must match exactly."
+            },
+            "$ref": {
+              "type": "string",
+              "description": "A reference to another schema definition (e.g., '#/$defs/MyType')."
+            },
+            "$defs": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "A container for reusable schema definitions."
+            },
+            "definitions": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "Legacy container for reusable schema definitions. Use $defs instead."
+            },
+            "allOf": {
+              "type": "array",
+              "description": "Must match all of the schemas in the array."
+            },
+            "anyOf": {
+              "type": "array",
+              "description": "Must match at least one of the schemas in the array."
+            },
+            "oneOf": {
+              "type": "array",
+              "description": "Must match exactly one of the schemas in the array."
+            },
+            "not": {
+              "description": "Must not match this schema."
+            },
+            "minimum": {
+              "type": "number",
+              "description": "Minimum value for numbers."
+            },
+            "maximum": {
+              "type": "number",
+              "description": "Maximum value for numbers."
+            },
+            "exclusiveMinimum": {
+              "type": "number",
+              "description": "Exclusive minimum value for numbers."
+            },
+            "exclusiveMaximum": {
+              "type": "number",
+              "description": "Exclusive maximum value for numbers."
+            },
+            "multipleOf": {
+              "type": "number",
+              "description": "Value must be a multiple of this number."
+            },
+            "minLength": {
+              "type": "integer",
+              "description": "Minimum length for strings."
+            },
+            "maxLength": {
+              "type": "integer",
+              "description": "Maximum length for strings."
+            },
+            "pattern": {
+              "type": "string",
+              "description": "Regular expression pattern that strings must match."
+            },
+            "format": {
+              "type": "string",
+              "description": "Format hint for strings (e.g., 'email', 'uri', 'date-time', 'uuid')."
+            },
+            "minItems": {
+              "type": "integer",
+              "description": "Minimum number of items in arrays."
+            },
+            "maxItems": {
+              "type": "integer",
+              "description": "Maximum number of items in arrays."
+            },
+            "uniqueItems": {
+              "type": "boolean",
+              "description": "Whether array items must be unique."
+            },
+            "minProperties": {
+              "type": "integer",
+              "description": "Minimum number of properties in objects."
+            },
+            "maxProperties": {
+              "type": "integer",
+              "description": "Maximum number of properties in objects."
+            },
+            "patternProperties": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "Schemas for properties matching regex patterns."
+            }
+          },
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "invocation": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/HttpInvocationConfig"
+            },
+            {
+              "$ref": "#/$defs/CliInvocationConfig"
+            },
+            {
+              "$ref": "#/$defs/ExtendsConfig"
+            }
+          ]
+        },
+        "requiredScopes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name",
+        "description",
+        "uri",
+        "invocation"
+      ]
+    },
+    "ResourceTemplate": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "mimeType": {
+          "type": "string"
+        },
+        "uriTemplate": {
+          "type": "string"
+        },
+        "inputSchema": {
+          "properties": {
+            "type": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "string",
+                    "number",
+                    "integer",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ],
+              "description": "The type of the value. Can be a single type or an array of types."
+            },
+            "properties": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "An object where each key is a property name and each value is a schema."
+            },
+            "required": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "description": "An array of required property names."
+            },
+            "additionalProperties": {
+              "description": "Whether additional properties are allowed (boolean) or a schema they must match (object)."
+            },
+            "items": {
+              "description": "Schema for array items. Can be a single schema or an array of schemas for tuple validation."
+            },
+            "description": {
+              "type": "string",
+              "description": "A description of the schema's purpose."
+            },
+            "title": {
+              "type": "string",
+              "description": "A short title for the schema."
+            },
+            "default": {
+              "description": "The default value for this schema."
+            },
+            "enum": {
+              "type": "array",
+              "description": "An array of allowed values."
+            },
+            "const": {
+              "description": "A constant value that must match exactly."
+            },
+            "$ref": {
+              "type": "string",
+              "description": "A reference to another schema definition (e.g., '#/$defs/MyType')."
+            },
+            "$defs": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "A container for reusable schema definitions."
+            },
+            "definitions": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "Legacy container for reusable schema definitions. Use $defs instead."
+            },
+            "allOf": {
+              "type": "array",
+              "description": "Must match all of the schemas in the array."
+            },
+            "anyOf": {
+              "type": "array",
+              "description": "Must match at least one of the schemas in the array."
+            },
+            "oneOf": {
+              "type": "array",
+              "description": "Must match exactly one of the schemas in the array."
+            },
+            "not": {
+              "description": "Must not match this schema."
+            },
+            "minimum": {
+              "type": "number",
+              "description": "Minimum value for numbers."
+            },
+            "maximum": {
+              "type": "number",
+              "description": "Maximum value for numbers."
+            },
+            "exclusiveMinimum": {
+              "type": "number",
+              "description": "Exclusive minimum value for numbers."
+            },
+            "exclusiveMaximum": {
+              "type": "number",
+              "description": "Exclusive maximum value for numbers."
+            },
+            "multipleOf": {
+              "type": "number",
+              "description": "Value must be a multiple of this number."
+            },
+            "minLength": {
+              "type": "integer",
+              "description": "Minimum length for strings."
+            },
+            "maxLength": {
+              "type": "integer",
+              "description": "Maximum length for strings."
+            },
+            "pattern": {
+              "type": "string",
+              "description": "Regular expression pattern that strings must match."
+            },
+            "format": {
+              "type": "string",
+              "description": "Format hint for strings (e.g., 'email', 'uri', 'date-time', 'uuid')."
+            },
+            "minItems": {
+              "type": "integer",
+              "description": "Minimum number of items in arrays."
+            },
+            "maxItems": {
+              "type": "integer",
+              "description": "Maximum number of items in arrays."
+            },
+            "uniqueItems": {
+              "type": "boolean",
+              "description": "Whether array items must be unique."
+            },
+            "minProperties": {
+              "type": "integer",
+              "description": "Minimum number of properties in objects."
+            },
+            "maxProperties": {
+              "type": "integer",
+              "description": "Maximum number of properties in objects."
+            },
+            "patternProperties": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "Schemas for properties matching regex patterns."
+            }
+          },
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "type": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "string",
+                    "number",
+                    "integer",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ],
+              "description": "The type of the value. Can be a single type or an array of types."
+            },
+            "properties": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "An object where each key is a property name and each value is a schema."
+            },
+            "required": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "description": "An array of required property names."
+            },
+            "additionalProperties": {
+              "description": "Whether additional properties are allowed (boolean) or a schema they must match (object)."
+            },
+            "items": {
+              "description": "Schema for array items. Can be a single schema or an array of schemas for tuple validation."
+            },
+            "description": {
+              "type": "string",
+              "description": "A description of the schema's purpose."
+            },
+            "title": {
+              "type": "string",
+              "description": "A short title for the schema."
+            },
+            "default": {
+              "description": "The default value for this schema."
+            },
+            "enum": {
+              "type": "array",
+              "description": "An array of allowed values."
+            },
+            "const": {
+              "description": "A constant value that must match exactly."
+            },
+            "$ref": {
+              "type": "string",
+              "description": "A reference to another schema definition (e.g., '#/$defs/MyType')."
+            },
+            "$defs": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "A container for reusable schema definitions."
+            },
+            "definitions": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "Legacy container for reusable schema definitions. Use $defs instead."
+            },
+            "allOf": {
+              "type": "array",
+              "description": "Must match all of the schemas in the array."
+            },
+            "anyOf": {
+              "type": "array",
+              "description": "Must match at least one of the schemas in the array."
+            },
+            "oneOf": {
+              "type": "array",
+              "description": "Must match exactly one of the schemas in the array."
+            },
+            "not": {
+              "description": "Must not match this schema."
+            },
+            "minimum": {
+              "type": "number",
+              "description": "Minimum value for numbers."
+            },
+            "maximum": {
+              "type": "number",
+              "description": "Maximum value for numbers."
+            },
+            "exclusiveMinimum": {
+              "type": "number",
+              "description": "Exclusive minimum value for numbers."
+            },
+            "exclusiveMaximum": {
+              "type": "number",
+              "description": "Exclusive maximum value for numbers."
+            },
+            "multipleOf": {
+              "type": "number",
+              "description": "Value must be a multiple of this number."
+            },
+            "minLength": {
+              "type": "integer",
+              "description": "Minimum length for strings."
+            },
+            "maxLength": {
+              "type": "integer",
+              "description": "Maximum length for strings."
+            },
+            "pattern": {
+              "type": "string",
+              "description": "Regular expression pattern that strings must match."
+            },
+            "format": {
+              "type": "string",
+              "description": "Format hint for strings (e.g., 'email', 'uri', 'date-time', 'uuid')."
+            },
+            "minItems": {
+              "type": "integer",
+              "description": "Minimum number of items in arrays."
+            },
+            "maxItems": {
+              "type": "integer",
+              "description": "Maximum number of items in arrays."
+            },
+            "uniqueItems": {
+              "type": "boolean",
+              "description": "Whether array items must be unique."
+            },
+            "minProperties": {
+              "type": "integer",
+              "description": "Minimum number of properties in objects."
+            },
+            "maxProperties": {
+              "type": "integer",
+              "description": "Maximum number of properties in objects."
+            },
+            "patternProperties": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "Schemas for properties matching regex patterns."
+            }
+          },
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "invocation": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/HttpInvocationConfig"
+            },
+            {
+              "$ref": "#/$defs/CliInvocationConfig"
+            },
+            {
+              "$ref": "#/$defs/ExtendsConfig"
+            }
+          ]
+        },
+        "requiredScopes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name",
+        "description",
+        "uriTemplate",
+        "inputSchema",
+        "invocation"
+      ]
+    },
+    "TemplateVariable": {
+      "properties": {
+        "format": {
+          "type": "string",
+          "description": "Template is the format string for the variable. It can be a simple string or contain template variables like '{paramName}'.\nFor example, \"--user={username}\" or \"--verbose\"."
+        },
+        "omitIfFalse": {
+          "type": "boolean",
+          "description": "OmitIfFalse, if true, causes the template to be omitted entirely if the input\nvalue is a boolean `false`. This is useful for optional flags like \"--force\"."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "format"
+      ],
+      "description": "The formatting for a single parameter in the command template"
+    },
+    "Tool": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "inputSchema": {
+          "properties": {
+            "type": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "string",
+                    "number",
+                    "integer",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ],
+              "description": "The type of the value. Can be a single type or an array of types."
+            },
+            "properties": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "An object where each key is a property name and each value is a schema."
+            },
+            "required": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "description": "An array of required property names."
+            },
+            "additionalProperties": {
+              "description": "Whether additional properties are allowed (boolean) or a schema they must match (object)."
+            },
+            "items": {
+              "description": "Schema for array items. Can be a single schema or an array of schemas for tuple validation."
+            },
+            "description": {
+              "type": "string",
+              "description": "A description of the schema's purpose."
+            },
+            "title": {
+              "type": "string",
+              "description": "A short title for the schema."
+            },
+            "default": {
+              "description": "The default value for this schema."
+            },
+            "enum": {
+              "type": "array",
+              "description": "An array of allowed values."
+            },
+            "const": {
+              "description": "A constant value that must match exactly."
+            },
+            "$ref": {
+              "type": "string",
+              "description": "A reference to another schema definition (e.g., '#/$defs/MyType')."
+            },
+            "$defs": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "A container for reusable schema definitions."
+            },
+            "definitions": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "Legacy container for reusable schema definitions. Use $defs instead."
+            },
+            "allOf": {
+              "type": "array",
+              "description": "Must match all of the schemas in the array."
+            },
+            "anyOf": {
+              "type": "array",
+              "description": "Must match at least one of the schemas in the array."
+            },
+            "oneOf": {
+              "type": "array",
+              "description": "Must match exactly one of the schemas in the array."
+            },
+            "not": {
+              "description": "Must not match this schema."
+            },
+            "minimum": {
+              "type": "number",
+              "description": "Minimum value for numbers."
+            },
+            "maximum": {
+              "type": "number",
+              "description": "Maximum value for numbers."
+            },
+            "exclusiveMinimum": {
+              "type": "number",
+              "description": "Exclusive minimum value for numbers."
+            },
+            "exclusiveMaximum": {
+              "type": "number",
+              "description": "Exclusive maximum value for numbers."
+            },
+            "multipleOf": {
+              "type": "number",
+              "description": "Value must be a multiple of this number."
+            },
+            "minLength": {
+              "type": "integer",
+              "description": "Minimum length for strings."
+            },
+            "maxLength": {
+              "type": "integer",
+              "description": "Maximum length for strings."
+            },
+            "pattern": {
+              "type": "string",
+              "description": "Regular expression pattern that strings must match."
+            },
+            "format": {
+              "type": "string",
+              "description": "Format hint for strings (e.g., 'email', 'uri', 'date-time', 'uuid')."
+            },
+            "minItems": {
+              "type": "integer",
+              "description": "Minimum number of items in arrays."
+            },
+            "maxItems": {
+              "type": "integer",
+              "description": "Maximum number of items in arrays."
+            },
+            "uniqueItems": {
+              "type": "boolean",
+              "description": "Whether array items must be unique."
+            },
+            "minProperties": {
+              "type": "integer",
+              "description": "Minimum number of properties in objects."
+            },
+            "maxProperties": {
+              "type": "integer",
+              "description": "Maximum number of properties in objects."
+            },
+            "patternProperties": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "Schemas for properties matching regex patterns."
+            }
+          },
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "type": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "string",
+                    "number",
+                    "integer",
+                    "boolean",
+                    "object",
+                    "array",
+                    "null"
+                  ]
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ],
+              "description": "The type of the value. Can be a single type or an array of types."
+            },
+            "properties": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "An object where each key is a property name and each value is a schema."
+            },
+            "required": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "description": "An array of required property names."
+            },
+            "additionalProperties": {
+              "description": "Whether additional properties are allowed (boolean) or a schema they must match (object)."
+            },
+            "items": {
+              "description": "Schema for array items. Can be a single schema or an array of schemas for tuple validation."
+            },
+            "description": {
+              "type": "string",
+              "description": "A description of the schema's purpose."
+            },
+            "title": {
+              "type": "string",
+              "description": "A short title for the schema."
+            },
+            "default": {
+              "description": "The default value for this schema."
+            },
+            "enum": {
+              "type": "array",
+              "description": "An array of allowed values."
+            },
+            "const": {
+              "description": "A constant value that must match exactly."
+            },
+            "$ref": {
+              "type": "string",
+              "description": "A reference to another schema definition (e.g., '#/$defs/MyType')."
+            },
+            "$defs": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "A container for reusable schema definitions."
+            },
+            "definitions": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "Legacy container for reusable schema definitions. Use $defs instead."
+            },
+            "allOf": {
+              "type": "array",
+              "description": "Must match all of the schemas in the array."
+            },
+            "anyOf": {
+              "type": "array",
+              "description": "Must match at least one of the schemas in the array."
+            },
+            "oneOf": {
+              "type": "array",
+              "description": "Must match exactly one of the schemas in the array."
+            },
+            "not": {
+              "description": "Must not match this schema."
+            },
+            "minimum": {
+              "type": "number",
+              "description": "Minimum value for numbers."
+            },
+            "maximum": {
+              "type": "number",
+              "description": "Maximum value for numbers."
+            },
+            "exclusiveMinimum": {
+              "type": "number",
+              "description": "Exclusive minimum value for numbers."
+            },
+            "exclusiveMaximum": {
+              "type": "number",
+              "description": "Exclusive maximum value for numbers."
+            },
+            "multipleOf": {
+              "type": "number",
+              "description": "Value must be a multiple of this number."
+            },
+            "minLength": {
+              "type": "integer",
+              "description": "Minimum length for strings."
+            },
+            "maxLength": {
+              "type": "integer",
+              "description": "Maximum length for strings."
+            },
+            "pattern": {
+              "type": "string",
+              "description": "Regular expression pattern that strings must match."
+            },
+            "format": {
+              "type": "string",
+              "description": "Format hint for strings (e.g., 'email', 'uri', 'date-time', 'uuid')."
+            },
+            "minItems": {
+              "type": "integer",
+              "description": "Minimum number of items in arrays."
+            },
+            "maxItems": {
+              "type": "integer",
+              "description": "Maximum number of items in arrays."
+            },
+            "uniqueItems": {
+              "type": "boolean",
+              "description": "Whether array items must be unique."
+            },
+            "minProperties": {
+              "type": "integer",
+              "description": "Minimum number of properties in objects."
+            },
+            "maxProperties": {
+              "type": "integer",
+              "description": "Maximum number of properties in objects."
+            },
+            "patternProperties": {
+              "additionalProperties": true,
+              "type": "object",
+              "description": "Schemas for properties matching regex patterns."
+            }
+          },
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "invocation": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/HttpInvocationConfig"
+            },
+            {
+              "$ref": "#/$defs/CliInvocationConfig"
+            },
+            {
+              "$ref": "#/$defs/ExtendsConfig"
+            }
+          ]
+        },
+        "requiredScopes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "annotations": {
+          "$ref": "#/$defs/ToolAnnotations"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name",
+        "description",
+        "inputSchema",
+        "invocation"
+      ]
+    },
+    "ToolAnnotations": {
+      "properties": {
+        "destructiveHint": {
+          "type": "boolean"
+        },
+        "idempotentHint": {
+          "type": "boolean"
+        },
+        "openWorldHint": {
+          "type": "boolean"
+        },
+        "readOnlyHint": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

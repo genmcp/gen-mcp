@@ -47,7 +47,7 @@ func executeConvertCliCmd(cobraCmd *cobra.Command, args []string) {
 		return
 	}
 
-	mcpFileBytes = utils.AppendSchemaHeader(mcpFileBytes)
+	mcpFileBytes = utils.AppendToolDefinitionsSchemaHeader(mcpFileBytes)
 
 	fmt.Printf("%s", string(mcpFileBytes))
 

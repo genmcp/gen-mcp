@@ -67,7 +67,7 @@ func executeConvertCmd(cobraCmd *cobra.Command, args []string) {
 		return
 	}
 
-	toolDefBytes = utils.AppendSchemaHeader(toolDefBytes)
+	toolDefBytes = utils.AppendToolDefinitionsSchemaHeader(toolDefBytes)
 
 	err = os.WriteFile(toolDefinitionsPath, toolDefBytes, 0644)
 	if err != nil {
@@ -84,7 +84,7 @@ func executeConvertCmd(cobraCmd *cobra.Command, args []string) {
 		return
 	}
 
-	serverConfigBytes = utils.AppendSchemaHeader(serverConfigBytes)
+	serverConfigBytes = utils.AppendServerConfigSchemaHeader(serverConfigBytes)
 
 	err = os.WriteFile(serverConfigPath, serverConfigBytes, 0644)
 	if err != nil {
