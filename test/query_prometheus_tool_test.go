@@ -8,16 +8,16 @@ import (
 	"strings"
 	"testing"
 
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 	mcpli "github.com/genmcp/gen-mcp/pkg/invocation/cli"
-	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 )
 
 func TestQueryPrometheusFallbacksToRouteForSvcURL(t *testing.T) {
 	t.Parallel()
 
 	mcpFilePath := filepath.Join("..", "examples", "netedge-tools", "mcpfile.yaml")
-	mcpCfg, err := mcpfile.ParseMCPFile(mcpFilePath)
+	mcpCfg, err := definitions.ParseMCPFile(mcpFilePath)
 	if err != nil {
 		t.Fatalf("failed to parse MCP file: %v", err)
 	}
@@ -26,7 +26,7 @@ func TestQueryPrometheusFallbacksToRouteForSvcURL(t *testing.T) {
 		t.Fatalf("failed to validate MCP file: %v", err)
 	}
 
-	var tool *mcpfile.Tool
+	var tool *definitions.Tool
 	for _, ttool := range mcpCfg.Tools {
 		if ttool.Name == "query_prometheus" {
 			tool = ttool

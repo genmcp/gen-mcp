@@ -1,8 +1,7 @@
-mcpFileVersion: 0.1.0
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
 name: NETEDGE Network Diagnosis Tools
 version: 0.0.1
-runtime:
-  transportProtocol: stdio
 tools:
 
   - name: inspect_route
