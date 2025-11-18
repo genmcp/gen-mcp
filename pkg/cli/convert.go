@@ -31,7 +31,7 @@ var convertCmd = &cobra.Command{
 	Run:   executeConvertCmd,
 }
 
-func executeConvertCmd(cobraCmd *cobra.Command, args []string) {
+func executeConvertCmd(_ *cobra.Command, args []string) {
 	openApiLocation := args[0]
 
 	var openApiBytes []byte

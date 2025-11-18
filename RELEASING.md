@@ -11,7 +11,7 @@ gen-mcp minor versions (that is, 0.**5**.0 versus 0.**4**.x) are typically relea
 
 Additionally, we will consider delaying a minor release if no significant features have landed during the normal 6-week release cycle.
 
-gen-mcp patch versions (for example, 0.5.**2** versus 0.5.**1**) are released as often as weekly. Maintainers decide whether or not a patch release is called for based on community input. A patch release may bypass this cadence if circumstances warrant.
+gen-mcp patch versions (for example, 0.5.**2** versus 0.5.**1**) are released as often as weekly. Maintainers decide whether to patch release is called for based on community input. A patch release may bypass this cadence if circumstances warrant.
 
 ## Overview
 

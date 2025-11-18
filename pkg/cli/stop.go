@@ -22,7 +22,7 @@ var stopCmd = &cobra.Command{
 	Run:   executeStopCmd,
 }
 
-func executeStopCmd(cobraCmd *cobra.Command, args []string) {
+func executeStopCmd(_ *cobra.Command, _ []string) {
 	mcpFilePath, err := filepath.Abs(stopMCPFilePath)
 	if err != nil {
 		fmt.Printf("failed to resolve mcp file path: %s\n", err.Error())

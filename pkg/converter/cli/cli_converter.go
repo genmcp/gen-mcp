@@ -179,7 +179,7 @@ func createCLIInvocationData(command string, arguments []Argument, options []Opt
 		return nil, fmt.Errorf("failed to marshal CLI invocation data: %w", err)
 	}
 
-	return json.RawMessage(data), nil
+	return data, nil
 }
 
 func createTemplateVariables(arguments []Argument, options []Option) map[string]interface{} {

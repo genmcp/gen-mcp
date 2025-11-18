@@ -24,7 +24,7 @@ var convertCliCmd = &cobra.Command{
 	Run:   executeConvertCliCmd,
 }
 
-func executeConvertCliCmd(cobraCmd *cobra.Command, args []string) {
+func executeConvertCliCmd(_ *cobra.Command, args []string) {
 	commandItems := []cliconverter.CommandItem{}
 
 	for _, cliCommand := range args {

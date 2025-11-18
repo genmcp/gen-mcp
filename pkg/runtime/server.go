@@ -190,7 +190,7 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpserver.MCP
 			err = srv.ListenAndServe()
 		}
 
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("HTTP server error", zap.Error(err))
 			errCh <- err
 		}

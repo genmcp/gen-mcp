@@ -38,10 +38,6 @@ type mcpLogger struct {
 	encoder zapcore.Encoder
 }
 
-func NewMcpCore(ss *mcp.ServerSession) (zapcore.Core, error) {
-	return NewMcpCoreWithContext(context.Background(), ss)
-}
-
 func NewMcpCoreWithContext(ctx context.Context, ss *mcp.ServerSession) (zapcore.Core, error) {
 	if ctx == nil {
 		return nil, fmt.Errorf("context cannot be nil")
@@ -129,7 +125,7 @@ func newMapEncoder() *mapEncoder {
 	}
 }
 
-// ObjectEncoder methods
+// AddArray implements ObjectEncoder method
 func (m *mapEncoder) AddArray(key string, marshaler zapcore.ArrayMarshaler) error {
 	arr := &arrayEncoder{items: make([]any, 0)}
 	if err := marshaler.MarshalLogArray(arr); err != nil {
@@ -268,7 +264,7 @@ func deepCloneValue(v any) any {
 	}
 }
 
-// Encoder methods
+// Clone implements Encoder method
 func (m *mapEncoder) Clone() zapcore.Encoder {
 	clonedFields := make(map[string]any, len(m.fields))
 	for k, v := range m.fields {
@@ -282,7 +278,7 @@ func (m *mapEncoder) Clone() zapcore.Encoder {
 	}
 }
 
-func (m *mapEncoder) EncodeEntry(ent zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
+func (m *mapEncoder) EncodeEntry(_ zapcore.Entry, _ []zapcore.Field) (*buffer.Buffer, error) {
 	// Not used by our implementation
 	return nil, nil
 }

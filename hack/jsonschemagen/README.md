@@ -14,7 +14,7 @@ It inspects the structs' fields, types, and tags to generate corresponding JSON 
 The resulting schemas are then written to the `specs` directory in two forms for each file type:
 
 - A **versioned** schema file, based on the current `SchemaVersion` (0.2.0)
-- A **latest** schema file, which always contains the same content as the versioned file
+- The **latest** schema file, which always contains the same content as the versioned file
 
 ## Usage
 

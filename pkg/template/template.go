@@ -387,7 +387,7 @@ type envVarFormatter struct {
 	envVarName string
 }
 
-func (f *envVarFormatter) SetField(path string, value any) {
+func (f *envVarFormatter) SetField(_ string, _ any) {
 }
 
 func (f *envVarFormatter) GetResult() (any, error) {
@@ -448,7 +448,7 @@ type SourceFormatter struct {
 	resolver   SourceResolver
 }
 
-func (sf *SourceFormatter) SetField(path string, value any) {
+func (sf *SourceFormatter) SetField(_ string, _ any) {
 }
 
 func (sf *SourceFormatter) GetResult() (any, error) {

@@ -31,7 +31,7 @@ var runCmd = &cobra.Command{
 	Run:   executeRunCmd,
 }
 
-func executeRunCmd(cobraCmd *cobra.Command, args []string) {
+func executeRunCmd(_ *cobra.Command, _ []string) {
 	toolDefinitionsPath, err := filepath.Abs(runToolDefinitionsPath)
 	if err != nil {
 		fmt.Printf("failed to resolve tool definitions file path: %s\n", err.Error())

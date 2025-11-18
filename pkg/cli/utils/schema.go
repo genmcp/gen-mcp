@@ -25,9 +25,3 @@ func AppendServerConfigSchemaHeader(bytes []byte) []byte {
 
 	return append([]byte(schemaHeader), bytes...)
 }
-
-// AppendSchemaHeader is deprecated. Use AppendToolDefinitionsSchemaHeader or AppendServerConfigSchemaHeader instead.
-// Kept for backward compatibility.
-func AppendSchemaHeader(bytes []byte) []byte {
-	return AppendToolDefinitionsSchemaHeader(bytes)
-}

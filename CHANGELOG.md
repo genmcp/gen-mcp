@@ -85,7 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial genmcp CLI implementation
   - genmcp run will run servers from the MCP files
   - genmcp stop will stop servers
-  - genmcp convert converts an OpenAPI spec to an mcp file
+  - genmcp convert converts an OpenAPI spec to an MCP file
 - Initial examples
   - CLI/HTTP examples with ollama
   - HTTP conversion examples and integrations with multiple tools

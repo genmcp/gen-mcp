@@ -15,7 +15,7 @@ type CommandRunner func(string) (string, error)
 var DefaultCommandRunner CommandRunner = runCommandImpl
 
 // RunCommand is the public interface that uses the current CommandRunner
-var RunCommand CommandRunner = DefaultCommandRunner
+var RunCommand = DefaultCommandRunner
 
 // runCommandImpl is the actual implementation that executes commands
 func runCommandImpl(cmdStr string) (string, error) {

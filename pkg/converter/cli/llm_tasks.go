@@ -72,7 +72,7 @@ func DetectSubCommand(cliCommand string) (bool, error) {
 		return false, errors.New("command is empty")
 	}
 
-	//Subcommand detection logic
+	// subcommand detection logic
 	user_prompt, err := RunCommand(cliCommand + " --help")
 	if err != nil {
 		panic(err.Error())
@@ -118,7 +118,7 @@ func DetectSubCommand(cliCommand string) (bool, error) {
 	// if err != nil {
 	// 	panic(err.Error())
 	// }
-	//fmt.Println("Params JSON:", string(paramsJSON))
+	// fmt.Println("Params JSON:", string(paramsJSON))
 
 	chat, err := client.Chat.Completions.New(ctx, params)
 	// fmt.Println("LLM Response:", chat.Choices[0].Message.Content)
@@ -142,7 +142,7 @@ func ExtractSubCommands(cliCommand string) ([]string, error) {
 		return []string{}, errors.New("command is empty")
 	}
 
-	//Subcommand detection logic
+	// subcommand detection logic
 	user_prompt, err := RunCommand(cliCommand + " --help")
 	if err != nil {
 		panic(err.Error())

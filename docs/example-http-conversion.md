@@ -41,16 +41,16 @@ This tutorial uses a simple **Feature Request API** that manages product feature
 
 ### API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/features` | List all features (summaries) |
-| GET | `/features/top` | Get most-voted feature |
-| GET | `/features/{id}` | Get detailed feature by ID |
-| POST | `/features` | Create new feature request |
-| POST | `/features/vote` | Vote for a feature |
-| POST | `/features/complete` | Mark feature as completed |
-| DELETE | `/features/{id}` | Delete a feature |
-| GET | `/openapi.json` | OpenAPI specification |
+| Method | Endpoint             | Description                   |
+|--------|----------------------|-------------------------------|
+| GET    | `/features`          | List all features (summaries) |
+| GET    | `/features/top`      | Get most-voted feature        |
+| GET    | `/features/{id}`     | Get detailed feature by ID    |
+| POST   | `/features`          | Create new feature request    |
+| POST   | `/features/vote`     | Vote for a feature            |
+| POST   | `/features/complete` | Mark feature as completed     |
+| DELETE | `/features/{id}`     | Delete a feature              |
+| GET    | `/openapi.json`      | OpenAPI specification         |
 
 ## Step-by-Step Tutorial
 

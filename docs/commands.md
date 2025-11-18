@@ -12,13 +12,13 @@ The `genmcp` CLI provides commands for managing MCP servers, converting API spec
 
 ## Quick Reference
 
-| Command | Description | Common Usage |
-|---------|-------------|--------------|
-| [`run`](#run) | Start an MCP server | `genmcp run -t mcpfile.yaml -s mcpserver.yaml` |
-| [`stop`](#stop) | Stop a running server | `genmcp stop -f mcpfile.yaml` |
-| [`convert`](#convert) | Convert OpenAPI to MCP | `genmcp convert openapi.json` |
-| [`build`](#build) | Build container image | `genmcp build -f mcpfile.yaml -s mcpserver.yaml --tag myapi:latest` |
-| [`version`](#version) | Display version info | `genmcp version` |
+| Command               | Description            | Common Usage                                                        |
+|-----------------------|------------------------|---------------------------------------------------------------------|
+| [`run`](#run)         | Start an MCP server    | `genmcp run -t mcpfile.yaml -s mcpserver.yaml`                      |
+| [`stop`](#stop)       | Stop a running server  | `genmcp stop -f mcpfile.yaml`                                       |
+| [`convert`](#convert) | Convert OpenAPI to MCP | `genmcp convert openapi.json`                                       |
+| [`build`](#build)     | Build container image  | `genmcp build -f mcpfile.yaml -s mcpserver.yaml --tag myapi:latest` |
+| [`version`](#version) | Display version info   | `genmcp version`                                                    |
 
 ---
 
@@ -112,9 +112,9 @@ genmcp stop [flags]
 
 #### Flags
 
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--file` | `-f` | `mcpfile.yaml` | Path to the tool definitions file of the server to stop (used as identifier) |
+| Flag     | Short | Default        | Description                                                                  |
+|----------|-------|----------------|------------------------------------------------------------------------------|
+| `--file` | `-f`  | `mcpfile.yaml` | Path to the tool definitions file of the server to stop (used as identifier) |
 
 #### How It Works
 
@@ -154,7 +154,7 @@ genmcp stop -f myapi.yaml
 
 - **File path must match**: The tool definitions file path used with `stop` must match the path used with `run --detach`
 - **Only works with detached servers**: Servers running in foreground mode can be stopped with Ctrl+C
-- **Manual cleanup**: If the process was manually killed outside of gen-mcp, you may need to manually clean up the saved PID file
+- **Manual cleanup**: If the process was manually killed outside gen-mcp, you may need to manually clean up the saved PID file
 
 ---
 
@@ -170,16 +170,16 @@ genmcp convert <openapi-spec> [flags]
 
 #### Arguments
 
-| Argument | Description |
-|----------|-------------|
+| Argument         | Description                                              |
+|------------------|----------------------------------------------------------|
 | `<openapi-spec>` | URL or file path to OpenAPI specification (JSON or YAML) |
 
 #### Flags
 
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--out` | `-o` | `mcpfile.yaml` | Output path for the generated tool definitions file |
-| `--host` | `-H` | *(from spec)* | Override the base host URL from the OpenAPI spec |
+| Flag     | Short | Default        | Description                                         |
+|----------|-------|----------------|-----------------------------------------------------|
+| `--out`  | `-o`  | `mcpfile.yaml` | Output path for the generated tool definitions file |
+| `--host` | `-H`  | *(from spec)*  | Override the base host URL from the OpenAPI spec    |
 
 #### How It Works
 
@@ -312,14 +312,14 @@ genmcp build [flags]
 
 #### Flags
 
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--file` | `-f` | `mcpfile.yaml` | Path to tool definitions file to include in image |
-| `--server-config` | `-s` | `mcpserver.yaml` | Path to server config file to include in image |
-| `--tag` | | *(required)* | Image tag (e.g., `myregistry/myapi:v1.0`) |
-| `--base-image` | | *(auto)* | Base container image to build on |
-| `--platform` | | `multi-arch` | Target platform (e.g., `linux/amd64`) |
-| `--push` | | `false` | Push to registry instead of saving locally |
+| Flag              | Short | Default          | Description                                       |
+|-------------------|-------|------------------|---------------------------------------------------|
+| `--file`          | `-f`  | `mcpfile.yaml`   | Path to tool definitions file to include in image |
+| `--server-config` | `-s`  | `mcpserver.yaml` | Path to server config file to include in image    |
+| `--tag`           |       | *(required)*     | Image tag (e.g., `myregistry/myapi:v1.0`)         |
+| `--base-image`    |       | *(auto)*         | Base container image to build on                  |
+| `--platform`      |       | `multi-arch`     | Target platform (e.g., `linux/amd64`)             |
+| `--push`          |       | `false`          | Push to registry instead of saving locally        |
 
 #### How It Works
 
