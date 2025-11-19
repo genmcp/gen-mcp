@@ -332,8 +332,6 @@ For destructive operations:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: "0.2.0"
-name: Feature Request API
-version: 0.0.1
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:

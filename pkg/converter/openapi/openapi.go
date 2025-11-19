@@ -78,15 +78,12 @@ func McpFilesFromOpenApiV2Model(model *v2high.Swagger, host string) (*ConvertedM
 		Kind:          serverconfig.KindMCPServerConfig,
 		SchemaVersion: config.SchemaVersion,
 		MCPServerConfig: serverconfig.MCPServerConfig{
-			Name:    title,
-			Version: version,
 			Runtime: &serverconfig.ServerRuntime{
 				TransportProtocol: serverconfig.TransportProtocolStreamableHttp,
 				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 					Port: 8080,
 				},
 			},
-			InvocationBases: map[string]*invocation.InvocationConfigWrapper{},
 		},
 	}
 
@@ -129,8 +126,7 @@ func McpFilesFromOpenApiV2Model(model *v2high.Swagger, host string) (*ConvertedM
 		},
 	}
 
-	// Set invocation bases in both files
-	serverConfig.InvocationBases[baseApiInvocationName] = baseInvocation
+	// Set invocation bases in tool definitions file
 	toolDefinitions.InvocationBases[baseApiInvocationName] = baseInvocation
 
 	if model.Paths == nil || model.Paths.PathItems == nil {
@@ -293,15 +289,12 @@ func McpFilesFromOpenApiV3Model(model *v3high.Document, host string) (*Converted
 		Kind:          serverconfig.KindMCPServerConfig,
 		SchemaVersion: config.SchemaVersion,
 		MCPServerConfig: serverconfig.MCPServerConfig{
-			Name:    title,
-			Version: version,
 			Runtime: &serverconfig.ServerRuntime{
 				TransportProtocol: serverconfig.TransportProtocolStreamableHttp,
 				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 					Port: 8080,
 				},
 			},
-			InvocationBases: map[string]*invocation.InvocationConfigWrapper{},
 		},
 	}
 
@@ -333,8 +326,7 @@ func McpFilesFromOpenApiV3Model(model *v3high.Document, host string) (*Converted
 		},
 	}
 
-	// Set invocation bases in both files
-	serverConfig.InvocationBases[baseApiInvocationName] = baseInvocation
+	// Set invocation bases in tool definitions file
 	toolDefinitions.InvocationBases[baseApiInvocationName] = baseInvocation
 
 	var err error

@@ -429,9 +429,6 @@ resources:
 	serverConfigYAML := fmt.Sprintf(`
 kind: MCPServerConfig
 schemaVersion: 0.2.0
-name: test-server
-version: "1.0"
-instructions: "This is a test HTTP server with tools, prompts, and resources for integration testing."
 runtime:
   streamableHttpConfig:
     port: %d
@@ -523,8 +520,6 @@ resources:
 	serverConfigYAML := fmt.Sprintf(`
 kind: MCPServerConfig
 schemaVersion: 0.2.0
-name: test-cli-server
-version: "1.0"
 runtime:
   streamableHttpConfig:
     port: %d

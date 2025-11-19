@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/genmcp/gen-mcp/pkg/config"
-	"github.com/genmcp/gen-mcp/pkg/invocation/extends"
 	"sigs.k8s.io/yaml"
+
+	"github.com/genmcp/gen-mcp/pkg/config"
 )
 
 const (
@@ -91,29 +91,23 @@ func (s *MCPServerConfig) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	if len(s.InvocationBases) > 0 {
-		extends.SetBases(s.InvocationBases)
-	}
-
-	// Only set defaults if we have a server defined (name or version present)
-	if s.Name != "" || s.Version != "" {
-		if s.Runtime == nil {
-			s.Runtime = &ServerRuntime{
-				TransportProtocol: TransportProtocolStreamableHttp,
-				StreamableHTTPConfig: &StreamableHTTPConfig{
-					Port:      3000,
-					BasePath:  DefaultBasePath,
-					Stateless: true,
-				},
-			}
-		}
-
-		if s.Runtime.TransportProtocol == TransportProtocolStreamableHttp && s.Runtime.StreamableHTTPConfig == nil {
-			s.Runtime.StreamableHTTPConfig = &StreamableHTTPConfig{
+	// Set defaults if runtime is not configured
+	if s.Runtime == nil {
+		s.Runtime = &ServerRuntime{
+			TransportProtocol: TransportProtocolStreamableHttp,
+			StreamableHTTPConfig: &StreamableHTTPConfig{
 				Port:      3000,
 				BasePath:  DefaultBasePath,
 				Stateless: true,
-			}
+			},
+		}
+	}
+
+	if s.Runtime.TransportProtocol == TransportProtocolStreamableHttp && s.Runtime.StreamableHTTPConfig == nil {
+		s.Runtime.StreamableHTTPConfig = &StreamableHTTPConfig{
+			Port:      3000,
+			BasePath:  DefaultBasePath,
+			Stateless: true,
 		}
 	}
 

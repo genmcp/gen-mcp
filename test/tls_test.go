@@ -357,8 +357,6 @@ tools:
 	serverConfigYAML := fmt.Sprintf(`
 kind: MCPServerConfig
 schemaVersion: 0.2.0
-name: test-tls-server
-version: "1.0"
 runtime:
   streamableHttpConfig:
     port: %d

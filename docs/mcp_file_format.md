@@ -86,21 +86,13 @@ The root of the Server Config File has the following structure:
 |-------------------|-----------------|-------------------------------------------------------------------------------------------------------------|----------|
 | `kind`            | string          | Must be `"MCPServerConfig"`.                                                                                | Yes      |
 | `schemaVersion`   | string          | The version of the MCP file format. Must be `"0.2.0"`.                                                      | Yes      |
-| `name`            | string          | The name of the server. Should match the name in the Tool Definitions File.                                 | Yes      |
-| `version`         | string          | The semantic version of the server. Should match the version in the Tool Definitions File.                  | Yes      |
 | `runtime`         | `ServerRuntime` | The runtime settings for the server. If omitted, defaults to `streamablehttp` on port `3000`.               | No       |
-| `instructions`    | string          | A set of instructions provided by the server to the client about how to use the server.                     | No       |
-| `invocationBases` | object          | A set of reusable base configurations for invocations. Can be defined here or in the Tool Definitions File. | No       |
-
-**Note**: The `instructions` and `invocationBases` fields can be defined in either file. If defined in both, the values are merged (with the Server Config File taking precedence for `instructions`).
 
 ### Example: Server Config File
 
 ```yaml
 kind: MCPServerConfig
 schemaVersion: "0.2.0"
-name: my-awesome-server
-version: 1.2.3
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
@@ -384,7 +376,7 @@ invocation:
 
 Invocation bases allow you to define reusable configurations that can be referenced by multiple tools, prompts, resources, or resource templates. This reduces duplication and makes it easier to maintain consistent configuration across primitives.
 
-The `invocationBases` field can be defined in either the **Tool Definitions File** or the **Server Config File** (or both, with values merged). It contains named base configurations:
+The `invocationBases` field is defined in the **Tool Definitions File**. It contains named base configurations:
 
 ```yaml
 invocationBases:
@@ -558,8 +550,6 @@ tools:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: "0.2.0"
-name: Feature Request API
-version: "0.0.1"
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
@@ -595,8 +585,6 @@ tools:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: "0.2.0"
-name: Production API
-version: "1.0.0"
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
@@ -719,8 +707,6 @@ tools:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: "0.2.0"
-name: user-management-api
-version: "1.0.0"
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
@@ -754,8 +740,6 @@ tools:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: "0.2.0"
-name: secure-server
-version: "1.0.0"
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
@@ -793,8 +777,6 @@ tools:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: "0.2.0"
-name: protected-server
-version: "1.0.0"
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
@@ -833,8 +815,6 @@ tools:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: "0.2.0"
-name: secure-protected-server
-version: "1.0.0"
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
@@ -898,8 +878,6 @@ tools:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: "0.2.0"
-name: git-tools
-version: "1.0.0"
 runtime:
   transportProtocol: stdio
 ```
@@ -936,8 +914,6 @@ tools:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: "0.2.0"
-name: user-service
-version: "2.1.0"
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:

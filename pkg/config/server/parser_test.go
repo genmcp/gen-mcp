@@ -15,21 +15,19 @@ func TestParseMcpFile(t *testing.T) {
 		wantErr       bool
 		errorContains string
 	}{
-		"no servers": {
-			testFileName: "no-servers.yaml",
+		"default": {
+			testFileName: "server-default.yaml",
 			expected: &MCPServerConfigFile{
 				Kind:          KindMCPServerConfig,
 				SchemaVersion: config.SchemaVersion,
 			},
 		},
 		"stateful": {
-			testFileName: "one-server-stateful.yaml",
+			testFileName: "server-stateful.yaml",
 			expected: &MCPServerConfigFile{
 				Kind:          KindMCPServerConfig,
 				SchemaVersion: config.SchemaVersion,
 				MCPServerConfig: MCPServerConfig{
-					Name:    "test-server",
-					Version: "1.0.0",
 					Runtime: &ServerRuntime{
 						TransportProtocol: TransportProtocolStreamableHttp,
 						StreamableHTTPConfig: &StreamableHTTPConfig{
@@ -47,8 +45,6 @@ func TestParseMcpFile(t *testing.T) {
 				Kind:          KindMCPServerConfig,
 				SchemaVersion: config.SchemaVersion,
 				MCPServerConfig: MCPServerConfig{
-					Name:    "test-server",
-					Version: "1.0.0",
 					Runtime: &ServerRuntime{
 						TransportProtocol: TransportProtocolStdio,
 					},
@@ -61,8 +57,6 @@ func TestParseMcpFile(t *testing.T) {
 				Kind:          KindMCPServerConfig,
 				SchemaVersion: config.SchemaVersion,
 				MCPServerConfig: MCPServerConfig{
-					Name:    "git-github-example",
-					Version: "1.0.0",
 					Runtime: &ServerRuntime{
 						TransportProtocol: TransportProtocolStreamableHttp,
 						StreamableHTTPConfig: &StreamableHTTPConfig{
@@ -74,13 +68,11 @@ func TestParseMcpFile(t *testing.T) {
 			},
 		},
 		"with tls": {
-			testFileName: "one-server-tls.yaml",
+			testFileName: "server-tls.yaml",
 			expected: &MCPServerConfigFile{
 				Kind:          KindMCPServerConfig,
 				SchemaVersion: config.SchemaVersion,
 				MCPServerConfig: MCPServerConfig{
-					Name:    "test-server",
-					Version: "1.0.0",
 					Runtime: &ServerRuntime{
 						TransportProtocol: TransportProtocolStreamableHttp,
 						StreamableHTTPConfig: &StreamableHTTPConfig{

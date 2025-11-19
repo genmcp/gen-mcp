@@ -70,8 +70,6 @@ func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpserver.MCPServer
 			Tools:   tools,
 		},
 		MCPServerConfig: serverconfig.MCPServerConfig{
-			Name:    "cli-generated-server",
-			Version: "0.0.1",
 			Runtime: &serverconfig.ServerRuntime{
 				TransportProtocol: serverconfig.TransportProtocolStreamableHttp,
 				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{

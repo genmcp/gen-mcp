@@ -194,8 +194,6 @@ tools:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: "0.2.0"
-name: ollama
-version: "1.0.0"
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
@@ -367,8 +365,6 @@ tools:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: "0.2.0"
-name: Ollama
-version: 0.0.1
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:

@@ -17,44 +17,25 @@ type MCPServer struct {
 	serverconfig.MCPServerConfig
 }
 
-// Name returns the server name, preferring the value from server config, falling back to tool definitions
+// Name returns the server name from tool definitions
 func (m *MCPServer) Name() string {
-	if m.MCPServerConfig.Name != "" {
-		return m.MCPServerConfig.Name
-	}
 	return m.MCPToolDefinitions.Name
 }
 
-// Version returns the server version, preferring the value from server config, falling back to tool definitions
+// Version returns the server version from tool definitions
 func (m *MCPServer) Version() string {
-	if m.MCPServerConfig.Version != "" {
-		return m.MCPServerConfig.Version
-	}
 	return m.MCPToolDefinitions.Version
 }
 
-// Instructions returns the instructions, preferring the value from server config, falling back to tool definitions
+// Instructions returns the instructions from tool definitions
 func (m *MCPServer) Instructions() string {
-	if m.MCPServerConfig.Instructions != "" {
-		return m.MCPServerConfig.Instructions
-	}
 	return m.MCPToolDefinitions.Instructions
 }
 
-// InvocationBases returns merged invocation bases (server config takes precedence for conflicts)
+// InvocationBases returns invocation bases from tool definitions
 func (m *MCPServer) InvocationBases() map[string]*invocation.InvocationConfigWrapper {
-	result := make(map[string]*invocation.InvocationConfigWrapper)
-	// First add from tool definitions
-	if m.MCPToolDefinitions.InvocationBases != nil {
-		for k, v := range m.MCPToolDefinitions.InvocationBases {
-			result[k] = v
-		}
+	if m.MCPToolDefinitions.InvocationBases == nil {
+		return make(map[string]*invocation.InvocationConfigWrapper)
 	}
-	// Then override/add from server config (server config takes precedence)
-	if m.MCPServerConfig.InvocationBases != nil {
-		for k, v := range m.MCPServerConfig.InvocationBases {
-			result[k] = v
-		}
-	}
-	return result
+	return m.MCPToolDefinitions.InvocationBases
 }

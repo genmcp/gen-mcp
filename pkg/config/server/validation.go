@@ -7,13 +7,6 @@ import (
 
 func (m *MCPServerConfigFile) Validate() error {
 	var err error = nil
-	if m.Name == "" {
-		err = errors.Join(err, fmt.Errorf("invalid mcpfile: name is required"))
-	}
-
-	if m.Version == "" {
-		err = errors.Join(err, fmt.Errorf("invalid mcpfile: version is required"))
-	}
 
 	if runtimeErr := m.Runtime.Validate(); runtimeErr != nil {
 		err = errors.Join(err, fmt.Errorf("invalid mcpfile, runtime is invalid: %w", runtimeErr))
@@ -24,16 +17,9 @@ func (m *MCPServerConfigFile) Validate() error {
 
 func (s *MCPServerConfig) Validate() error {
 	var err error = nil
-	if s.Name == "" {
-		err = errors.Join(err, fmt.Errorf("invalid server: name is required"))
-	}
-
-	if s.Version == "" {
-		err = errors.Join(err, fmt.Errorf("invalid server: version is required"))
-	}
 
 	if runtimeErr := s.Runtime.Validate(); runtimeErr != nil {
-		err = errors.Join(err, fmt.Errorf("invalid server, runtime is invalid: %w", err))
+		err = errors.Join(err, fmt.Errorf("invalid server, runtime is invalid: %w", runtimeErr))
 	}
 
 	return err

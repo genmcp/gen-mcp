@@ -279,8 +279,6 @@ tools:
 ```yaml
 kind: MCPServerConfig
 schemaVersion: "0.2.0"
-name: API Name                    # From OpenAPI info.title
-version: 1.0.0                    # From OpenAPI info.version
 runtime:
   transportProtocol: streamablehttp
   streamableHttpConfig:
