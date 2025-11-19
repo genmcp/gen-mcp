@@ -20,6 +20,16 @@ func TestParseMcpFile(t *testing.T) {
 			expected: &MCPServerConfigFile{
 				Kind:          KindMCPServerConfig,
 				SchemaVersion: config.SchemaVersion,
+				MCPServerConfig: MCPServerConfig{
+					Runtime: &ServerRuntime{
+						TransportProtocol: TransportProtocolStreamableHttp,
+						StreamableHTTPConfig: &StreamableHTTPConfig{
+							Port:      3000,
+							BasePath:  DefaultBasePath,
+							Stateless: true,
+						},
+					},
+				},
 			},
 		},
 		"stateful": {

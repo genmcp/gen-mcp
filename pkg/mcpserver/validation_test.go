@@ -20,7 +20,6 @@ func TestMCPFileValidate(t *testing.T) {
 				Version: "1.0.0",
 			},
 			MCPServerConfig: serverconfig.MCPServerConfig{
-				Version: "1.0.0",
 				Runtime: &serverconfig.ServerRuntime{
 					TransportProtocol: serverconfig.TransportProtocolStreamableHttp,
 					StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
@@ -41,7 +40,6 @@ func TestMCPFileValidate(t *testing.T) {
 				Name: "test-server",
 			},
 			MCPServerConfig: serverconfig.MCPServerConfig{
-				Name: "test-server",
 				Runtime: &serverconfig.ServerRuntime{
 					TransportProtocol: serverconfig.TransportProtocolStreamableHttp,
 					StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
@@ -63,8 +61,6 @@ func TestMCPFileValidate(t *testing.T) {
 				Version: "1.0.0",
 			},
 			MCPServerConfig: serverconfig.MCPServerConfig{
-				Name:    "test-server",
-				Version: "1.0.0",
 				Runtime: &serverconfig.ServerRuntime{
 					TransportProtocol: serverconfig.TransportProtocolStreamableHttp,
 					StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
