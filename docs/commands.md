@@ -176,10 +176,11 @@ genmcp convert <openapi-spec> [flags]
 
 #### Flags
 
-| Flag     | Short | Default        | Description                                         |
-|----------|-------|----------------|-----------------------------------------------------|
-| `--out`  | `-o`  | `mcpfile.yaml` | Output path for the generated tool definitions file |
-| `--host` | `-H`  | *(from spec)*  | Override the base host URL from the OpenAPI spec    |
+| Flag              | Short | Default              | Description                                                                    |
+|-------------------|-------|----------------------|--------------------------------------------------------------------------------|
+| `--file`          | `-f`  | `mcpfile.yaml`       | Output path for the generated tool definitions file                            |
+| `--server-config` | `-s`  | `mcpfile-server.yaml`| Output path for the generated server config file                               |
+| `--host`          | `-H`  | *(from spec)*        | Override the base host URL from the OpenAPI spec                               |
 
 #### How It Works
 
@@ -192,27 +193,43 @@ The `convert` command:
 5. **Creates invocations** - Generates HTTP invocations with proper methods and URLs
 6. **Writes MCP files** - Outputs both a tool definitions file and a server config file
 
+**File Naming Convention:**
+- The `--file/-f` flag sets the output path for the tool definitions file (default: `mcpfile.yaml`)
+- The `--server-config/-s` flag sets the output path for the server config file (default: `mcpfile-server.yaml`)
+- If you only specify `--file/-f`, the server config file will use the default name `mcpfile-server.yaml` regardless of the tool definitions filename
+- To control both filenames, specify both `--file/-f` and `--server-config/-s` flags
+
 #### Examples
 
 **Convert from URL:**
 ```bash
-# Public API
+# Public API (uses default filenames: mcpfile.yaml and mcpfile-server.yaml)
 genmcp convert https://petstore.swagger.io/v2/swagger.json
 
 # Local server
 genmcp convert http://localhost:8080/openapi.json
 
-# With custom output path
-genmcp convert https://api.example.com/openapi.yaml -o my-api.yaml
+# With custom tool definitions output path (server config defaults to mcpfile-server.yaml)
+genmcp convert https://api.example.com/openapi.yaml -f my-api.yaml
+# Creates: my-api.yaml and mcpfile-server.yaml
+
+# With custom output paths for both files
+genmcp convert https://api.example.com/openapi.yaml -f my-api.yaml -s my-api-server.yaml
+# Creates: my-api.yaml and my-api-server.yaml
 ```
 
 **Convert from file:**
 ```bash
-# Local OpenAPI file
+# Local OpenAPI file (uses default filenames)
 genmcp convert ./api-spec.json
 
-# With custom output location
-genmcp convert ./specs/v3-api.yaml -o ./configs/mcp-api.yaml
+# With custom tool definitions location (server config defaults to mcpfile-server.yaml)
+genmcp convert ./specs/v3-api.yaml -f ./configs/mcp-api.yaml
+# Creates: ./configs/mcp-api.yaml and mcpfile-server.yaml
+
+# With custom paths for both files
+genmcp convert ./specs/v3-api.yaml -f ./configs/mcp-api.yaml -s ./configs/mcp-api-server.yaml
+# Creates: ./configs/mcp-api.yaml and ./configs/mcp-api-server.yaml
 ```
 
 **Override host URL:**
@@ -221,14 +238,20 @@ genmcp convert ./specs/v3-api.yaml -o ./configs/mcp-api.yaml
 # Override to use local dev server
 genmcp convert openapi.json --host http://localhost:3000
 
-# Override to use staging environment
-genmcp convert openapi.json -H https://staging-api.example.com -o staging.yaml
+# Override to use staging environment with custom output paths
+genmcp convert openapi.json -H https://staging-api.example.com -f staging.yaml -s staging-server.yaml
 ```
 
 **Complete workflow:**
 ```bash
 # 1. Convert OpenAPI spec (generates both files)
-genmcp convert https://api.github.com/openapi.json -o github-tools.yaml
+# Using --file/-f sets tool definitions path; server config defaults to mcpfile-server.yaml
+genmcp convert https://api.github.com/openapi.json -f github-tools.yaml
+# Output: wrote tool definitions to github-tools.yaml
+# Output: wrote server config to mcpfile-server.yaml
+
+# Or specify both files explicitly
+genmcp convert https://api.github.com/openapi.json -f github-tools.yaml -s github-server.yaml
 # Output: wrote tool definitions to github-tools.yaml
 # Output: wrote server config to github-server.yaml
 
@@ -443,7 +466,12 @@ which genmcp && genmcp version
 
 ```bash
 # 1. Convert an API (generates both files)
-genmcp convert http://localhost:8080/openapi.json -o dev-tools.yaml
+# Using --file/-f sets tool definitions path; server config defaults to mcpfile-server.yaml
+genmcp convert http://localhost:8080/openapi.json -f dev-tools.yaml
+# Creates dev-tools.yaml and mcpfile-server.yaml
+
+# Or specify both files explicitly
+genmcp convert http://localhost:8080/openapi.json -f dev-tools.yaml -s dev-server.yaml
 # Creates dev-tools.yaml and dev-server.yaml
 
 # 2. Run and test

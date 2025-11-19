@@ -88,7 +88,7 @@ func executeRunCmd(_ *cobra.Command, _ []string) {
 	}
 
 	// Detached mode: spawn the same command without --detach flag
-	cmd := exec.Command(os.Args[0], "run", "-t", toolDefinitionsPath, "-s", serverConfigPath)
+	cmd := exec.Command(os.Args[0], "run", "-f", toolDefinitionsPath, "-s", serverConfigPath)
 	err = cmd.Start()
 	if err != nil {
 		fmt.Printf("failed to start genmcp-server: %s\n", err.Error())

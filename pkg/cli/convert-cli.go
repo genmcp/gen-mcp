@@ -19,7 +19,7 @@ var mcpOutputPath string
 
 var convertCliCmd = &cobra.Command{
 	Use:   "convert-cli <command1> [command2] [command3] ...",
-	Short: "Convert one or more CLI commands to an MCPServer configuration",
+	Short: "Generate tool definitions file from one or more CLI commands",
 	Args:  cobra.MinimumNArgs(1),
 	Run:   executeConvertCliCmd,
 }
