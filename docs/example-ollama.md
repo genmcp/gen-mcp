@@ -250,7 +250,7 @@ Each tool follows this pattern:
 Start the gen-mcp server with both configuration files:
 
 ```bash
-genmcp run -t ollama-http.yaml -s ollama-mcpserver.yaml
+genmcp run -f ollama-http.yaml -s ollama-mcpserver.yaml
 ```
 
 You should see:
@@ -374,7 +374,7 @@ runtime:
 ### Running the CLI-Based Server
 
 ```bash
-genmcp run -t ollama-cli.yaml -s ollama-cli-mcpserver.yaml
+genmcp run -f ollama-cli.yaml -s ollama-cli-mcpserver.yaml
 ```
 
 ## Summary

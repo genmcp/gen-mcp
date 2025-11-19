@@ -56,7 +56,7 @@ Example customizations in this demo:
 Launch the gen-mcp server with both files:
 
 ```bash
-   genmcp run -t mcpfile.yaml -s mcpserver.yaml
+   genmcp run -f mcpfile.yaml -s mcpserver.yaml
 ```
 
 The MCP server will run on port 8080 (as configured) and expose the HTTP endpoints as MCP tools that AI assistants can call seamlessly.

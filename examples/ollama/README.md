@@ -24,14 +24,14 @@ Uses Ollama's command-line interface:
 1. **Make sure Ollama is running** locally (usually at `http://localhost:11434`).
 2. Run the HTTP-based integration:
    ```bash
-   genmcp run -t examples/ollama/ollama-http.yaml -s examples/ollama/ollama-mcpserver.yaml
+   genmcp run -f examples/ollama/ollama-http.yaml -s examples/ollama/ollama-mcpserver.yaml
    ```
 
 ### CLI Method  
 1. **Ensure Ollama is installed** and available in your PATH.
 2. Run the CLI-based integration:
    ```bash
-   genmcp run -t examples/ollama/ollama-cli.yaml -s examples/ollama/ollama-cli-mcpserver.yaml
+   genmcp run -f examples/ollama/ollama-cli.yaml -s examples/ollama/ollama-cli-mcpserver.yaml
    ```
 
 Both methods expose Ollama functionality as MCP tools, allowing AI assistants to interact with your local language models seamlessly!

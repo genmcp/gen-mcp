@@ -14,7 +14,7 @@ The `genmcp` CLI provides commands for managing MCP servers, converting API spec
 
 | Command               | Description            | Common Usage                                                        |
 |-----------------------|------------------------|---------------------------------------------------------------------|
-| [`run`](#run)         | Start an MCP server    | `genmcp run -t mcpfile.yaml -s mcpserver.yaml`                      |
+| [`run`](#run)         | Start an MCP server    | `genmcp run -f mcpfile.yaml -s mcpserver.yaml`                      |
 | [`stop`](#stop)       | Stop a running server  | `genmcp stop -f mcpfile.yaml`                                       |
 | [`convert`](#convert) | Convert OpenAPI to MCP | `genmcp convert openapi.json`                                       |
 | [`build`](#build)     | Build container image  | `genmcp build -f mcpfile.yaml -s mcpserver.yaml --tag myapi:latest` |
@@ -61,16 +61,16 @@ The `run` command:
 genmcp run
 
 # Run with specific files
-genmcp run -t ./config/tools.yaml -s ./config/server.yaml
+genmcp run -f ./config/tools.yaml -s ./config/server.yaml
 
 # Run with absolute paths
-genmcp run -t /path/to/mcpfile.yaml -s /path/to/mcpserver.yaml
+genmcp run -f /path/to/mcpfile.yaml -s /path/to/mcpserver.yaml
 ```
 
 **Detached mode (background):**
 ```bash
 # Start server in background
-genmcp run -t mcpfile.yaml -s mcpserver.yaml --detach
+genmcp run -f mcpfile.yaml -s mcpserver.yaml --detach
 
 # Server runs independently, can close terminal
 # Use 'genmcp stop' to terminate later
@@ -81,13 +81,13 @@ genmcp run -t mcpfile.yaml -s mcpserver.yaml --detach
 ```bash
 # Development: Run in foreground with logs visible
 cd examples/ollama
-genmcp run -t ollama-http.yaml -s ollama-mcpserver.yaml
+genmcp run -f ollama-http.yaml -s ollama-mcpserver.yaml
 
 # Production: Run in background
-genmcp run -t /etc/genmcp/tools.yaml -s /etc/genmcp/server.yaml -d
+genmcp run -f /etc/genmcp/tools.yaml -s /etc/genmcp/server.yaml -d
 
 # Testing: Quick validation and startup
-genmcp run -t test-tools.yaml -s test-server.yaml
+genmcp run -f test-tools.yaml -s test-server.yaml
 # Press Ctrl+C to stop when done testing
 ```
 
@@ -142,7 +142,7 @@ genmcp stop -f /path/to/mcpfile.yaml
 **Workflow example:**
 ```bash
 # Start server in background
-genmcp run -t myapi.yaml -s myapi-server.yaml --detach
+genmcp run -f myapi.yaml -s myapi-server.yaml --detach
 # Output: successfully started gen-mcp server...
 
 # Later, stop the server (use tool definitions file path)
@@ -238,7 +238,7 @@ cat github-server.yaml
 # Edit descriptions, add safety guards, etc.
 
 # 3. Run the MCP server
-genmcp run -t github-tools.yaml -s github-server.yaml
+genmcp run -f github-tools.yaml -s github-server.yaml
 ```
 
 #### Generated Structure
@@ -447,18 +447,18 @@ genmcp convert http://localhost:8080/openapi.json -o dev-tools.yaml
 # Creates dev-tools.yaml and dev-server.yaml
 
 # 2. Run and test
-genmcp run -t dev-tools.yaml -s dev-server.yaml
+genmcp run -f dev-tools.yaml -s dev-server.yaml
 
 # 3. Make changes to files, restart
 # Press Ctrl+C, then run again
-genmcp run -t dev-tools.yaml -s dev-server.yaml
+genmcp run -f dev-tools.yaml -s dev-server.yaml
 ```
 
 #### Production Deployment
 
 ```bash
 # 1. Validate configuration
-genmcp run -t production-tools.yaml -s production-server.yaml
+genmcp run -f production-tools.yaml -s production-server.yaml
 # Press Ctrl+C after confirming it starts
 
 # 2. Build container
@@ -472,7 +472,7 @@ kubectl apply -f k8s-deployment.yaml
 
 ```bash
 # Start server in background
-genmcp run -t myapi.yaml -s myapi-server.yaml --detach
+genmcp run -f myapi.yaml -s myapi-server.yaml --detach
 
 # Check if it's running (example using curl)
 curl http://localhost:8080/health
@@ -485,10 +485,10 @@ genmcp stop -f myapi.yaml
 
 ```bash
 # Test HTTP-based integration
-genmcp run -t configs/http-tools.yaml -s configs/http-server.yaml -d
+genmcp run -f configs/http-tools.yaml -s configs/http-server.yaml -d
 
 # Test CLI-based integration
-genmcp run -t configs/cli-tools.yaml -s configs/cli-server.yaml -d
+genmcp run -f configs/cli-tools.yaml -s configs/cli-server.yaml -d
 
 # Stop all (use tool definitions file paths)
 genmcp stop -f configs/http-tools.yaml
@@ -525,7 +525,7 @@ export PATH=$PATH:/path/to/genmcp
 
 ```bash
 # Check MCP files validity
-genmcp run -t mcpfile.yaml -s mcpserver.yaml
+genmcp run -f mcpfile.yaml -s mcpserver.yaml
 # Look for validation errors in output
 
 # Verify files exist

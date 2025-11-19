@@ -343,7 +343,7 @@ runtime:
 Start your customized MCP server with both files:
 
 ```bash
-genmcp run -t mcpfile.yaml -s mcpserver.yaml
+genmcp run -f mcpfile.yaml -s mcpserver.yaml
 ```
 
 You should see:
