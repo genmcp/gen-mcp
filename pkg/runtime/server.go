@@ -466,14 +466,14 @@ func makeServerWithTools(mcpServer *mcpserver.MCPServer, tools []*definitions.To
 		zap.String("server_name", mcpServer.Name()),
 		zap.String("server_version", mcpServer.Version()),
 		zap.Int("num_tools", len(tools)),
-		zap.Int("num_prompts", len(mcpServer.MCPToolDefinitions.Prompts)),
-		zap.Int("num_resources", len(mcpServer.MCPToolDefinitions.Resources)),
-		zap.Int("num_resource_templates", len(mcpServer.MCPToolDefinitions.ResourceTemplates)))
+		zap.Int("num_prompts", len(mcpServer.Prompts)),
+		zap.Int("num_resources", len(mcpServer.Resources)),
+		zap.Int("num_resource_templates", len(mcpServer.ResourceTemplates)))
 
 	opts := &mcp.ServerOptions{
-		HasTools:     len(mcpServer.MCPToolDefinitions.Tools) > 0,
-		HasPrompts:   len(mcpServer.MCPToolDefinitions.Prompts) > 0,
-		HasResources: len(mcpServer.MCPToolDefinitions.Resources)+len(mcpServer.MCPToolDefinitions.ResourceTemplates) > 0,
+		HasTools:     len(mcpServer.Tools) > 0,
+		HasPrompts:   len(mcpServer.Prompts) > 0,
+		HasResources: len(mcpServer.Resources)+len(mcpServer.ResourceTemplates) > 0,
 	}
 	if mcpServer.Instructions() != "" {
 		logger.Debug("Adding server instructions")

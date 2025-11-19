@@ -23,7 +23,7 @@ type ServerManager struct {
 }
 
 func NewServerManager(server *mcpserver.MCPServer) *ServerManager {
-	logger := server.MCPServerConfig.Runtime.GetBaseLogger()
+	logger := server.Runtime.GetBaseLogger()
 	logger.Debug("Creating new server manager",
 		zap.String("server_name", server.Name()),
 		zap.String("server_version", server.Version()))
@@ -40,7 +40,7 @@ func NewServerManager(server *mcpserver.MCPServer) *ServerManager {
 // It then checks if after filtering the tools for the received scopes there is an existing server with the same tool set
 // Finally, it creates a new server with the correct set of tools and caches the server for future connections
 func (sm *ServerManager) ServerFromContext(ctx context.Context) (*mcp.Server, error) {
-	logger := sm.mcpServer.MCPServerConfig.Runtime.GetBaseLogger()
+	logger := sm.mcpServer.Runtime.GetBaseLogger()
 
 	claims := oauth.GetClaimsFromContext(ctx)
 	if claims == nil {
@@ -114,7 +114,7 @@ func (sm *ServerManager) ServerFromContext(ctx context.Context) (*mcp.Server, er
 }
 
 func (sm *ServerManager) filterToolsForScope(scope string) []*definitions.Tool {
-	logger := sm.mcpServer.MCPServerConfig.Runtime.GetBaseLogger()
+	logger := sm.mcpServer.Runtime.GetBaseLogger()
 	var allowedTools []*definitions.Tool
 
 	userScopes := strings.Split(scope, " ")
