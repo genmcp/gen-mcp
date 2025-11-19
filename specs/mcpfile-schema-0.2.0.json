@@ -82,7 +82,7 @@
         "method",
         "url"
       ],
-      "description": "HttpInvocationConfig is tthe configuration for making an HTTP request."
+      "description": "HttpInvocationConfig is the configuration for making an HTTP request."
     },
     "InvocationConfigWrapper": {
       "oneOf": [

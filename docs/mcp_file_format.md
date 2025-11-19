@@ -28,18 +28,18 @@ The Tool Definitions File defines what capabilities your MCP server provides. It
 
 The root of the Tool Definitions File has the following structure:
 
-| Field | Type | Description | Required |
-|---|---|---|---|
-| `kind` | string | Must be `"MCPToolDefinitions"`. | Yes |
-| `schemaVersion` | string | The version of the MCP file format. Must be `"0.2.0"`. | Yes |
-| `name` | string | The name of the server. | Yes |
-| `version` | string | The semantic version of the server's toolset. | Yes |
-| `instructions` | string | A set of instructions provided by the server to the client about how to use the server. | No |
-| `invocationBases` | object | A set of reusable base configurations for invocations. Each key is a unique identifier, and each value is an invocation configuration (either `http` or `cli`). See [Section 6.3](#63-invocation-bases) for details. | No |
-| `tools` | array of `Tool` | The tools provided by this server. | No |
-| `prompts` | array of `Prompt` | The prompts provided by this server. | No |
-| `resources` | array of `Resource` | The resources provided by this server. | No |
-| `resourceTemplates` | array of `ResourceTemplate` | The resource templates provided by this server. | No |
+| Field               | Type                        | Description                                                                                                                                                                                                          | Required |
+|---------------------|-----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
+| `kind`              | string                      | Must be `"MCPToolDefinitions"`.                                                                                                                                                                                      | Yes      |
+| `schemaVersion`     | string                      | The version of the MCP file format. Must be `"0.2.0"`.                                                                                                                                                               | Yes      |
+| `name`              | string                      | The name of the server.                                                                                                                                                                                              | Yes      |
+| `version`           | string                      | The semantic version of the server's toolset.                                                                                                                                                                        | Yes      |
+| `instructions`      | string                      | A set of instructions provided by the server to the client about how to use the server.                                                                                                                              | No       |
+| `invocationBases`   | object                      | A set of reusable base configurations for invocations. Each key is a unique identifier, and each value is an invocation configuration (either `http` or `cli`). See [Section 7.3](#73-invocation-bases) for details. | No       |
+| `tools`             | array of `Tool`             | The tools provided by this server.                                                                                                                                                                                   | No       |
+| `prompts`           | array of `Prompt`           | The prompts provided by this server.                                                                                                                                                                                 | No       |
+| `resources`         | array of `Resource`         | The resources provided by this server.                                                                                                                                                                               | No       |
+| `resourceTemplates` | array of `ResourceTemplate` | The resource templates provided by this server.                                                                                                                                                                      | No       |
 
 ### Example: Tool Definitions File
 
