@@ -17,7 +17,7 @@ var validHttpMethods = map[string]struct{}{
 	nethttp.MethodDelete: {},
 }
 
-// HttpInvocationConfig is tthe configuration for making an HTTP request.
+// HttpInvocationConfig is the configuration for making an HTTP request.
 // This is a pure data structure with no parsing logic - all struct tags only.
 type HttpInvocationConfig struct {
 	// The URL for the HTTP request.
