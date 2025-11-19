@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 )
 
@@ -157,7 +158,7 @@ func (bc *BinaryCache) calculateChecksum(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	h := sha256.New()
 	if _, err := io.Copy(h, f); err != nil {
@@ -187,13 +188,13 @@ func (bc *BinaryCache) copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer source.Close()
+	defer func() { _ = source.Close() }()
 
 	destination, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer destination.Close()
+	defer func() { _ = destination.Close() }()
 
 	if _, err := io.Copy(destination, source); err != nil {
 		return err
@@ -237,7 +238,10 @@ func (bc *BinaryCache) Clean(keepVersions int) error {
 		if len(entries) <= keepVersions {
 			continue
 		}
-
+		// Sort by download timestamp (newest first)
+		sort.Slice(entries, func(i, j int) bool {
+			return entries[i].DownloadedAt > entries[j].DownloadedAt
+		})
 		// Remove old entries
 		for i := keepVersions; i < len(entries); i++ {
 			key := fmt.Sprintf("%s-%s", entries[i].Version, platform)

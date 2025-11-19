@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 )
 
 const (
@@ -37,8 +38,10 @@ func NewBinaryDownloader() (*BinaryDownloader, error) {
 	}
 
 	return &BinaryDownloader{
-		cache:    cache,
-		client:   &http.Client{},
+		cache: cache,
+		client: &http.Client{
+			Timeout: 5 * time.Minute, // timeout for binary downloads
+		},
 		verifier: verifier,
 	}, nil
 }
@@ -56,12 +59,10 @@ func (bd *BinaryDownloader) GetBinary(version, goos, goarch string) (string, err
 
 	platform := fmt.Sprintf("%s-%s", goos, goarch)
 
-	// Check cache first
 	if cachedPath, found := bd.cache.Get(version, platform); found {
 		return cachedPath, nil
 	}
 
-	// Download and verify
 	binaryPath, err := bd.downloadAndVerify(version, goos, goarch)
 	if err != nil {
 		// Download failed, try to use cached version as fallback
@@ -76,7 +77,7 @@ func (bd *BinaryDownloader) GetBinary(version, goos, goarch string) (string, err
 	// Extract temp directory from binary path for cleanup
 	// Binary is extracted to: /tmp/genmcp-download-xxx/genmcp-server-linux-amd64
 	tempDir := filepath.Dir(binaryPath)
-	defer os.RemoveAll(tempDir) // Clean up after caching
+	defer func() { _ = os.RemoveAll(tempDir) }() // Clean up after caching
 
 	if err := bd.CleanOldBinaries(CacheKeepVersionsCount); err != nil {
 		fmt.Printf("Warning: Failed to clean old binaries: %v\n", err)
@@ -131,7 +132,7 @@ func (bd *BinaryDownloader) downloadFile(version, filename, destPath string) err
 	if err != nil {
 		return fmt.Errorf("failed to download %s: %w", url, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("download failed with status %d: %s", resp.StatusCode, url)
@@ -141,7 +142,7 @@ func (bd *BinaryDownloader) downloadFile(version, filename, destPath string) err
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
-	defer out.Close()
+	defer func() { _ = out.Close() }()
 
 	if _, err := io.Copy(out, resp.Body); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
@@ -156,7 +157,7 @@ func (bd *BinaryDownloader) extractBinary(zipPath, destDir, goos, goarch string)
 	if err != nil {
 		return "", err
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	expectedName := fmt.Sprintf("genmcp-server-%s-%s", goos, goarch)
 	if goos == "windows" {
@@ -172,14 +173,14 @@ func (bd *BinaryDownloader) extractBinary(zipPath, destDir, goos, goarch string)
 		if err != nil {
 			return "", err
 		}
-		defer rc.Close()
+		defer func() { _ = rc.Close() }()
 
 		destPath := filepath.Join(destDir, f.Name)
 		dest, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 		if err != nil {
 			return "", err
 		}
-		defer dest.Close()
+		defer func() { _ = dest.Close() }()
 
 		if _, err := io.Copy(dest, rc); err != nil {
 			return "", err
@@ -202,7 +203,7 @@ func (bd *BinaryDownloader) fetchLatestVersion() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch latest release: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
