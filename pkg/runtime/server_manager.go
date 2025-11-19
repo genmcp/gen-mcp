@@ -72,7 +72,7 @@ func (sm *ServerManager) ServerFromContext(ctx context.Context) (*mcp.Server, er
 
 	logger.Debug("Filtered tools for user scopes",
 		zap.String("user_subject", claims.Subject),
-		zap.Int("total_tools", len(sm.mcpServer.MCPToolDefinitions.Tools)),
+		zap.Int("total_tools", len(sm.mcpServer.Tools)),
 		zap.Int("filtered_tools", len(filteredTools)),
 		zap.Strings("tool_names", filteredToolNames))
 
@@ -125,9 +125,9 @@ func (sm *ServerManager) filterToolsForScope(scope string) []*definitions.Tool {
 
 	logger.Debug("Filtering tools for scope",
 		zap.String("scope", scope),
-		zap.Int("total_tools", len(sm.mcpServer.MCPToolDefinitions.Tools)))
+		zap.Int("total_tools", len(sm.mcpServer.Tools)))
 
-	for _, tool := range sm.mcpServer.MCPToolDefinitions.Tools {
+	for _, tool := range sm.mcpServer.Tools {
 		if err := checkAuthorization(tool.RequiredScopes, scopesLookup); err != nil {
 			logger.Debug("Tool filtered out due to insufficient scopes",
 				zap.String("tool_name", tool.Name))
@@ -140,7 +140,7 @@ func (sm *ServerManager) filterToolsForScope(scope string) []*definitions.Tool {
 	}
 
 	logger.Debug("Tool filtering completed",
-		zap.Int("total_tools", len(sm.mcpServer.MCPToolDefinitions.Tools)),
+		zap.Int("total_tools", len(sm.mcpServer.Tools)),
 		zap.Int("allowed_tools", len(allowedTools)))
 
 	return allowedTools
