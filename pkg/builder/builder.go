@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
-	"embed"
 	"fmt"
 	"io"
 	"io/fs"
@@ -55,30 +54,6 @@ func (fs *OSFileSystem) Stat(name string) (fs.FileInfo, error) {
 
 func (fs *OSFileSystem) ReadFile(name string) ([]byte, error) {
 	return os.ReadFile(name)
-}
-
-// EmbedBinaryProvider implements BinaryProvider using embedded binaries
-type EmbedBinaryProvider struct {
-	binaries embed.FS
-}
-
-func (bp *EmbedBinaryProvider) ExtractServerBinary(platform *v1.Platform) ([]byte, fs.FileInfo, error) {
-	filename := fmt.Sprintf("binaries/genmcp-server-%s-%s", platform.OS, platform.Architecture)
-	if platform.OS == "windows" {
-		filename += ".exe"
-	}
-
-	fileInfo, err := fs.Stat(bp.binaries, filename)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	binary, err := bp.binaries.ReadFile(filename)
-	if err != nil {
-		return nil, nil, fmt.Errorf("no binary found for platform %s/%s", platform.OS, platform.Architecture)
-	}
-
-	return binary, fileInfo, nil
 }
 
 // DefaultImageDownloader implements ImageDownloader using go-containerregistry
@@ -215,9 +190,6 @@ func (d *DaemonImageSaver) SaveImageIndex(ctx context.Context, idx v1.ImageIndex
 	return nil
 }
 
-//go:embed binaries/genmcp-server-*
-var serverBinaries embed.FS
-
 // Magic value required to make file exexutable in windows containers
 // taken from https://github.com/ko-build/ko/blob/4cee0bb4ee9655f43cc2ef26dbe0f45fac1eda5c/pkg/build/gobuild.go#L591
 const userOwnerAndGroupSID = "AQAAgBQAAAAkAAAAAAAAAAAAAAABAgAAAAAABSAAAAAhAgAAAQIAAAAAAAUgAAAAIQIAAA=="
@@ -238,7 +210,8 @@ type ImageBuilder struct {
 	imageSaver      ImageSaver
 }
 
-func New(saveToRegistry bool) *ImageBuilder {
+// New creates a new ImageBuilder that downloads binaries from GitHub releases
+func New(saveToRegistry bool, version string) (*ImageBuilder, error) {
 	var saver ImageSaver
 	if saveToRegistry {
 		saver = &RegistryImageSaver{}
@@ -246,12 +219,17 @@ func New(saveToRegistry bool) *ImageBuilder {
 		saver = &DaemonImageSaver{}
 	}
 
+	binaryProvider, err := NewDownloadBinaryProvider(version)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ImageBuilder{
 		fs:              &OSFileSystem{},
-		binaryProvider:  &EmbedBinaryProvider{binaries: serverBinaries},
+		binaryProvider:  binaryProvider,
 		imageDownloader: &DefaultImageDownloader{},
 		imageSaver:      saver,
-	}
+	}, nil
 }
 
 func (b *ImageBuilder) Build(ctx context.Context, opts BuildOptions) (v1.Image, error) {

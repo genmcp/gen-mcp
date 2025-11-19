@@ -22,6 +22,7 @@ func init() {
 	buildCmd.Flags().StringVar(&platform, "platform", "", "platform to build for (e.g., linux/amd64). If not specified, builds multi-arch image for linux/amd64 and linux/arm64")
 	buildCmd.Flags().StringVar(&imageTag, "tag", "", "image tag for the registry")
 	buildCmd.Flags().BoolVar(&push, "push", false, "push the image to the registry (if false, store locally)")
+	buildCmd.Flags().StringVar(&serverVersion, "server-version", "", "server binary version to download (default: latest release, or match CLI version if set)")
 }
 
 var buildCmd = &cobra.Command{
@@ -37,6 +38,7 @@ var (
 	platform               string
 	imageTag               string
 	push                   bool
+	serverVersion          string
 )
 
 func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
@@ -58,6 +60,28 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 	}
 
 	b := builder.New(push)
+	// Determine which server version to use
+	version := serverVersion
+	if version == "" {
+		cliVersion := GetVersion()
+		// If CLI is a development version, use latest
+		if isDevelopmentVersion(cliVersion) {
+			version = "latest"
+			fmt.Printf("Development CLI detected, using latest server binaries\n")
+		} else {
+			version = cliVersion
+			fmt.Printf("Using server binaries matching CLI version: %s\n", version)
+		}
+	} else {
+		fmt.Printf("Using specified server version: %s\n", version)
+	}
+
+	// Create builder
+	b, err := builder.New(push, version)
+	if err != nil {
+		fmt.Printf("Failed to setup binary downloader: %s\n", err.Error())
+		os.Exit(1)
+	}
 
 	// Single platform build if --platform is specified
 	if platform != "" {
@@ -227,4 +251,9 @@ func validateMCPServerConfigFile(filePath string) error {
 	// the signature expected, so we'll just validate parsing succeeded
 	_ = mcpFile
 	return nil
+}
+
+// isDevelopmentVersion checks if a version string is a development version
+func isDevelopmentVersion(version string) bool {
+	return strings.HasPrefix(version, "development@")
 }
