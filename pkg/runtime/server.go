@@ -535,8 +535,8 @@ func makeServerWithTools(mcpServer *mcpserver.MCPServer, tools []*definitions.To
 		logger.Debug("Registered tool", zap.String("tool_name", t.Name))
 	}
 
-	logger.Debug("Registering prompts", zap.Int("count", len(mcpServer.MCPToolDefinitions.Prompts)))
-	for _, p := range mcpServer.MCPToolDefinitions.Prompts {
+	logger.Debug("Registering prompts", zap.Int("count", len(mcpServer.Prompts)))
+	for _, p := range mcpServer.Prompts {
 		handler, err := createAuthorizedPromptHandler(p)
 		if err != nil {
 			logger.Error("Failed to create prompt handler",
@@ -556,8 +556,8 @@ func makeServerWithTools(mcpServer *mcpserver.MCPServer, tools []*definitions.To
 		logger.Debug("Registered prompt", zap.String("prompt_name", p.Name))
 	}
 
-	logger.Debug("Registering resources", zap.Int("count", len(mcpServer.MCPToolDefinitions.Resources)))
-	for _, r := range mcpServer.MCPToolDefinitions.Resources {
+	logger.Debug("Registering resources", zap.Int("count", len(mcpServer.Resources)))
+	for _, r := range mcpServer.Resources {
 		handler, err := createAuthorizedResourceHandler(r)
 		if err != nil {
 			logger.Error("Failed to create resource handler",
@@ -580,8 +580,8 @@ func makeServerWithTools(mcpServer *mcpserver.MCPServer, tools []*definitions.To
 		logger.Debug("Registered resource", zap.String("resource_name", r.Name))
 	}
 
-	logger.Debug("Registering resource templates", zap.Int("count", len(mcpServer.MCPToolDefinitions.ResourceTemplates)))
-	for _, rt := range mcpServer.MCPToolDefinitions.ResourceTemplates {
+	logger.Debug("Registering resource templates", zap.Int("count", len(mcpServer.ResourceTemplates)))
+	for _, rt := range mcpServer.ResourceTemplates {
 		handler, err := createAuthorizedResourceTemplateHandler(rt)
 		if err != nil {
 			logger.Error("Failed to create resource template handler",

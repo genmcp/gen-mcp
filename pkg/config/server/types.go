@@ -103,18 +103,22 @@ func (sr *ServerRuntime) GetBaseLogger() *zap.Logger {
 
 // MCPServerConfig defines the metadata and capabilities of an MCP server.
 type MCPServerConfig struct {
+	// TODO: remove duplication with definitions.MCPToolDefinitions
 	// Name of the MCP server.
 	Name string `json:"name" jsonschema:"required"`
 
+	// TODO: remove duplication with definitions.MCPToolDefinitions
 	// Semantic version of the MCP server.
 	Version string `json:"version" jsonschema:"required"`
 
 	// Runtime configuration for the MCP server.
 	Runtime *ServerRuntime `json:"runtime,omitempty" jsonschema:"optional"`
 
+	// TODO: remove duplication with definitions.MCPToolDefinitions
 	// A set of instructions provided by the server to the client about how to use the server
 	Instructions string `json:"instructions,omitempty" jsonschema:"optional"`
 
+	// TODO: remove duplication with definitions.MCPToolDefinitions
 	// InvocationBases contains base configs for invocations
 	InvocationBases map[string]*invocation.InvocationConfigWrapper `json:"invocationBases,omitempty" jsonschema:"optional"`
 }
