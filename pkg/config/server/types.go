@@ -72,8 +72,11 @@ type ServerRuntime struct {
 	initLoggerOnce sync.Once
 }
 
-// GetBaseLogger returns the base logger for the server, defaulting to noop if either the runtime or
-// any of the logging config is nil or has errors
+// GetBaseLogger returns the base logger for the server.
+// If LoggingConfig is nil, it defaults to a console logger with info level to ensure
+// startup messages are visible as documented in tutorials.
+// If LoggingConfig is provided but fails to build, it falls back to a console logger.
+// If the runtime is nil, it returns a no-op logger.
 func (sr *ServerRuntime) GetBaseLogger() *zap.Logger {
 	if sr == nil {
 		return zap.NewNop()
@@ -85,15 +88,33 @@ func (sr *ServerRuntime) GetBaseLogger() *zap.Logger {
 			if err != nil || logger == nil {
 				// Surface the error to stderr before falling back
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "ERROR: Failed to build base logger, using no-op logger: %v\n", err)
+					fmt.Fprintf(os.Stderr, "ERROR: Failed to build base logger, using default console logger: %v\n", err)
 				} else {
-					fmt.Fprintf(os.Stderr, "ERROR: BuildBase returned nil logger, using no-op logger\n")
+					fmt.Fprintf(os.Stderr, "ERROR: BuildBase returned nil logger, using default console logger\n")
 				}
-				logger = zap.NewNop()
+				// Fall back to default console logger
+				config := zap.NewDevelopmentConfig()
+				config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+				config.Encoding = "console"
+				logger, _ = config.Build()
+				if logger == nil {
+					logger = zap.NewNop()
+				}
 			}
 			sr.baseLogger = logger
 		} else {
-			sr.baseLogger = zap.NewNop()
+			// Default to console logger with info level when no logging config is provided
+			// This ensures users can see startup messages as documented in tutorials
+			config := zap.NewDevelopmentConfig()
+			config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+			config.Encoding = "console"
+			logger, err := config.Build()
+			if err != nil || logger == nil {
+				// Last resort: use no-op logger
+				sr.baseLogger = zap.NewNop()
+			} else {
+				sr.baseLogger = logger
+			}
 		}
 	})
 

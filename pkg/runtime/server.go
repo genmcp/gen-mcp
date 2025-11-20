@@ -84,6 +84,13 @@ func RunServer(ctx context.Context, toolDefinitionsPath, serverConfigPath string
 
 	// Now we can get the logger from the runtime config
 	logger := mcpServer.Runtime.GetBaseLogger()
+
+	// Log tool count and server config usage as promised in tutorials
+	numTools := len(mcpServer.Tools)
+	logger.Info(fmt.Sprintf("Loaded %d tools from %s", numTools, toolDefinitionsPath))
+
+	logger.Info(fmt.Sprintf("Using server config from %s", serverConfigPath))
+
 	logger.Info("Starting servers from MCP files",
 		zap.String("tool_definitions_path", toolDefinitionsPath),
 		zap.String("server_config_path", serverConfigPath),
@@ -171,7 +178,7 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpserver.MCP
 		Addr:    fmt.Sprintf(":%d", port),
 		Handler: mux,
 	}
-	logger.Info("Starting HTTP server", zap.Int("port", port))
+	logger.Info(fmt.Sprintf("Starting MCP server on port %d", port))
 
 	// Channel to capture server errors
 	errCh := make(chan error, 1)
