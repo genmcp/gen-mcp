@@ -77,7 +77,7 @@ curl http://localhost:11434
 
 GenMCP uses two separate files. Here's the complete configuration:
 
-**Tool Definitions File** (`ollama-http.yaml`):
+**Tool Definitions File** (`ollama-http-mcpfile.yaml`):
 
 ```yaml
 kind: MCPToolDefinitions
@@ -189,7 +189,7 @@ tools:
       url: http://localhost:11434/api/ps
 ```
 
-**Server Config File** (`ollama-mcpserver.yaml`):
+**Server Config File** (`ollama-http-mcpserver.yaml`):
 
 ```yaml
 kind: MCPServerConfig
@@ -250,20 +250,20 @@ Each tool follows this pattern:
 Start the gen-mcp server with both configuration files:
 
 ```bash
-genmcp run -f ollama-http.yaml -s ollama-mcpserver.yaml
+genmcp run -f ollama-http-mcpfile.yaml -s ollama-http-mcpserver.yaml
 ```
 
 You should see:
 
 ```
-INFO    Starting MCP server on port 8009
-INFO    Loaded 5 tools from ollama-http.yaml
-INFO    Using server config from ollama-mcpserver.yaml
+INFO    runtime/server.go:138	Setting up streamable HTTP server	{"port": 8009, "base_path": "/mcp", "stateless": true}
+INFO    runtime/server.go:181	Starting MCP server on port 8009
+INFO    runtime/server.go:196	Starting HTTP server
 ```
 
 ### Step 5: Test Your Integration
 
-You can now connect an MCP client (like Claude Desktop or any MCP-compatible tool) to `http://localhost:8009` and use the Ollama tools.
+You can now connect an MCP client (like Claude Desktop or any MCP-compatible tool) to `http://localhost:8009/mcp` and use the Ollama tools.
 
 Example tool calls:
 
@@ -292,7 +292,7 @@ The CLI approach is simpler but more limited. Here's the complete configuration:
 
 ### CLI Configuration Files
 
-**Tool Definitions File** (`ollama-cli.yaml`):
+**Tool Definitions File** (`ollama-cli-mcpfile.yaml`):
 
 ```yaml
 kind: MCPToolDefinitions
@@ -374,7 +374,7 @@ runtime:
 ### Running the CLI-Based Server
 
 ```bash
-genmcp run -f ollama-cli.yaml -s ollama-cli-mcpserver.yaml
+genmcp run -f ollama-cli-mcpfile.yaml -s ollama-cli-mcpserver.yaml
 ```
 
 ## Summary

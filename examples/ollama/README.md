@@ -6,13 +6,13 @@ This directory demonstrates two different approaches to integrate Ollama with ge
 
 ## Two Integration Methods
 
-### HTTP-based Integration (`ollama-http.yaml`)
+### HTTP-based Integration (`ollama-http-mcpfile.yaml`)
 Uses Ollama's REST API endpoints directly:
 - Requires Ollama to be running locally at `http://localhost:11434`
 - Provides tools for completions, embeddings, model management via HTTP calls
 - More reliable and provides structured JSON responses
 
-### CLI-based Integration (`ollama-cli.yaml`) 
+### CLI-based Integration (`ollama-cli-mcpfile.yaml`) 
 Uses Ollama's command-line interface:
 - Executes `ollama` CLI commands directly
 - Useful when you prefer command-line interaction

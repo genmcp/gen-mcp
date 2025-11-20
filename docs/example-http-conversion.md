@@ -349,14 +349,15 @@ genmcp run -f mcpfile.yaml -s mcpserver.yaml
 You should see:
 
 ```
-INFO    Starting MCP server on port 8080
-INFO    Loaded 7 tools: get_features, get_features-id, post_features, ...
-INFO    Server ready at http://localhost:8080
+...
+INFO    runtime/server.go:138	Setting up streamable HTTP server	{"port": 8009, "base_path": "/mcp", "stateless": true}
+INFO    runtime/server.go:181	Starting MCP server on port 8009
+INFO    runtime/server.go:196	Starting HTTP server
 ```
 
 ### Step 9: Connect an MCP Client
 
-Now you can connect any MCP-compatible client (like Claude Desktop) to `http://localhost:8080`.
+Now you can connect any MCP-compatible client (like Claude Desktop) to `http://localhost:8080/mcp`.
 
 The client will discover all your tools and can call them:
 

@@ -81,7 +81,7 @@ genmcp run -f mcpfile.yaml -s mcpserver.yaml --detach
 ```bash
 # Development: Run in foreground with logs visible
 cd examples/ollama
-genmcp run -f ollama-http.yaml -s ollama-mcpserver.yaml
+genmcp run -f ollama-http-mcpfile.yaml -s ollama-mcpserver.yaml
 
 # Production: Run in background
 genmcp run -f /etc/genmcp/tools.yaml -s /etc/genmcp/server.yaml -d
@@ -133,7 +133,7 @@ The `stop` command:
 genmcp stop
 
 # Stop server with specific tool definitions file
-genmcp stop -f ollama-http.yaml
+genmcp stop -f mcpfile.yaml
 
 # Stop server with absolute path
 genmcp stop -f /path/to/mcpfile.yaml
