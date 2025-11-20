@@ -16,7 +16,7 @@ import (
 
 func init() {
 	rootCmd.AddCommand(runCmd)
-	runCmd.Flags().StringVarP(&runToolDefinitionsPath, "f", "f", "mcpfile.yaml", "the path to the tool definitions file")
+	runCmd.Flags().StringVarP(&runToolDefinitionsPath, "file", "f", "mcpfile.yaml", "the path to the tool definitions file")
 	runCmd.Flags().StringVarP(&runServerConfigPath, "server-config", "s", "mcpserver.yaml", "the path to the server config file")
 	runCmd.Flags().BoolVarP(&detach, "detach", "d", false, "whether to detach when running")
 }

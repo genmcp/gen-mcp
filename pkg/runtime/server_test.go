@@ -82,19 +82,6 @@ runtime:
 	// but we can verify the logger is functional)
 }
 
-func TestRunServerLogMessageFormat(t *testing.T) {
-	// Test the log message format matches what's documented
-	// These are format checks - actual logging is tested in integration tests
-	expectedToolMsg := "Loaded 5 tools from /path/to/tools.yaml"
-	expectedConfigMsg := "Using server config from /path/to/server.yaml"
-	expectedPortMsg := "Starting MCP server on port 8009"
-
-	assert.Contains(t, expectedToolMsg, "Loaded")
-	assert.Contains(t, expectedToolMsg, "tools from")
-	assert.Contains(t, expectedConfigMsg, "Using server config from")
-	assert.Contains(t, expectedPortMsg, "Starting MCP server on port")
-}
-
 func TestRunServerWithCustomLogger(t *testing.T) {
 	// Test that custom logging config is respected
 	tmpDir := t.TempDir()

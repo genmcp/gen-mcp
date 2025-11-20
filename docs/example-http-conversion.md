@@ -350,9 +350,9 @@ You should see:
 
 ```
 ...
-INFO    runtime/server.go:138	Setting up streamable HTTP server	{"port": 8009, "base_path": "/mcp", "stateless": true}
-INFO    runtime/server.go:181	Starting MCP server on port 8009
-INFO    runtime/server.go:196	Starting HTTP server
+INFO    runtime/server.go:138   Setting up streamable HTTP server   {"port": 8009, "base_path": "/mcp", "stateless": true}
+INFO    runtime/server.go:181   Starting MCP server on port 8009
+INFO    runtime/server.go:196   Starting HTTP server
 ```
 
 ### Step 9: Connect an MCP Client
