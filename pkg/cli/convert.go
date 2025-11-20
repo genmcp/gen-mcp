@@ -16,7 +16,7 @@ import (
 func init() {
 	rootCmd.AddCommand(convertCmd)
 	convertCmd.Flags().StringVarP(&toolDefinitionsPath, "file", "f", "mcpfile.yaml", "the path to write the tool definitions file to")
-	convertCmd.Flags().StringVarP(&serverConfigPath, "server-config", "s", "mcpfile-server.yaml", "the path to write the server config file to")
+	convertCmd.Flags().StringVarP(&serverConfigPath, "server-config", "s", "mcpserver.yaml", "the path to write the server config file to")
 	convertCmd.Flags().StringVarP(&host, "host", "H", "", "the base host for the API, if different than in the OpenAPI spec")
 }
 
@@ -37,6 +37,7 @@ func executeConvertCmd(_ *cobra.Command, args []string) {
 	var openApiBytes []byte
 	var err error
 	if isRemoteFile(openApiLocation) {
+		fmt.Printf("INFO    Fetching OpenAPI spec from %s\n", openApiLocation)
 		openApiBytes, err = getOpenApiSpec(openApiLocation)
 		if err != nil {
 			fmt.Printf("could not retrieve openapi spec from url %s: %s\n", openApiLocation, err.Error())
@@ -60,6 +61,13 @@ func executeConvertCmd(_ *cobra.Command, args []string) {
 		return
 	}
 
+	// Count converted tools
+	numTools := 0
+	if convertedFiles.ToolDefinitions != nil && convertedFiles.ToolDefinitions.Tools != nil {
+		numTools = len(convertedFiles.ToolDefinitions.Tools)
+	}
+	fmt.Printf("INFO    Converted %d endpoints to MCP tools\n", numTools)
+
 	// Write tool definitions file
 	toolDefBytes, err := yaml.Marshal(convertedFiles.ToolDefinitions)
 	if err != nil {
@@ -75,7 +83,7 @@ func executeConvertCmd(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("wrote tool definitions to %s\n", toolDefinitionsPath)
+	fmt.Printf("INFO    Created %s\n", toolDefinitionsPath)
 
 	// Write server config file
 	serverConfigBytes, err := yaml.Marshal(convertedFiles.ServerConfig)
@@ -92,7 +100,7 @@ func executeConvertCmd(_ *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("wrote server config to %s\n", serverConfigPath)
+	fmt.Printf("INFO    Created %s\n", serverConfigPath)
 
 }
 
