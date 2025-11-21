@@ -1,7 +1,7 @@
 # GenMCP Dev Guidance
 
 GenMCP provides a declarative way to create MCP servers around existing systems
-The declarative file format is described in `./docs/mcp_file_format.md`
+The declarative file formats are described in `./docs/mcpfile.md` (tool definitions) and `./docs/mcpserver.md` (server config)
 Some examples can be found in `./examples/`
 
 ## Repository Layout

@@ -170,7 +170,8 @@ genmcp run
       <div class="feature-card">
         <h3>📖 MCP File Format</h3>
         <p>Learn to write custom tool configurations with our comprehensive guide.</p>
-        <a href="{{ '/mcp_file_format.html' | relative_url }}" class="btn btn-primary" style="margin-top: var(--spacing-sm);">Read Guide</a>
+        <a href="{{ '/mcpfile.html' | relative_url }}" class="btn btn-primary" style="margin-top: var(--spacing-sm);">Read Guide</a>
+        <a href="{{ '/mcpserver.html' | relative_url }}" class="btn btn-primary" style="margin-top: var(--spacing-sm);">Server Config</a>
       </div>
       <div class="feature-card">
         <h3>📚 Examples</h3>
