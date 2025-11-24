@@ -6,7 +6,8 @@ A single concise reference for the NETEDGE Phase‑0 gen‑mcp tooling: what’s
 how to build and run, key assumptions, and short next‑step ideas.
 
 What this directory contains
-- `mcpfile.yaml` — curated NETEDGE MCP tools using the `stdio` transport.
+- `mcpfile.yaml` — curated NETEDGE MCP tool definitions.
+- `mcpserver.yaml` — server configuration using the `stdio` transport.
 - `docs/` — documentation (this file and scenario catalog). Test harnesses and
   scenario automation now live in the [`gevals`](https://github.com/genmcp/gevals)
   repository.
@@ -32,13 +33,13 @@ DEV NOTES — build & run
 - Run (foreground):
 
   ```bash
-  ./genmcp run -f examples/netedge-tools/mcpfile.yaml
+  ./genmcp run -f examples/netedge-tools/mcpfile.yaml -s examples/netedge-tools/mcpserver.yaml
   ```
 
 - Run (detached/background):
 
   ```bash
-  ./genmcp run -f examples/netedge-tools/mcpfile.yaml -d
+  ./genmcp run -f examples/netedge-tools/mcpfile.yaml -s examples/netedge-tools/mcpserver.yaml -d
   ./genmcp stop -f examples/netedge-tools/mcpfile.yaml
   ```
 
@@ -50,7 +51,7 @@ directly. Example `config.toml` snippet:
 ```toml
 [mcp_servers.netedge]
 command = "/absolute/path/to/genmcp"
-args    = ["run", "-f", "examples/netedge-tools/mcpfile.yaml"]
+args    = ["run", "-f", "examples/netedge-tools/mcpfile.yaml", "-s", "examples/netedge-tools/mcpserver.yaml"]
 ```
 
 Codex spawns the command in STDIO mode; no HTTP proxy is required. Adjust the path
@@ -92,7 +93,7 @@ Phase 0 — Quick wins
   immediate evidence without custom code. Example tasks:
   - `inspect_route`, `get_service_endpoints`, `get_coredns_config`, `query_prometheus`.
   - `probe_dns_local` and `exec_dns_in_pod` using ephemeral pod runs.
-  - Deliver a curated `mcpfile.yaml` (already present) and clear DEV notes for running
+  - Deliver curated `mcpfile.yaml` and `mcpserver.yaml` files (already present) and clear DEV notes for running
     the server locally or via the Makefile.
 
 Phase 1 — Probing and aggregation
