@@ -24,7 +24,7 @@ The `genmcp` CLI provides commands for managing MCP servers, converting API spec
 
 ## <span style="color: #E6622A;">run</span>
 
-Start an MCP server from an MCP file configuration.
+Start an MCP server from GenMCP config files.
 
 #### Usage
 
@@ -34,17 +34,17 @@ genmcp run [flags]
 
 #### Flags
 
-| Flag              | Short | Default          | Description                                            |
-|-------------------|-------|------------------|--------------------------------------------------------|
-| `--file`          | `-f`  | `mcpfile.yaml`   | Path to the tool definitions file (MCPToolDefinitions) |
-| `--server-config` | `-s`  | `mcpserver.yaml` | Path to the server config file (MCPServerConfig)       |
-| `--detach`        | `-d`  | `false`          | Run server in background (detached mode)               |
+| Flag              | Short | Default          | Description                                      |
+|-------------------|-------|------------------|--------------------------------------------------|
+| `--file`          | `-f`  | `mcpfile.yaml`   | Path to the MCP File (MCPToolDefinitions)        |
+| `--server-config` | `-s`  | `mcpserver.yaml` | Path to the server config file (MCPServerConfig) |
+| `--detach`        | `-d`  | `false`          | Run server in background (detached mode)         |
 
 #### How It Works
 
 The `run` command:
 
-1. **Validates both files** - Checks syntax and schema validity of both the tool definitions and server config files
+1. **Validates both files** - Checks syntax and schema validity of both the MCP file and the server config file
 2. **Validates invocations** - Ensures all tool invocations are properly configured
 3. **Starts the server** - Launches the MCP server with the specified transport protocol
 4. **Manages lifecycle** - In detached mode, saves the process ID for later management
@@ -93,7 +93,7 @@ genmcp run -f test-tools.yaml -s test-server.yaml
 
 #### Notes
 
-- **Two files required**: Both tool definitions and server config files must be provided
+- **Two files required**: Both the MCP file and the server config file must be provided
 - **Detached mode with stdio**: The `--detach` flag is automatically disabled when using `stdio` transport protocol, as stdio requires continuous process connection
 - **Validation errors**: The command will fail fast if either file has syntax errors or invalid configurations
 - **Process management**: When running in detached mode, the process ID is saved to allow the `stop` command to terminate the server
@@ -112,15 +112,15 @@ genmcp stop [flags]
 
 #### Flags
 
-| Flag     | Short | Default        | Description                                                                  |
-|----------|-------|----------------|------------------------------------------------------------------------------|
-| `--file` | `-f`  | `mcpfile.yaml` | Path to the tool definitions file of the server to stop (used as identifier) |
+| Flag     | Short | Default        | Description                                                     |
+|----------|-------|----------------|-----------------------------------------------------------------|
+| `--file` | `-f`  | `mcpfile.yaml` | Path to the MCP file of the server to stop (used as identifier) |
 
 #### How It Works
 
 The `stop` command:
 
-1. **Resolves the tool definitions file path** - Finds the absolute path to match the running server (uses tool definitions file as identifier)
+1. **Resolves the MCP file path** - Finds the absolute path to match the running server (uses tool definitions file as identifier)
 2. **Retrieves the process ID** - Looks up the saved PID from when the server was started
 3. **Terminates the process** - Sends a kill signal to stop the server
 4. **Cleans up** - Removes the saved process ID
@@ -152,7 +152,7 @@ genmcp stop -f myapi.yaml
 
 #### Notes
 
-- **File path must match**: The tool definitions file path used with `stop` must match the path used with `run --detach`
+- **File path must match**: The MCP file path used with `stop` must match the path used with `run --detach`
 - **Only works with detached servers**: Servers running in foreground mode can be stopped with Ctrl+C
 - **Manual cleanup**: If the process was manually killed outside gen-mcp, you may need to manually clean up the saved PID file
 
@@ -160,7 +160,7 @@ genmcp stop -f myapi.yaml
 
 ## <span style="color: #E6622A;">convert</span>
 
-Convert an OpenAPI v2 or v3 specification into an MCP file configuration.
+Convert an OpenAPI v2 or v3 specification into GenMCP config files.
 
 #### Usage
 
@@ -176,11 +176,11 @@ genmcp convert <openapi-spec> [flags]
 
 #### Flags
 
-| Flag              | Short | Default              | Description                                                                    |
-|-------------------|-------|----------------------|--------------------------------------------------------------------------------|
-| `--file`          | `-f`  | `mcpfile.yaml`       | Output path for the generated tool definitions file                            |
-| `--server-config` | `-s`  | `mcpserver.yaml`| Output path for the generated server config file                               |
-| `--host`          | `-H`  | *(from spec)*        | Override the base host URL from the OpenAPI spec                               |
+| Flag              | Short | Default          | Description                                      |
+|-------------------|-------|------------------|--------------------------------------------------|
+| `--file`          | `-f`  | `mcpfile.yaml`   | Output path for the generated MCP file           |
+| `--server-config` | `-s`  | `mcpserver.yaml` | Output path for the generated server config file |
+| `--host`          | `-H`  | *(from spec)*    | Override the base host URL from the OpenAPI spec |
 
 #### How It Works
 
@@ -191,10 +191,10 @@ The `convert` command:
 3. **Generates tools** - Creates an MCP tool for each API endpoint
 4. **Maps schemas** - Converts OpenAPI parameter schemas to JSON Schema for input validation
 5. **Creates invocations** - Generates HTTP invocations with proper methods and URLs
-6. **Writes MCP files** - Outputs both a tool definitions file and a server config file
+6. **Writes GenMCP config files** - Outputs both an MCP file and a server config file
 
 **File Naming Convention:**
-- The `--file/-f` flag sets the output path for the tool definitions file (default: `mcpfile.yaml`)
+- The `--file/-f` flag sets the output path for the MCP file (default: `mcpfile.yaml`)
 - The `--server-config/-s` flag sets the output path for the server config file (default: `mcpserver.yaml`)
 - If you only specify `--file/-f`, the server config file will use the default name `mcpserver.yaml` regardless of the tool definitions filename
 - To control both filenames, specify both `--file/-f` and `--server-config/-s` flags
@@ -346,7 +346,7 @@ genmcp build [flags]
 
 The `build` command:
 
-1. **Validates both MCP files** - Ensures both tool definitions and server config are valid
+1. **Validates both GenMCP config files** - Ensures both tool definitions and server config are valid
 2. **Builds container image** - Creates a containerized MCP server with both files included
 3. **Supports multi-arch** - By default builds for `linux/amd64` and `linux/arm64`
 4. **Saves or pushes** - Either stores locally or pushes to a container registry
@@ -552,7 +552,7 @@ export PATH=$PATH:/path/to/genmcp
 #### Server Won't Start
 
 ```bash
-# Check MCP files validity
+# Check GenMCP config files validity
 genmcp run -f mcpfile.yaml -s mcpserver.yaml
 # Look for validation errors in output
 

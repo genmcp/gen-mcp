@@ -47,13 +47,13 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// Validate MCP files before building
+	// Validate GenMCP config files before building
 	if err := validateMCPToolDefinitionsFile(mcpToolDefinitionsPath); err != nil {
 		fmt.Printf("invalid MCP tool definitions file: %s\n", err.Error())
 		os.Exit(1)
 	}
 	if err := validateMCPServerConfigFile(mcpServerConfigPath); err != nil {
-		fmt.Printf("invalid MCP server config file: %s\n", err.Error())
+		fmt.Printf("invalid server config file: %s\n", err.Error())
 		os.Exit(1)
 	}
 

@@ -322,12 +322,12 @@ type MCPToolDefinitions struct {
 	ResourceTemplates []*ResourceTemplate `json:"resourceTemplates,omitempty" jsonschema:"optional"`
 }
 
-// MCPToolDefinitionsFile is the root structure of an MCP configuration file.
+// MCPToolDefinitionsFile is the root structure of a Tool Definitions File (mcpfile.yaml).
 type MCPToolDefinitionsFile struct {
-	// Kind identifies the type of MCP file.
+	// Kind identifies the type of GenMCP config file.
 	Kind string `json:"kind" jsonschema:"required"`
 
-	// Version of the MCP file format.
+	// Version of the GenMCP config file format.
 	SchemaVersion string `json:"schemaVersion" jsonschema:"required"`
 
 	// MCP server definition.

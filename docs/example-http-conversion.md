@@ -736,7 +736,7 @@ INFO    Loaded 7 tools: get_features, get_features-id, ...
 ## Next Steps
 
 - **Explore Ollama Integration**: Learn CLI-based tool wrapping in the [Ollama Example]({{ '/example-ollama.html' | relative_url }})
-- **Read the MCP File Format Guide**: Master advanced configuration in the [tool definitions guide]({{ '/mcpfile.html' | relative_url }}) and [server config guide]({{ '/mcpserver.html' | relative_url }})
+- **Read the GenMCP Config File Format Guide**: Master advanced configuration in the [tool definitions guide]({{ '/mcpfile.html' | relative_url }}) and [server config guide]({{ '/mcpserver.html' | relative_url }})
 - **Join the Community**: Share your API conversions on [Discord](https://discord.gg/AwP6GAUEQR)
 
 ## Resources

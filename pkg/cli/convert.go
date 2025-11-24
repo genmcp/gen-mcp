@@ -53,7 +53,7 @@ func executeConvertCmd(_ *cobra.Command, args []string) {
 
 	convertedFiles, err := openapi.DocumentToMcpFile(openApiBytes, host)
 	if err != nil {
-		fmt.Printf("encountered errors while converting openapi document to mcp files: %s\n", err.Error())
+		fmt.Printf("encountered errors while converting openapi document to GenMCP config files: %s\n", err.Error())
 	}
 
 	if convertedFiles == nil {

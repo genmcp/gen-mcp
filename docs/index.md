@@ -168,7 +168,7 @@ genmcp run
     <h2 class="section-title">Documentation</h2>
     <div class="features-grid">
       <div class="feature-card">
-        <h3>📖 MCP File Format</h3>
+        <h3>📖 GenMCP Config File Format</h3>
         <p>Learn to write custom tool configurations with our comprehensive guide.</p>
         <a href="{{ '/mcpfile.html' | relative_url }}" class="btn btn-primary" style="margin-top: var(--spacing-sm);">Read Guide</a>
         <a href="{{ '/mcpserver.html' | relative_url }}" class="btn btn-primary" style="margin-top: var(--spacing-sm);">Server Config</a>

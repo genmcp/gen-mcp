@@ -127,12 +127,12 @@ type MCPServerConfig struct {
 	Runtime *ServerRuntime `json:"runtime,omitempty" jsonschema:"optional"`
 }
 
-// MCPServerConfigFile is the root structure of an MCP configuration file.
+// MCPServerConfigFile is the root structure of a Server Config File (mcpserver.yaml).
 type MCPServerConfigFile struct {
-	// Kind identifies the type of MCP file.
+	// Kind identifies the type of GenMCP config file.
 	Kind string `json:"kind" jsonschema:"required"`
 
-	// Version of the MCP file format.
+	// Version of the GenMCP config file format.
 	SchemaVersion string `json:"schemaVersion" jsonschema:"required"`
 
 	// MCP server definition.

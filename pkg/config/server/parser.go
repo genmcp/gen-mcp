@@ -15,22 +15,23 @@ const (
 	DefaultBasePath = "/mcp"
 )
 
+// ParseMCPFile parses a Server Config File (mcpserver.yaml)
 func ParseMCPFile(path string) (*MCPServerConfigFile, error) {
 	mcpFile := &MCPServerConfigFile{}
 
 	path, err := filepath.Abs(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get absolute path to mcpfile: %v", err)
+		return nil, fmt.Errorf("failed to get absolute path to server config file: %v", err)
 	}
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read mcpfile: %v", err)
+		return nil, fmt.Errorf("failed to read server config file: %v", err)
 	}
 
 	err = yaml.Unmarshal(data, mcpFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal mcpfile: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal server config file: %v", err)
 	}
 
 	return mcpFile, nil

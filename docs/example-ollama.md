@@ -387,7 +387,7 @@ For HTTP-based integrations, tools call Ollama's REST API. For CLI-based integra
 
 ## Next Steps
 
-- **Read the MCP File Format Guide**: Deep dive into [tool definitions]({{ '/mcpfile.html' | relative_url }}) and [server configuration]({{ '/mcpserver.html' | relative_url }})
+- **Read the GenMCP Config File Format Guide**: Deep dive into [tool definitions]({{ '/mcpfile.html' | relative_url }}) and [server configuration]({{ '/mcpserver.html' | relative_url }})
 
 ## Understanding Input Schema Validation
 
@@ -492,7 +492,7 @@ ollama pull llama2
 ## Next Steps
 
 - **Explore HTTP Conversion**: Learn how to convert any REST API to MCP tools in the [HTTP Conversion Example]({{ '/example-http-conversion.html' | relative_url }})
-- **Read the MCP File Format Guide**: Deep dive into [tool definitions]({{ '/mcpfile.html' | relative_url }}) and [server configuration]({{ '/mcpserver.html' | relative_url }})
+- **Read the GenMCP Config File Format Guide**: Deep dive into [tool definitions]({{ '/mcpfile.html' | relative_url }}) and [server configuration]({{ '/mcpserver.html' | relative_url }})
 - **Join the Community**: Get help on [Discord](https://discord.gg/AwP6GAUEQR)
 
 ## Resources

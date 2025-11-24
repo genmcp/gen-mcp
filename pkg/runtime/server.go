@@ -91,21 +91,21 @@ func RunServer(ctx context.Context, toolDefinitionsPath, serverConfigPath string
 
 	logger.Info(fmt.Sprintf("Using server config from %s", serverConfigPath))
 
-	logger.Info("Starting servers from MCP files",
+	logger.Info("Starting servers from GenMCP config files",
 		zap.String("tool_definitions_path", toolDefinitionsPath),
 		zap.String("server_config_path", serverConfigPath),
 		zap.String("server_name", mcpServer.Name()),
 		zap.String("server_version", mcpServer.Version()))
 
 	if err := mcpServer.Validate(invocation.InvocationValidator); err != nil {
-		logger.Error("MCP file validation failed",
+		logger.Error("GenMCP config file validation failed",
 			zap.String("tool_definitions_path", toolDefinitionsPath),
 			zap.String("server_config_path", serverConfigPath),
 			zap.Error(err))
-		return fmt.Errorf("mcp files are invalid: %w", err)
+		return fmt.Errorf("config files are invalid: %w", err)
 	}
 
-	logger.Debug("MCP files validated successfully, creating server instance")
+	logger.Debug("GenMCP config files validated successfully, creating server instance")
 
 	// Apply runtime overrides from environment variables
 	// if something goes wrong in the env vars, we warn but continue

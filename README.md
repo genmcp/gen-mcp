@@ -223,9 +223,9 @@ genmcp stop
 genmcp stop -f /path/to/mcpfile.yaml
 ```
 
-## 💡 Authoring MCP files with auto complete
+## 💡 Authoring GenMCP config files with auto complete
 
-To improve the development experience and prevent configuration errors, this project includes **JSON schemas** for both MCP file formats. These schemas enable validation, autocompletion, and inline documentation in compatible code editors like Visual Studio Code, helping you write valid configuration files faster.
+To improve the development experience and prevent configuration errors, this project includes **JSON schemas** for both GenMCP config file formats. These schemas enable validation, autocompletion, and inline documentation in compatible code editors like Visual Studio Code, helping you write valid configuration files faster.
 
 To make use of the schemas, add a `yaml-language-server` comment at the top of your files:
 

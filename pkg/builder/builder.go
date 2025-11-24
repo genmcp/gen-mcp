@@ -449,7 +449,7 @@ func (b *ImageBuilder) createBinaryLayer(
 	}, tarball.WithCompressedCaching, tarball.WithMediaType(layerMediaType))
 }
 
-// createMCPFileLayer creates a tarball layer with an MCP file at /app/<filename>
+// createMCPFileLayer creates a tarball layer with a GenMCP config file at /app/<filename>
 func (b *ImageBuilder) createMCPFileLayer(
 	mcpFileData []byte,
 	fileInfo fs.FileInfo,

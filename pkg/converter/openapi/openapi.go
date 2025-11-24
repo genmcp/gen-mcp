@@ -58,7 +58,7 @@ func McpFilesFromOpenApiV2Model(model *v2high.Swagger, host string) (*ConvertedM
 	if model.Host == "" && host == "" {
 		return nil, fmt.Errorf("no host provided in the swagger file, unable to construct valid URLs")
 	}
-	// 1. Set top level MCP file info
+	// 1. Set top level GenMCP config file info
 	// 2. Create server config file with runtime configuration
 	// 3. Create tool definitions file with tools
 	// 4. For each (path, operation) in the document, add one tool w. http invoke
@@ -269,7 +269,7 @@ func McpFilesFromOpenApiV2Model(model *v2high.Swagger, host string) (*ConvertedM
 	}, err
 }
 func McpFilesFromOpenApiV3Model(model *v3high.Document, host string) (*ConvertedMCPFiles, error) {
-	// 1. Set top level MCP file info
+	// 1. Set top level GenMCP config file info
 	// 2. Create server config file with runtime configuration
 	// 3. Create tool definitions file with tools
 	// 4. For each (path, operation) in the document, add one tool w. http invoke

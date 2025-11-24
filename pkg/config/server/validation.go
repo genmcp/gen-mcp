@@ -9,7 +9,7 @@ func (m *MCPServerConfigFile) Validate() error {
 	var err error = nil
 
 	if runtimeErr := m.Runtime.Validate(); runtimeErr != nil {
-		err = errors.Join(err, fmt.Errorf("invalid mcpfile, runtime is invalid: %w", runtimeErr))
+		err = errors.Join(err, fmt.Errorf("invalid server config file, runtime is invalid: %w", runtimeErr))
 	}
 
 	return err

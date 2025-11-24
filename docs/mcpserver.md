@@ -1,10 +1,10 @@
 ---
 layout: page
-title: MCP File Format - Server Config
+title: GenMCP Config File Format - Server Config
 description: Complete reference guide for the GenMCP Server Config File format
 ---
 
-# MCP Server Config File Format
+# GenMCP Server Config File Format
 
 ## 1. Introduction
 
@@ -31,7 +31,7 @@ The root of the Server Config File has the following structure:
 | Field             | Type            | Description                                                                                                 | Required |
 |-------------------|-----------------|-------------------------------------------------------------------------------------------------------------|----------|
 | `kind`            | string          | Must be `"MCPServerConfig"`.                                                                                | Yes      |
-| `schemaVersion`   | string          | The version of the MCP file format. Must be `"0.2.0"`.                                                      | Yes      |
+| `schemaVersion`   | string          | The version of the GenMCP config file format. Must be `"0.2.0"`.                                                      | Yes      |
 | `runtime`         | `ServerRuntime` | The runtime settings for the server. If omitted, defaults to `streamablehttp` on port `3000`.               | No       |
 
 ### Example: Server Config File

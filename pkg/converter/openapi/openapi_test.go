@@ -13,7 +13,7 @@ func TestConvertFromOpenApiSpec(t *testing.T) {
 	docBytes, _ := os.ReadFile("testdata/petstorev3.json")
 
 	convertedFiles, err := DocumentToMcpFile(docBytes, "")
-	assert.Error(t, err, "creating the mcp file from the openapi model should have errors on endpoints genmcp does not support")
+	assert.Error(t, err, "creating the GenMCP config files from the openapi model should have errors on endpoints genmcp does not support")
 	assert.NotNil(t, convertedFiles)
 	assert.NotNil(t, convertedFiles.ToolDefinitions)
 	assert.NotNil(t, convertedFiles.ServerConfig)
@@ -31,7 +31,7 @@ func TestDefaultPort8080InOpenAPIV3Conversion(t *testing.T) {
 	docBytes, _ := os.ReadFile("testdata/petstorev3.json")
 
 	convertedFiles, err := DocumentToMcpFile(docBytes, "")
-	assert.Error(t, err, "creating the mcp file from the openapi model should have errors on endpoints genmcp does not support")
+	assert.Error(t, err, "creating the GenMCP config files from the openapi model should have errors on endpoints genmcp does not support")
 	assert.NotNil(t, convertedFiles)
 	assert.NotNil(t, convertedFiles.ServerConfig)
 
@@ -43,9 +43,9 @@ func TestInvalidToolsAreSkippedButValidOnesIncluded(t *testing.T) {
 
 	convertedFiles, err := DocumentToMcpFile(docBytes, "")
 
-	// We should get an error about the invalid tool but still get a valid MCP file
+	// We should get an error about the invalid tool but still get valid GenMCP config files
 	assert.Error(t, err, "conversion should report errors about invalid tools")
-	assert.NotNil(t, convertedFiles, "MCP files should still be generated")
+	assert.NotNil(t, convertedFiles, "GenMCP config files should still be generated")
 	assert.NotNil(t, convertedFiles.ToolDefinitions, "tool definitions should be generated")
 
 	assert.NotNil(t, convertedFiles.ToolDefinitions.Tools, "tool definitions should have tools")
@@ -75,7 +75,7 @@ func TestAllToolsInvalidStillReturnsEmptyMcpFile(t *testing.T) {
 
 	// Should get an error about all invalid tools
 	assert.Error(t, err, "conversion should report errors about all invalid tools")
-	assert.NotNil(t, convertedFiles, "MCP files should still be generated")
+	assert.NotNil(t, convertedFiles, "GenMCP config files should still be generated")
 	assert.NotNil(t, convertedFiles.ToolDefinitions, "tool definitions should be generated")
 
 	assert.Empty(t, convertedFiles.ToolDefinitions.Tools, "tool definitions should have no tools when all are invalid")
@@ -90,7 +90,7 @@ func TestOpenAPIV2BodyParameterHandling(t *testing.T) {
 
 	convertedFiles, err := DocumentToMcpFile(docBytes, "")
 	assert.NoError(t, err, "conversion should not produce errors")
-	assert.NotNil(t, convertedFiles, "MCP files should be generated")
+	assert.NotNil(t, convertedFiles, "GenMCP config files should be generated")
 	assert.NotNil(t, convertedFiles.ToolDefinitions, "tool definitions should be generated")
 
 	assert.Len(t, convertedFiles.ToolDefinitions.Tools, 1, "should have exactly 1 tool")
@@ -115,7 +115,7 @@ func TestOpenAPIV2BodyParameterWithPathParameters(t *testing.T) {
 
 	convertedFiles, err := DocumentToMcpFile(docBytes, "")
 	assert.NoError(t, err, "conversion should not produce errors")
-	assert.NotNil(t, convertedFiles, "MCP files should be generated")
+	assert.NotNil(t, convertedFiles, "GenMCP config files should be generated")
 	assert.NotNil(t, convertedFiles.ToolDefinitions, "tool definitions should be generated")
 
 	assert.Len(t, convertedFiles.ToolDefinitions.Tools, 1, "should have exactly 1 tool")
