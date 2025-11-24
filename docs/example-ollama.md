@@ -77,7 +77,7 @@ curl http://localhost:11434
 
 GenMCP uses two separate files. Here's the complete configuration:
 
-**Tool Definitions File** (`ollama-http-mcpfile.yaml`):
+**MCP File** (`ollama-http-mcpfile.yaml`):
 
 ```yaml
 kind: MCPToolDefinitions
@@ -216,7 +216,7 @@ runtime:
 - `transportProtocol: streamablehttp`: Uses HTTP streaming protocol for real-time communication
 - `port: 8009`: The MCP server will listen on this port
 
-#### Tool Definition Structure (Tool Definitions File)
+#### Tool Definition Structure (MCP File)
 
 Each tool follows this pattern:
 
@@ -292,7 +292,7 @@ The CLI approach is simpler but more limited. Here's the complete configuration:
 
 ### CLI Configuration Files
 
-**Tool Definitions File** (`ollama-cli-mcpfile.yaml`):
+**MCP File** (`ollama-cli-mcpfile.yaml`):
 
 ```yaml
 kind: MCPToolDefinitions
@@ -380,7 +380,7 @@ genmcp run -f ollama-cli-mcpfile.yaml -s ollama-cli-mcpserver.yaml
 ## Summary
 
 Both HTTP and CLI integrations require two files:
-- **Tool Definitions File**: Defines the tools (what capabilities are available)
+- **MCP File**: Defines the tools (what capabilities are available)
 - **Server Config File**: Defines runtime configuration (how the server runs)
 
 For HTTP-based integrations, tools call Ollama's REST API. For CLI-based integrations, tools execute shell commands directly.

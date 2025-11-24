@@ -11,7 +11,7 @@ import (
 
 func init() {
 	rootCmd.AddCommand(stopCmd)
-	stopCmd.Flags().StringVarP(&stopMCPFilePath, "file", "f", "mcpfile.yaml", "tool definitions file to read from")
+	stopCmd.Flags().StringVarP(&stopMCPFilePath, "file", "f", "mcpfile.yaml", "MCP file to read from")
 }
 
 var stopMCPFilePath string
@@ -25,12 +25,12 @@ var stopCmd = &cobra.Command{
 func executeStopCmd(_ *cobra.Command, _ []string) {
 	mcpFilePath, err := filepath.Abs(stopMCPFilePath)
 	if err != nil {
-		fmt.Printf("failed to resolve tool definitions file path: %s\n", err.Error())
+		fmt.Printf("failed to resolve MCP file path: %s\n", err.Error())
 		return
 	}
 
 	if _, err := os.Stat(mcpFilePath); err != nil {
-		fmt.Printf("no file found at tool definitions file path\n")
+		fmt.Printf("no file found at MCP file path\n")
 		return
 	}
 

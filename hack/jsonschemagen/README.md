@@ -37,7 +37,7 @@ This will generate the schema files inside the `specs` directory relative to the
 The tool generates four files (two for each file type):
 
 ### Tool Definitions Schema
-- **`../../specs/mcpfile-schema-<version>.json`** — The versioned JSON schema for tool definitions files, where `<version>` is taken from `definitions.SchemaVersion`.
+- **`../../specs/mcpfile-schema-<version>.json`** — The versioned JSON schema for MCP files, where `<version>` is taken from `definitions.SchemaVersion`.
 - **`../../specs/mcpfile-schema.json`** — The "latest" schema, identical in content to the versioned one.
 
 ### Server Config Schema
@@ -58,7 +58,7 @@ specs/
 
 The schemas can be referenced in YAML files using the `yaml-language-server` directive:
 
-**Tool Definitions File:**
+**MCP File:**
 ```yaml
 # yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/mcpfile-schema-0.2.0.json
 

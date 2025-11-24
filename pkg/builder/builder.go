@@ -267,15 +267,15 @@ func (b *ImageBuilder) Build(ctx context.Context, opts BuildOptions) (v1.Image, 
 		return nil, fmt.Errorf("failed to extract server binary: %w", err)
 	}
 
-	// Read and create layer for MCP tool definitions file
+	// Read and create layer for MCP file
 	mcpToolDefsInfo, err := b.fs.Stat(opts.MCPToolDefinitionsPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to stat MCP tool definitions file: %w", err)
+		return nil, fmt.Errorf("failed to stat MCP file: %w", err)
 	}
 
 	mcpToolDefsData, err := b.fs.ReadFile(opts.MCPToolDefinitionsPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read MCP tool definitions file: %w", err)
+		return nil, fmt.Errorf("failed to read MCP file: %w", err)
 	}
 
 	// Read and create layer for MCP server config file

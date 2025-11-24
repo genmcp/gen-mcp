@@ -161,7 +161,7 @@ func TestImageBuilder_Build(t *testing.T) {
 				binaryInfo := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryData))}
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(binaryData, binaryInfo, nil)
 
-				// Mock MCP tool definitions file operations
+				// Mock MCP file operations
 				mcpToolDefsData := []byte("fake-mcp-tool-defs-data")
 				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
 				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil)
@@ -248,7 +248,7 @@ func TestImageBuilder_Build(t *testing.T) {
 
 				mfs.On("Stat", "/nonexistent/mcpfile.yaml").Return(nil, errors.New("file not found"))
 			},
-			expectedError: "failed to stat MCP tool definitions file: file not found",
+			expectedError: "failed to stat MCP file: file not found",
 		},
 		{
 			name: "failure - MCP file read error",
@@ -268,7 +268,7 @@ func TestImageBuilder_Build(t *testing.T) {
 				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil)
 				mfs.On("ReadFile", "/test/mcpfile.yaml").Return([]byte{}, errors.New("read permission denied"))
 			},
-			expectedError: "failed to read MCP tool definitions file: read permission denied",
+			expectedError: "failed to read MCP file: read permission denied",
 		},
 		{
 			name: "failure - unsupported base image media type",
@@ -582,7 +582,7 @@ func TestImageBuilder_BuildMultiArch(t *testing.T) {
 				binaryInfoArm64 := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryDataArm64))}
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "arm64"}).Return(binaryDataArm64, binaryInfoArm64, nil)
 
-				// Mock MCP tool definitions file operations
+				// Mock MCP file operations
 				mcpToolDefsData := []byte("fake-mcp-tool-defs-data")
 				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
 				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil).Times(2)
@@ -641,7 +641,7 @@ func TestImageBuilder_BuildMultiArch(t *testing.T) {
 				binaryInfoWindows := &mockFileInfo{name: "genmcp-server.exe", size: int64(len(binaryDataWindows))}
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "windows", Architecture: "amd64"}).Return(binaryDataWindows, binaryInfoWindows, nil)
 
-				// Mock MCP tool definitions file operations
+				// Mock MCP file operations
 				mcpToolDefsData := []byte("custom-mcp-tool-defs-data")
 				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
 				mfs.On("Stat", "/custom/mcpfile.yaml").Return(mcpToolDefsInfo, nil).Times(2)

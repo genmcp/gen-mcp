@@ -64,10 +64,10 @@ func DoRunServer(ctx context.Context, mcpServer *mcpserver.MCPServer) error {
 // RunServer runs the server defined in the given config files.
 // It accepts both tool definitions and server config file paths.
 func RunServer(ctx context.Context, toolDefinitionsPath, serverConfigPath string) error {
-	// Parse tool definitions file
+	// Parse MCP file
 	toolDefsFile, err := parseToolDefinitionsFile(toolDefinitionsPath)
 	if err != nil {
-		return fmt.Errorf("failed to parse tool definitions file: %w", err)
+		return fmt.Errorf("failed to parse MCP file: %w", err)
 	}
 
 	// Parse server config file
@@ -119,7 +119,7 @@ func RunServer(ctx context.Context, toolDefinitionsPath, serverConfigPath string
 	return DoRunServer(ctx, mcpServer)
 }
 
-// parseToolDefinitionsFile parses a tool definitions file
+// parseToolDefinitionsFile parses an MCP file
 func parseToolDefinitionsFile(filePath string) (*definitions.MCPToolDefinitionsFile, error) {
 	return definitions.ParseMCPFile(filePath)
 }

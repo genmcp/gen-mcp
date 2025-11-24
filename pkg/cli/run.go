@@ -16,7 +16,7 @@ import (
 
 func init() {
 	rootCmd.AddCommand(runCmd)
-	runCmd.Flags().StringVarP(&runToolDefinitionsPath, "file", "f", "mcpfile.yaml", "the path to the tool definitions file")
+	runCmd.Flags().StringVarP(&runToolDefinitionsPath, "file", "f", "mcpfile.yaml", "the path to the MCP file")
 	runCmd.Flags().StringVarP(&runServerConfigPath, "server-config", "s", "mcpserver.yaml", "the path to the server config file")
 	runCmd.Flags().BoolVarP(&detach, "detach", "d", false, "whether to detach when running")
 }
@@ -34,7 +34,7 @@ var runCmd = &cobra.Command{
 func executeRunCmd(_ *cobra.Command, _ []string) {
 	toolDefinitionsPath, err := filepath.Abs(runToolDefinitionsPath)
 	if err != nil {
-		fmt.Printf("failed to resolve tool definitions file path: %s\n", err.Error())
+		fmt.Printf("failed to resolve MCP file path: %s\n", err.Error())
 		return
 	}
 
@@ -45,7 +45,7 @@ func executeRunCmd(_ *cobra.Command, _ []string) {
 	}
 
 	if _, err := os.Stat(toolDefinitionsPath); err != nil {
-		fmt.Printf("no file found at tool definitions path: %s\n", toolDefinitionsPath)
+		fmt.Printf("no file found at MCP file path: %s\n", toolDefinitionsPath)
 		return
 	}
 
@@ -54,10 +54,10 @@ func executeRunCmd(_ *cobra.Command, _ []string) {
 		return
 	}
 
-	// Parse and validate tool definitions file
+	// Parse and validate MCP file
 	_, err = definitions.ParseMCPFile(toolDefinitionsPath)
 	if err != nil {
-		fmt.Printf("invalid tool definitions file: %s\n", err)
+		fmt.Printf("invalid MCP file: %s\n", err)
 		return
 	}
 

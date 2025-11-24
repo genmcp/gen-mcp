@@ -13,16 +13,16 @@ type InvocationValidator func(primitive invocation.Primitive) error
 func (m *MCPToolDefinitionsFile) Validate(invocationValidator InvocationValidator) error {
 	var err error = nil
 	if m.Name == "" {
-		err = errors.Join(err, fmt.Errorf("invalid tool definitions file: name is required"))
+		err = errors.Join(err, fmt.Errorf("invalid MCP file: name is required"))
 	}
 
 	if m.Version == "" {
-		err = errors.Join(err, fmt.Errorf("invalid tool definitions file: version is required"))
+		err = errors.Join(err, fmt.Errorf("invalid MCP file: version is required"))
 	}
 
 	for i, t := range m.Tools {
 		if toolErr := t.Validate(invocationValidator); toolErr != nil {
-			err = errors.Join(err, fmt.Errorf("invalid tool definitions file: tools[%d] is invalid: %w", i, toolErr))
+			err = errors.Join(err, fmt.Errorf("invalid MCP file: tools[%d] is invalid: %w", i, toolErr))
 		}
 	}
 

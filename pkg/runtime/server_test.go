@@ -19,7 +19,7 @@ func TestRunServerLogMessages(t *testing.T) {
 	toolDefsPath := filepath.Join(tmpDir, "test-tools.yaml")
 	serverConfigPath := filepath.Join(tmpDir, "test-server.yaml")
 
-	// Create a minimal tool definitions file
+	// Create a minimal MCP file
 	toolDefsContent := `kind: MCPToolDefinitions
 schemaVersion: "0.2.0"
 name: test-server
@@ -88,7 +88,7 @@ func TestRunServerWithCustomLogger(t *testing.T) {
 	toolDefsPath := filepath.Join(tmpDir, "test-tools.yaml")
 	serverConfigPath := filepath.Join(tmpDir, "test-server.yaml")
 
-	// Create a minimal tool definitions file
+	// Create a minimal MCP file
 	toolDefsContent := `kind: MCPToolDefinitions
 schemaVersion: "0.2.0"
 name: test-server

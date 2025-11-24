@@ -17,7 +17,7 @@ import (
 func init() {
 	rootCmd.AddCommand(buildCmd)
 	buildCmd.Flags().StringVar(&baseImage, "base-image", "", "base image to build the genmcp image on top of")
-	buildCmd.Flags().StringVarP(&mcpToolDefinitionsPath, "file", "f", "mcpfile.yaml", "MCP tool definitions file")
+	buildCmd.Flags().StringVarP(&mcpToolDefinitionsPath, "file", "f", "mcpfile.yaml", "MCP file")
 	buildCmd.Flags().StringVarP(&mcpServerConfigPath, "server-config", "s", "mcpserver.yaml", "MCP server configuration file")
 	buildCmd.Flags().StringVar(&platform, "platform", "", "platform to build for (e.g., linux/amd64). If not specified, builds multi-arch image for linux/amd64 and linux/arm64")
 	buildCmd.Flags().StringVar(&imageTag, "tag", "", "image tag for the registry")
@@ -49,7 +49,7 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 
 	// Validate GenMCP config files before building
 	if err := validateMCPToolDefinitionsFile(mcpToolDefinitionsPath); err != nil {
-		fmt.Printf("invalid MCP tool definitions file: %s\n", err.Error())
+		fmt.Printf("invalid MCP file: %s\n", err.Error())
 		os.Exit(1)
 	}
 	if err := validateMCPServerConfigFile(mcpServerConfigPath); err != nil {
@@ -161,7 +161,7 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 	}
 }
 
-// validateMCPToolDefinitionsFile validates an MCP tool definitions file
+// validateMCPToolDefinitionsFile validates an MCP file
 func validateMCPToolDefinitionsFile(filePath string) error {
 	// Read the file to check the kind field
 	data, err := os.ReadFile(filePath)

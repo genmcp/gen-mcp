@@ -102,7 +102,7 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 				Expect(resp.StatusCode).To(Equal(http.StatusOK))
 			})
 
-			It("should include scopes from tool definitions file in scopes_supported", func() {
+			It("should include scopes from MCP file in scopes_supported", func() {
 				By("making a request to the metadata endpoint")
 				resp, err := http.Get("http://localhost:8018/.well-known/oauth-protected-resource")
 				Expect(err).NotTo(HaveOccurred())
@@ -131,7 +131,7 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 					}
 				}
 
-				By("checking that required scopes from tool definitions file are present")
+				By("checking that required scopes from MCP file are present")
 				Expect(scopeStrings).To(ContainElement("read"))
 				Expect(scopeStrings).To(ContainElement("user:read"))
 			})

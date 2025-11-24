@@ -229,7 +229,7 @@ To improve the development experience and prevent configuration errors, this pro
 
 To make use of the schemas, add a `yaml-language-server` comment at the top of your files:
 
-**Tool Definitions File:**
+**MCP File:**
 ```yaml
 # yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/mcpfile-schema.json
 kind: MCPToolDefinitions

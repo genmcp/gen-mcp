@@ -60,7 +60,7 @@ func McpFilesFromOpenApiV2Model(model *v2high.Swagger, host string) (*ConvertedM
 	}
 	// 1. Set top level GenMCP config file info
 	// 2. Create server config file with runtime configuration
-	// 3. Create tool definitions file with tools
+	// 3. Create MCP file with tools
 	// 4. For each (path, operation) in the document, add one tool w. http invoke
 
 	title := "mcpfile-generated"
@@ -87,7 +87,7 @@ func McpFilesFromOpenApiV2Model(model *v2high.Swagger, host string) (*ConvertedM
 		},
 	}
 
-	// Create tool definitions file
+	// Create MCP file
 	toolDefinitions := &definitions.MCPToolDefinitionsFile{
 		Kind:          definitions.KindMCPToolDefinitions,
 		SchemaVersion: config.SchemaVersion,
@@ -126,7 +126,7 @@ func McpFilesFromOpenApiV2Model(model *v2high.Swagger, host string) (*ConvertedM
 		},
 	}
 
-	// Set invocation bases in tool definitions file
+	// Set invocation bases in MCP file
 	toolDefinitions.InvocationBases[baseApiInvocationName] = baseInvocation
 
 	if model.Paths == nil || model.Paths.PathItems == nil {
@@ -271,7 +271,7 @@ func McpFilesFromOpenApiV2Model(model *v2high.Swagger, host string) (*ConvertedM
 func McpFilesFromOpenApiV3Model(model *v3high.Document, host string) (*ConvertedMCPFiles, error) {
 	// 1. Set top level GenMCP config file info
 	// 2. Create server config file with runtime configuration
-	// 3. Create tool definitions file with tools
+	// 3. Create MCP file with tools
 	// 4. For each (path, operation) in the document, add one tool w. http invoke
 
 	title := "mcpfile-generated"
@@ -298,7 +298,7 @@ func McpFilesFromOpenApiV3Model(model *v3high.Document, host string) (*Converted
 		},
 	}
 
-	// Create tool definitions file
+	// Create MCP file
 	toolDefinitions := &definitions.MCPToolDefinitionsFile{
 		Kind:          definitions.KindMCPToolDefinitions,
 		SchemaVersion: config.SchemaVersion,
@@ -326,7 +326,7 @@ func McpFilesFromOpenApiV3Model(model *v3high.Document, host string) (*Converted
 		},
 	}
 
-	// Set invocation bases in tool definitions file
+	// Set invocation bases in MCP file
 	toolDefinitions.InvocationBases[baseApiInvocationName] = baseInvocation
 
 	var err error

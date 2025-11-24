@@ -19,11 +19,11 @@ func TestQueryPrometheusFallbacksToRouteForSvcURL(t *testing.T) {
 	mcpFilePath := filepath.Join("..", "examples", "netedge-tools", "mcpfile.yaml")
 	mcpCfg, err := definitions.ParseMCPFile(mcpFilePath)
 	if err != nil {
-		t.Fatalf("failed to parse tool definitions file: %v", err)
+		t.Fatalf("failed to parse MCP file: %v", err)
 	}
 
 	if err := mcpCfg.Validate(invocation.InvocationValidator); err != nil {
-		t.Fatalf("failed to validate tool definitions file: %v", err)
+		t.Fatalf("failed to validate MCP file: %v", err)
 	}
 
 	var tool *definitions.Tool
@@ -34,7 +34,7 @@ func TestQueryPrometheusFallbacksToRouteForSvcURL(t *testing.T) {
 		}
 	}
 	if tool == nil {
-		t.Fatalf("query_prometheus tool not found in tool definitions file")
+		t.Fatalf("query_prometheus tool not found in MCP file")
 	}
 
 	config, ok := tool.GetInvocationConfig().(*mcpli.CliInvocationConfig)

@@ -42,7 +42,7 @@ This creates two files:
 ### 3. Customize the Configuration
 
 Edit the generated files to:
-- **Tool Definitions File** (`mcpfile.yaml`): Select which endpoints should be exposed as MCP tools, improve tool descriptions, add usage instructions, configure input validation schemas
+- **MCP File** (`mcpfile.yaml`): Select which endpoints should be exposed as MCP tools, improve tool descriptions, add usage instructions, configure input validation schemas
 - **Server Config File** (`mcpserver.yaml`): Configure runtime settings like port, logging, authentication
 
 Example customizations in this demo:

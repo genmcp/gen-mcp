@@ -1,16 +1,16 @@
 ---
 layout: page
 title: MCP File Format - Tool Definitions
-description: Complete reference guide for the GenMCP Tool Definitions File format
+description: Complete reference guide for the GenMCP MCP File format
 ---
 
-# MCP Tool Definitions File Format
+# MCP File Format
 
 ## 1. Introduction
 
 GenMCP uses **two separate YAML configuration files** to define an MCP server:
 
-1. **Tool Definitions File** (`mcpfile.yaml`) - Defines the capabilities (tools, prompts, resources, resource templates) and invocation bases
+1. **MCP File** (`mcpfile.yaml`) - Defines the capabilities (tools, prompts, resources, resource templates) and invocation bases
 2. **Server Config File** (`mcpserver.yaml`) - Defines the server runtime configuration (transport protocol, logging, authentication, TLS)
 
 This separation allows you to:
@@ -18,15 +18,15 @@ This separation allows you to:
 - Version tool definitions and server configuration independently
 - Deploy the same tools with different runtime settings (dev, staging, production)
 
-The Tool Definitions File uses schema version `0.2.0` and must be provided when running an MCP server with the `genmcp run` command.
+The MCP file uses schema version `0.2.0` and must be provided when running an MCP server with the `genmcp run` command.
 
-## 2. Tool Definitions File
+## 2. MCP File
 
-The Tool Definitions File defines what capabilities your MCP server provides. It contains tools, prompts, resources, resource templates, and invocation bases.
+The MCP file defines what capabilities your MCP server provides. It contains tools, prompts, resources, resource templates, and invocation bases.
 
 ### 2.1. Top-Level Object
 
-The root of the Tool Definitions File has the following structure:
+The root of the MCP file has the following structure:
 
 | Field               | Type                        | Description                                                                                                                                                                                                          | Required |
 |---------------------|-----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
@@ -41,7 +41,7 @@ The root of the Tool Definitions File has the following structure:
 | `resources`         | array of `Resource`         | The resources provided by this server.                                                                                                                                                                               | No       |
 | `resourceTemplates` | array of `ResourceTemplate` | The resource templates provided by this server.                                                                                                                                                                      | No       |
 
-### Example: Tool Definitions File
+### Example: MCP File
 
 ```yaml
 kind: MCPToolDefinitions
@@ -76,7 +76,7 @@ tools:
 
 ## 3. Primitive Objects
 
-The MCP file format supports four types of primitive objects: Tools, Prompts, Resources, and Resource Templates. Each primitive object represents a capability that can be invoked by an MCP client. These are defined in the **Tool Definitions File**.
+The MCP file format supports four types of primitive objects: Tools, Prompts, Resources, and Resource Templates. Each primitive object represents a capability that can be invoked by an MCP client. These are defined in the **MCP file**.
 
 ### 3.1. Tool Object
 
@@ -291,7 +291,7 @@ invocation:
 
 Invocation bases allow you to define reusable configurations that can be referenced by multiple tools, prompts, resources, or resource templates. This reduces duplication and makes it easier to maintain consistent configuration across primitives.
 
-The `invocationBases` field is defined in the **Tool Definitions File**. It contains named base configurations:
+The `invocationBases` field is defined in the **MCP file**. It contains named base configurations:
 
 ```yaml
 invocationBases:
@@ -441,7 +441,7 @@ tools:
 
 ### 6.1. Basic Example
 
-**Tool Definitions File** (`mcpfile.yaml`):
+**MCP File** (`mcpfile.yaml`):
 
 ```yaml
 kind: MCPToolDefinitions
@@ -462,7 +462,7 @@ tools:
 
 ### 6.2. Using Invocation Bases and Extends
 
-**Tool Definitions File** (`mcpfile.yaml`):
+**MCP File** (`mcpfile.yaml`):
 
 ```yaml
 kind: MCPToolDefinitions
@@ -559,7 +559,7 @@ tools:
 
 ### 7.1. OAuth 2.0 Configuration
 
-**Tool Definitions File** (`mcpfile.yaml`):
+**MCP File** (`mcpfile.yaml`):
 
 ```yaml
 kind: MCPToolDefinitions
@@ -582,7 +582,7 @@ tools:
 
 ### 7.2. Combined TLS and OAuth Configuration
 
-**Tool Definitions File** (`mcpfile.yaml`):
+**MCP File** (`mcpfile.yaml`):
 
 ```yaml
 kind: MCPToolDefinitions
@@ -604,7 +604,7 @@ tools:
 
 ## 8. Complete Example for a CLI
 
-**Tool Definitions File** (`mcpfile.yaml`):
+**MCP File** (`mcpfile.yaml`):
 
 ```yaml
 kind: MCPToolDefinitions
@@ -649,7 +649,7 @@ tools:
 
 ## 9. Complete Example for an HTTP Server
 
-**Tool Definitions File** (`mcpfile.yaml`):
+**MCP File** (`mcpfile.yaml`):
 
 ```yaml
 kind: MCPToolDefinitions

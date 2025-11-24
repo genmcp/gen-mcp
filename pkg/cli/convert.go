@@ -15,7 +15,7 @@ import (
 
 func init() {
 	rootCmd.AddCommand(convertCmd)
-	convertCmd.Flags().StringVarP(&toolDefinitionsPath, "file", "f", "mcpfile.yaml", "the path to write the tool definitions file to")
+	convertCmd.Flags().StringVarP(&toolDefinitionsPath, "file", "f", "mcpfile.yaml", "the path to write the MCP file to")
 	convertCmd.Flags().StringVarP(&serverConfigPath, "server-config", "s", "mcpserver.yaml", "the path to write the server config file to")
 	convertCmd.Flags().StringVarP(&host, "host", "H", "", "the base host for the API, if different than in the OpenAPI spec")
 }
@@ -68,10 +68,10 @@ func executeConvertCmd(_ *cobra.Command, args []string) {
 	}
 	fmt.Printf("INFO    Converted %d endpoints to MCP tools\n", numTools)
 
-	// Write tool definitions file
+	// Write MCP file
 	toolDefBytes, err := yaml.Marshal(convertedFiles.ToolDefinitions)
 	if err != nil {
-		fmt.Printf("could not marshal tool definitions file: %s\n", err.Error())
+		fmt.Printf("could not marshal MCP file: %s\n", err.Error())
 		return
 	}
 
@@ -79,7 +79,7 @@ func executeConvertCmd(_ *cobra.Command, args []string) {
 
 	err = os.WriteFile(toolDefinitionsPath, toolDefBytes, 0644)
 	if err != nil {
-		fmt.Printf("could not write tool definitions file to path %s: %s\n", toolDefinitionsPath, err.Error())
+		fmt.Printf("could not write MCP file to path %s: %s\n", toolDefinitionsPath, err.Error())
 		return
 	}
 

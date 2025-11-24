@@ -9,7 +9,7 @@ const DefaultBaseImage = "registry.access.redhat.com/ubi9/ubi-minimal:latest"
 type BuildOptions struct {
 	Platform               *v1.Platform // Target platform (linux/amd64, etc.)
 	BaseImage              string       // Base image reference
-	MCPToolDefinitionsPath string       // path to the MCP tool definitions file
+	MCPToolDefinitionsPath string       // path to the MCP file
 	MCPServerConfigPath    string       // path to the MCP server configuration file
 	ImageTag               string       // output image tag
 }
@@ -26,7 +26,7 @@ func (o *BuildOptions) SetDefaults() {
 type MultiArchBuildOptions struct {
 	Platforms              []*v1.Platform // Target platforms
 	BaseImage              string         // Base image reference
-	MCPToolDefinitionsPath string         // path to the MCP tool definitions file
+	MCPToolDefinitionsPath string         // path to the MCP file
 	MCPServerConfigPath    string         // path to the MCP server configuration file
 	ImageTag               string         // output image tag
 }

@@ -12,23 +12,23 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// ParseMCPFile parses a Tool Definitions File (mcpfile.yaml)
+// ParseMCPFile parses an MCP file (mcpfile.yaml)
 func ParseMCPFile(path string) (*MCPToolDefinitionsFile, error) {
 	mcpFile := &MCPToolDefinitionsFile{}
 
 	path, err := filepath.Abs(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get absolute path to tool definitions file: %v", err)
+		return nil, fmt.Errorf("failed to get absolute path to MCP file: %v", err)
 	}
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read tool definitions file: %v", err)
+		return nil, fmt.Errorf("failed to read MCP file: %v", err)
 	}
 
 	err = yaml.Unmarshal(data, mcpFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal tool definitions file: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal MCP file: %v", err)
 	}
 
 	return mcpFile, nil

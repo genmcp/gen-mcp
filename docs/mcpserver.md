@@ -10,7 +10,7 @@ description: Complete reference guide for the GenMCP Server Config File format
 
 GenMCP uses **two separate YAML configuration files** to define an MCP server:
 
-1. **Tool Definitions File** (`mcpfile.yaml`) - Defines the capabilities (tools, prompts, resources, resource templates) and invocation bases
+1. **MCP File** (`mcpfile.yaml`) - Defines the capabilities (tools, prompts, resources, resource templates) and invocation bases
 2. **Server Config File** (`mcpserver.yaml`) - Defines the server runtime configuration (transport protocol, logging, authentication, TLS)
 
 This separation allows you to:

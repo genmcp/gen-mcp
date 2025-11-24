@@ -13,6 +13,8 @@ spec:
   env:
     - name: MCP_FILE_PATH
       value: /etc/config/mcpfile.yaml
+    - name: MCP_SERVER_CONFIG_PATH
+      value: /etc/config/mcpserver.yaml
   resources:
     limits:
       cpu: '100m'

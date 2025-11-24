@@ -9,11 +9,11 @@ import (
 )
 
 func main() {
-	toolDefinitionsPath := os.Getenv("MCP_TOOL_DEFINITIONS_PATH")
+	toolDefinitionsPath := os.Getenv("MCP_FILE_PATH")
 	serverConfigPath := os.Getenv("MCP_SERVER_CONFIG_PATH")
 
 	if toolDefinitionsPath == "" {
-		fmt.Println("MCP_TOOL_DEFINITIONS_PATH environment variable is required")
+		fmt.Println("MCP_FILE_PATH environment variable is required")
 		os.Exit(1)
 	}
 

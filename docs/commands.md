@@ -120,7 +120,7 @@ genmcp stop [flags]
 
 The `stop` command:
 
-1. **Resolves the MCP file path** - Finds the absolute path to match the running server (uses tool definitions file as identifier)
+1. **Resolves the MCP file path** - Finds the absolute path to match the running server (uses MCP file as identifier)
 2. **Retrieves the process ID** - Looks up the saved PID from when the server was started
 3. **Terminates the process** - Sends a kill signal to stop the server
 4. **Cleans up** - Removes the saved process ID
@@ -129,10 +129,10 @@ The `stop` command:
 
 **Basic usage:**
 ```bash
-# Stop server using default mcpfile.yaml (tool definitions file)
+# Stop server using default MCP file (mcpfile.yaml)
 genmcp stop
 
-# Stop server with specific tool definitions file
+# Stop server with specific MCP file
 genmcp stop -f mcpfile.yaml
 
 # Stop server with absolute path
@@ -145,7 +145,7 @@ genmcp stop -f /path/to/mcpfile.yaml
 genmcp run -f myapi.yaml -s myapi-server.yaml --detach
 # Output: successfully started gen-mcp server...
 
-# Later, stop the server (use tool definitions file path)
+# Later, stop the server (use MCP file path)
 genmcp stop -f myapi.yaml
 # Output: successfully stopped gen-mcp server...
 ```
@@ -196,7 +196,7 @@ The `convert` command:
 **File Naming Convention:**
 - The `--file/-f` flag sets the output path for the MCP file (default: `mcpfile.yaml`)
 - The `--server-config/-s` flag sets the output path for the server config file (default: `mcpserver.yaml`)
-- If you only specify `--file/-f`, the server config file will use the default name `mcpserver.yaml` regardless of the tool definitions filename
+- If you only specify `--file/-f`, the server config file will use the default name `mcpserver.yaml` regardless of the MCP filename
 - To control both filenames, specify both `--file/-f` and `--server-config/-s` flags
 
 #### Examples
@@ -268,7 +268,7 @@ genmcp run -f github-tools.yaml -s github-server.yaml
 
 The converter automatically creates two files:
 
-**Tool Definitions File** (`mcpfile.yaml`):
+**MCP File** (`mcpfile.yaml`):
 
 ```yaml
 kind: MCPToolDefinitions
@@ -335,7 +335,7 @@ genmcp build [flags]
 
 | Flag              | Short | Default          | Description                                       |
 |-------------------|-------|------------------|---------------------------------------------------|
-| `--file`          | `-f`  | `mcpfile.yaml`   | Path to tool definitions file to include in image |
+| `--file`          | `-f`  | `mcpfile.yaml`   | Path to MCP file to include in image |
 | `--server-config` | `-s`  | `mcpserver.yaml` | Path to server config file to include in image    |
 | `--tag`           |       | *(required)*     | Image tag (e.g., `myregistry/myapi:v1.0`)         |
 | `--base-image`    |       | *(auto)*         | Base container image to build on                  |
@@ -505,7 +505,7 @@ genmcp run -f myapi.yaml -s myapi-server.yaml --detach
 # Check if it's running (example using curl)
 curl http://localhost:8080/health
 
-# Stop when done (use tool definitions file)
+# Stop when done (use MCP file)
 genmcp stop -f myapi.yaml
 ```
 
@@ -518,7 +518,7 @@ genmcp run -f configs/http-tools.yaml -s configs/http-server.yaml -d
 # Test CLI-based integration
 genmcp run -f configs/cli-tools.yaml -s configs/cli-server.yaml -d
 
-# Stop all (use tool definitions file paths)
+# Stop all (use MCP file paths)
 genmcp stop -f configs/http-tools.yaml
 genmcp stop -f configs/cli-tools.yaml
 ```
@@ -566,7 +566,7 @@ lsof -i :8080
 #### Can't Stop Server
 
 ```bash
-# Try with explicit tool definitions file path
+# Try with explicit MCP file path
 genmcp stop -f /absolute/path/to/mcpfile.yaml
 
 # Manually find and kill process

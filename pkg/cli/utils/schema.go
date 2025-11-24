@@ -6,7 +6,7 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/config"
 )
 
-// AppendToolDefinitionsSchemaHeader appends the schema header for tool definitions files
+// AppendToolDefinitionsSchemaHeader appends the schema header for MCP files
 func AppendToolDefinitionsSchemaHeader(bytes []byte) []byte {
 	schemaHeader := fmt.Sprintf(
 		"# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/mcpfile-schema-%s.json\n\n",

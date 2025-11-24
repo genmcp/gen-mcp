@@ -53,7 +53,7 @@ docs/
 │       ├── theme-toggle.js    # Dark/light mode
 │       └── navigation.js      # Smooth scrolling & nav
 ├── index.md              # Homepage
-├── mcpfile.md            # MCP Tool Definitions File documentation
+├── mcpfile.md            # MCP File documentation
 └── mcpserver.md          # MCP Server Config File documentation
 ```
 
