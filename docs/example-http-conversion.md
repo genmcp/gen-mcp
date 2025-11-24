@@ -350,8 +350,8 @@ You should see:
 
 ```
 ...
-INFO    runtime/server.go:138   Setting up streamable HTTP server   {"port": 8009, "base_path": "/mcp", "stateless": true}
-INFO    runtime/server.go:181   Starting MCP server on port 8009
+INFO    runtime/server.go:138   Setting up streamable HTTP server   {"port": 8080, "base_path": "/mcp", "stateless": true}
+INFO    runtime/server.go:181   Starting MCP server on port 8080
 INFO    runtime/server.go:196   Starting HTTP server
 ```
 
