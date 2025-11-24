@@ -35,15 +35,15 @@ genmcp convert <base route url>/openapi.json -H <base route url>
 
 Note: we are using the `-H` flag here to set the base host url for the api spec, as the openapi.json file says that the endpoints are available at `localhost:9090`.
 
-This creates an initial `mcpfile.yaml` based on the OpenAPI specification, with the endpoints all pointing to our OpenShift route.
+This creates two files:
+- `mcpfile.yaml` - Tool definitions based on the OpenAPI specification, with the endpoints all pointing to our OpenShift route
+- `mcpserver.yaml` - Server configuration with default runtime settings
 
 ### 3. Customize the Configuration
 
-Edit the generated `mcpfile.yaml` to:
-- Select which endpoints should be exposed as MCP tools
-- Improve tool descriptions to help AI models understand when to use each tool
-- Add usage instructions or constraints in descriptions
-- Configure input validation schemas
+Edit the generated files to:
+- **MCP File** (`mcpfile.yaml`): Select which endpoints should be exposed as MCP tools, improve tool descriptions, add usage instructions, configure input validation schemas
+- **Server Config File** (`mcpserver.yaml`): Configure runtime settings like port, logging, authentication
 
 Example customizations in this demo:
 - Clear, specific descriptions for each tool
@@ -53,10 +53,10 @@ Example customizations in this demo:
 
 ### 4. Start the MCP Server
 
-First, we need to create a configmap to contain the mcpfile.yaml:
+First, we need to create a configmap to contain both configuration files:
 
 ```bash
-kubectl create cm genmcp-config --from-file=mcpfile.yaml
+kubectl create cm genmcp-config --from-file=mcpfile.yaml --from-file=mcpserver.yaml
 ```
 
 Next, we deploy the gen-mcp server:

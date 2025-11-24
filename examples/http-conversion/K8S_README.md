@@ -81,15 +81,15 @@ genmcp convert http://localhost:9090/openapi.json -H http://feature-request-demo
 Note: we are using the `-H` flag here to set the base host URL for the API spec, as the openapi.json file says that the endpoints are available at `localhost:9090`.
 By setting it to `http://feature-request-demo.default.svc.cluster.local`, the generated configuration will point to the internal Kubernetes service URL that the MCP server can access from within the cluster.
 
-This creates an initial `mcpfile.yaml` based on the OpenAPI specification, with the endpoints all pointing to the internal Kubernetes service.
+This creates two files:
+- `mcpfile.yaml` - Tool definitions based on the OpenAPI specification, with the endpoints all pointing to the internal Kubernetes service
+- `mcpserver.yaml` - Server configuration with default runtime settings
 
 ### 6. Customize the Configuration
 
-Edit the generated `mcpfile.yaml` to:
-- Select which endpoints should be exposed as MCP tools
-- Improve tool descriptions to help AI models understand when to use each tool
-- Add usage instructions or constraints in descriptions
-- Configure input validation schemas
+Edit the generated files to:
+- **MCP File** (`mcpfile.yaml`): Select which endpoints should be exposed as MCP tools, improve tool descriptions, add usage instructions, configure input validation schemas
+- **Server Config File** (`mcpserver.yaml`): Configure runtime settings like port, logging, authentication
 
 Example customizations in this demo:
 - Clear, specific descriptions for each tool
@@ -99,10 +99,10 @@ Example customizations in this demo:
 
 ### 7. Deploy the MCP Server with ToolHive
 
-First, create a configmap to contain the mcpfile.yaml:
+First, create a configmap to contain both configuration files:
 
 ```bash
-kubectl create configmap genmcp-config --from-file=mcpfile.yaml
+kubectl create configmap genmcp-config --from-file=mcpfile.yaml --from-file=mcpserver.yaml
 ```
 
 Next, deploy the gen-mcp server using the ToolHive operator:
