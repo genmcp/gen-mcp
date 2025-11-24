@@ -24,7 +24,7 @@ Uses Ollama's command-line interface:
 1. **Make sure Ollama is running** locally (usually at `http://localhost:11434`).
 2. Run the HTTP-based integration:
    ```bash
-   genmcp run -f examples/ollama/ollama-http-mcpfile.yaml -s examples/ollama/ollama-mcpserver.yaml
+   genmcp run -f examples/ollama/ollama-http-mcpfile.yaml -s examples/ollama/ollama-http-mcpserver.yaml
    ```
 
 ### CLI Method  
