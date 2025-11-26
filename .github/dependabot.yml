@@ -31,6 +31,35 @@ updates:
         update-types:
           - "major"
 
+  # Go dependencies for jsonschemagen
+  - package-ecosystem: "gomod"
+    directory: "/hack/jsonschemagen"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "10:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "@genmcp/maintainers"
+    assignees:
+      - "@genmcp/maintainers"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    groups:
+      jsonschemagen-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
+      jsonschemagen-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+
   # GitHub Actions dependencies
   - package-ecosystem: "github-actions"
     directory: "/"
