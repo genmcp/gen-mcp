@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a focused unit test for the Prometheus query tool to ensure `.svc` URLs fall back to the routed endpoint (`test/query_prometheus_tool_test.go`). (#162)
 - Updated `.gitignore` to drop generated evaluation artifacts from version control. (#162)
 
+### Changed
+- **BREAKING**: Migrated from single-file format (schema version 0.1.0) to two-file format (schema version 0.2.0). The `mcpfile.yaml` now contains only tool definitions (`MCPToolDefinitions`), while server runtime configuration has been moved to a separate `mcpserver.yaml` file (`MCPServerConfig`). The `mcpFileVersion` field has been renamed to `schemaVersion`, and both files now require a `kind` field. Users must migrate existing configurations - see `MIGRATION.md` for step-by-step instructions. (#213)
+
 ## [v0.1.1]
 
 ### Added

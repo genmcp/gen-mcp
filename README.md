@@ -107,6 +107,7 @@ genmcp run
 
 - **[MCP File Format Guide](./docs/mcpfile.md)** - Learn to write custom tool configurations
 - **[Server Config Guide](./docs/mcpserver.md)** - Configure server runtime settings
+- **[Migration Guide](./MIGRATION.md)** - Migrate between GenMCP versions
 - **[Examples Directory](./examples/)** - Real-world integration examples
 
 ## 💻 Usage
@@ -330,6 +331,7 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 - **[Model Context Protocol](https://modelcontextprotocol.io/)** - Official MCP documentation
 - **[MCP File Format](./docs/mcpfile.md)** - Tool definitions reference
 - **[Server Config](./docs/mcpserver.md)** - Server runtime configuration reference
+- **[Migration Guide](./MIGRATION.md)** - Migrate between GenMCP versions
 - **[Examples](./examples/)** - Real-world integration examples
 - **[gRPC Integration Demo](https://github.com/genmcp/grpc-demo/)** - Pattern for exposing gRPC services via HTTP proxy
 

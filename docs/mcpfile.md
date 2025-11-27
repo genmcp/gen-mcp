@@ -20,6 +20,8 @@ This separation allows you to:
 
 The MCP file uses schema version `0.2.0` and must be provided when running an MCP server with the `genmcp run` command.
 
+> **Migrating from 0.1.0?** If you're upgrading from the single-file format (schema version 0.1.0), see the [Migration Guide](../MIGRATION.md) for step-by-step instructions.
+
 ## 2. MCP File
 
 The MCP file defines what capabilities your MCP server provides. It contains tools, prompts, resources, resource templates, and invocation bases.

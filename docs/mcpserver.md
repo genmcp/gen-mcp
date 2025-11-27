@@ -20,6 +20,8 @@ This separation allows you to:
 
 The Server Config File uses schema version `0.2.0` and must be provided when running an MCP server with the `genmcp run` command.
 
+> **Migrating from 0.1.0?** If you're upgrading from the single-file format (schema version 0.1.0), see the [Migration Guide](../MIGRATION.md) for step-by-step instructions.
+
 ## 2. Server Config File
 
 The Server Config File defines how the MCP server runs, including transport protocol, logging, authentication, and TLS settings.

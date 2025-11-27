@@ -183,6 +183,11 @@ genmcp run
         <p>Master the essential gen-mcp CLI commands.</p>
         <a href="{{ '/commands.html' | relative_url }}" class="btn btn-primary" style="margin-top: var(--spacing-sm);">Learn Commands</a>
       </div>
+      <div class="feature-card">
+        <h3>🔄 Migration Guide</h3>
+        <p>Migrate between GenMCP configuration format versions with step-by-step instructions.</p>
+        <a href="https://github.com/genmcp/gen-mcp/blob/main/MIGRATION.md" class="btn btn-primary" style="margin-top: var(--spacing-sm);" target="_blank" rel="noopener">View Migration Guide</a>
+      </div>
     </div>
   </div>
 </section>
