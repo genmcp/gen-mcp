@@ -15,6 +15,7 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/config"
 	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
+	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/genmcp/gen-mcp/pkg/invocation/cli"
 	"github.com/genmcp/gen-mcp/pkg/invocation/extends"
 	"github.com/genmcp/gen-mcp/pkg/invocation/http"
@@ -366,7 +367,7 @@ func generateSchema(rootType interface{}, rootBase, rootPath string, schemaID, s
 		// Don't automatically require all properties - we'll use struct tags to determine this
 		reflector.RequiredFromJSONSchemaTags = true
 
-		// WORKAROUND: Handle google/jsonschema-go Schema type and json.RawMessage
+		// WORKAROUND: Handle google/jsonschema-go Schema type, json.RawMessage, and InvocationConfigWrapper
 		// invopop/jsonschema can't properly reflect google's Schema because it uses
 		// json:"-" tags on the Type field. Instead, we return a detailed meta-schema
 		// that describes JSON Schema itself, providing better IDE autocomplete.
@@ -379,6 +380,46 @@ func generateSchema(rootType interface{}, rootBase, rootPath string, schemaID, s
 				return &jsonschema.Schema{
 					Type: "object",
 				}
+			}
+			if t == reflect.TypeOf(&invocation.InvocationConfigWrapper{}) || t == reflect.TypeOf(invocation.InvocationConfigWrapper{}) {
+				// Create a schema that allows an object with one property: http, cli, or extends
+				schema := &jsonschema.Schema{
+					Type:        "object",
+					Description: "Invocation configuration with exactly one type key (http, cli, or extends)",
+					OneOf: []*jsonschema.Schema{
+						{
+							Type:                 "object",
+							Properties:           jsonschema.NewProperties(),
+							Required:             []string{"http"},
+							AdditionalProperties: jsonschema.FalseSchema,
+						},
+						{
+							Type:                 "object",
+							Properties:           jsonschema.NewProperties(),
+							Required:             []string{"cli"},
+							AdditionalProperties: jsonschema.FalseSchema,
+						},
+						{
+							Type:                 "object",
+							Properties:           jsonschema.NewProperties(),
+							Required:             []string{"extends"},
+							AdditionalProperties: jsonschema.FalseSchema,
+						},
+					},
+				}
+				// Add the http property with reference to HttpInvocationConfig
+				schema.OneOf[0].Properties.Set("http", &jsonschema.Schema{
+					Ref: "#/$defs/HttpInvocationConfig",
+				})
+				// Add the cli property with reference to CliInvocationConfig
+				schema.OneOf[1].Properties.Set("cli", &jsonschema.Schema{
+					Ref: "#/$defs/CliInvocationConfig",
+				})
+				// Add the extends property with reference to ExtendsConfig
+				schema.OneOf[2].Properties.Set("extends", &jsonschema.Schema{
+					Ref: "#/$defs/ExtendsConfig",
+				})
+				return schema
 			}
 			return nil
 		}
