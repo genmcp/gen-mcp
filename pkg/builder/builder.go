@@ -267,14 +267,26 @@ func (b *ImageBuilder) Build(ctx context.Context, opts BuildOptions) (v1.Image, 
 		return nil, fmt.Errorf("failed to extract server binary: %w", err)
 	}
 
-	mcpFileInfo, err := b.fs.Stat(opts.MCPFilePath)
+	// Read and create layer for MCP file
+	mcpToolDefsInfo, err := b.fs.Stat(opts.MCPToolDefinitionsPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to stat MCPFile: %w", err)
+		return nil, fmt.Errorf("failed to stat MCP file: %w", err)
 	}
 
-	mcpFileData, err := b.fs.ReadFile(opts.MCPFilePath)
+	mcpToolDefsData, err := b.fs.ReadFile(opts.MCPToolDefinitionsPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read MCPFile: %w", err)
+		return nil, fmt.Errorf("failed to read MCP file: %w", err)
+	}
+
+	// Read and create layer for MCP server config file
+	mcpServerConfigInfo, err := b.fs.Stat(opts.MCPServerConfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat MCP server config file: %w", err)
+	}
+
+	mcpServerConfigData, err := b.fs.ReadFile(opts.MCPServerConfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read MCP server config file: %w", err)
 	}
 
 	mediaType, err := b.getLayerMediaType(baseImg)
@@ -287,12 +299,17 @@ func (b *ImageBuilder) Build(ctx context.Context, opts BuildOptions) (v1.Image, 
 		return nil, fmt.Errorf("failed to create layer for genmcp-server binary: %w", err)
 	}
 
-	mcpFileLayer, err := b.createMCPFileLayer(mcpFileData, mcpFileInfo, opts.Platform, mediaType)
+	mcpToolDefsLayer, err := b.createMCPFileLayer(mcpToolDefsData, mcpToolDefsInfo, opts.Platform, mediaType, "mcpfile.yaml")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create layer for mcpfile.yaml: %w", err)
 	}
 
-	img, err := b.assembleImage(baseImg, opts, binaryLayer, mcpFileLayer)
+	mcpServerConfigLayer, err := b.createMCPFileLayer(mcpServerConfigData, mcpServerConfigInfo, opts.Platform, mediaType, "mcpserver.yaml")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create layer for mcpserver.yaml: %w", err)
+	}
+
+	img, err := b.assembleImage(baseImg, opts, binaryLayer, mcpToolDefsLayer, mcpServerConfigLayer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to assemble final image: %w", err)
 	}
@@ -315,10 +332,11 @@ func (b *ImageBuilder) BuildMultiArch(ctx context.Context, opts MultiArchBuildOp
 
 	for _, platform := range opts.Platforms {
 		buildOpts := BuildOptions{
-			Platform:    platform,
-			BaseImage:   opts.BaseImage,
-			MCPFilePath: opts.MCPFilePath,
-			ImageTag:    opts.ImageTag,
+			Platform:               platform,
+			BaseImage:              opts.BaseImage,
+			MCPToolDefinitionsPath: opts.MCPToolDefinitionsPath,
+			MCPServerConfigPath:    opts.MCPServerConfigPath,
+			ImageTag:               opts.ImageTag,
 		}
 
 		img, err := b.Build(ctx, buildOpts)
@@ -373,16 +391,19 @@ func (b *ImageBuilder) assembleImage(baseImg v1.Image, opts BuildOptions, layers
 
 	binaryPath := "/usr/local/bin/genmcp-server"
 	workingDir := "/app"
-	mcpFilePath := "/app/mcpfile.yaml"
+	mcpToolDefsPath := "/app/mcpfile.yaml"
+	mcpServerConfigPath := "/app/mcpserver.yaml"
 	if opts.Platform.OS == "windows" {
 		binaryPath = `C:\usr\local\bin\genmcp-server.exe`
 		workingDir = `C:\app`
-		mcpFilePath = `C:\app\mcpfile.yaml`
+		mcpToolDefsPath = `C:\app\mcpfile.yaml`
+		mcpServerConfigPath = `C:\app\mcpserver.yaml`
 	}
 
 	cfg.Config.Entrypoint = []string{binaryPath}
 	cfg.Config.WorkingDir = workingDir
-	cfg.Config.Env = append(cfg.Config.Env, "MCP_FILE_PATH="+mcpFilePath)
+	cfg.Config.Env = append(cfg.Config.Env, "MCP_FILE_PATH="+mcpToolDefsPath)
+	cfg.Config.Env = append(cfg.Config.Env, "MCP_SERVER_CONFIG_PATH="+mcpServerConfigPath)
 	cfg.Config.User = "1001:1001"
 	cfg.Created = v1.Time{Time: createTime}
 
@@ -428,16 +449,17 @@ func (b *ImageBuilder) createBinaryLayer(
 	}, tarball.WithCompressedCaching, tarball.WithMediaType(layerMediaType))
 }
 
-// createMCPFileLayer creates a tarball layer with the mcpfile.yaml at /app/mcpfile.yaml
+// createMCPFileLayer creates a tarball layer with a GenMCP config file at /app/<filename>
 func (b *ImageBuilder) createMCPFileLayer(
 	mcpFileData []byte,
 	fileInfo fs.FileInfo,
 	platform *v1.Platform,
 	layerMediaType types.MediaType,
+	filename string,
 ) (v1.Layer, error) {
-	layerData, err := createTarWithFile("/app", "mcpfile.yaml", platform.OS, mcpFileData, fileInfo, 0644)
+	layerData, err := createTarWithFile("/app", filename, platform.OS, mcpFileData, fileInfo, 0644)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create layer for mcpfile.yaml: %w", err)
+		return nil, fmt.Errorf("failed to create layer for %s: %w", filename, err)
 	}
 
 	return tarball.LayerFromOpener(func() (io.ReadCloser, error) {

@@ -22,7 +22,8 @@ gevals records:
 - **`eval.yaml`** - Main evaluation configuration that ties everything together
 - **`claude-code.yaml`** - Agent configuration (defines how to run the Claude Code agent)
 - **`mcp-config.yaml`** - MCP server connection details
-- **`mcpfile.yaml`** - The MCP server definition being evaluated
+- **`mcpfile.yaml`** - The MCP tool definitions being evaluated
+- **`mcpserver.yaml`** - The MCP server configuration (runtime settings)
 - **`tasks/`** - Directory containing task definitions and expected outcomes
 
 ## Running the evaluation
@@ -36,7 +37,7 @@ gevals records:
 
 2. Start your MCP server using genmcp (if not already running):
    ```bash
-   genmcp run -f mcpfile.yaml
+   genmcp run -f mcpfile.yaml -s mcpserver.yaml
    ```
    This will start the server at localhost:8080
 

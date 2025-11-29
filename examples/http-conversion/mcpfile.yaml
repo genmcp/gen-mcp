@@ -1,16 +1,8 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/mcpfile-schema-0.1.0.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/mcpfile-schema-0.2.0.json
 
-invocationBases:
-  baseApi:
-    http:
-      url: http://localhost:9090
-mcpFileVersion: 0.1.0
+kind: MCPToolDefinitions
 name: Feature Request API
-runtime:
-  loggingConfig: null
-  streamableHttpConfig:
-    port: 8080
-  transportProtocol: streamablehttp
+schemaVersion: 0.2.0
 tools:
 - annotations: null
   description: Returns a list of all features sorted by upvotes (highest first)
@@ -137,4 +129,8 @@ tools:
         method: POST
   name: post_features-complete
   title: Mark feature as completed
-version: 0.0.1
+invocationBases:
+  baseApi:
+    http:
+      url: http://localhost:9090
+version: 1.0.0

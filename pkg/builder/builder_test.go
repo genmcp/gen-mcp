@@ -147,8 +147,9 @@ func TestImageBuilder_Build(t *testing.T) {
 		{
 			name: "successful build with default options",
 			buildOptions: BuildOptions{
-				MCPFilePath: "/test/mcpfile.yaml",
-				ImageTag:    "test:latest",
+				MCPToolDefinitionsPath: "/test/mcpfile.yaml",
+				MCPServerConfigPath:    "/test/mcpserver.yaml",
+				ImageTag:               "test:latest",
 			},
 			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
 				// Mock base image download
@@ -161,10 +162,16 @@ func TestImageBuilder_Build(t *testing.T) {
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(binaryData, binaryInfo, nil)
 
 				// Mock MCP file operations
-				mcpFileData := []byte("fake-mcp-file-data")
-				mcpFileInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpFileData))}
-				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpFileInfo, nil)
-				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpFileData, nil)
+				mcpToolDefsData := []byte("fake-mcp-tool-defs-data")
+				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
+				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil)
+				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpToolDefsData, nil)
+
+				// Mock MCP server config file operations
+				mcpServerConfigData := []byte("fake-mcp-mcpserver-data")
+				mcpServerConfigInfo := &mockFileInfo{name: "mcpserver.yaml", size: int64(len(mcpServerConfigData))}
+				mfs.On("Stat", "/test/mcpserver.yaml").Return(mcpServerConfigInfo, nil)
+				mfs.On("ReadFile", "/test/mcpserver.yaml").Return(mcpServerConfigData, nil)
 			},
 			validateResult: func(t *testing.T, img v1.Image) {
 				assert.NotNil(t, img, "should return a valid image")
@@ -173,10 +180,11 @@ func TestImageBuilder_Build(t *testing.T) {
 		{
 			name: "build with custom platform",
 			buildOptions: BuildOptions{
-				Platform:    &v1.Platform{OS: "windows", Architecture: "amd64"},
-				BaseImage:   "custom:base",
-				MCPFilePath: "/custom/mcpfile.yaml",
-				ImageTag:    "custom:tag",
+				Platform:               &v1.Platform{OS: "windows", Architecture: "amd64"},
+				BaseImage:              "custom:base",
+				MCPToolDefinitionsPath: "/custom/mcpfile.yaml",
+				MCPServerConfigPath:    "/custom/mcpserver.yaml",
+				ImageTag:               "custom:tag",
 			},
 			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
 				baseImg := newTestImage(types.OCIManifestSchema1)
@@ -186,10 +194,15 @@ func TestImageBuilder_Build(t *testing.T) {
 				binaryInfo := &mockFileInfo{name: "genmcp-server.exe", size: int64(len(binaryData))}
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "windows", Architecture: "amd64"}).Return(binaryData, binaryInfo, nil)
 
-				mcpFileData := []byte("custom-mcp-data")
-				mcpFileInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpFileData))}
-				mfs.On("Stat", "/custom/mcpfile.yaml").Return(mcpFileInfo, nil)
-				mfs.On("ReadFile", "/custom/mcpfile.yaml").Return(mcpFileData, nil)
+				mcpToolDefsData := []byte("custom-mcp-tool-defs-data")
+				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
+				mfs.On("Stat", "/custom/mcpfile.yaml").Return(mcpToolDefsInfo, nil)
+				mfs.On("ReadFile", "/custom/mcpfile.yaml").Return(mcpToolDefsData, nil)
+
+				mcpServerConfigData := []byte("custom-mcp-mcpserver-data")
+				mcpServerConfigInfo := &mockFileInfo{name: "mcpserver.yaml", size: int64(len(mcpServerConfigData))}
+				mfs.On("Stat", "/custom/mcpserver.yaml").Return(mcpServerConfigInfo, nil)
+				mfs.On("ReadFile", "/custom/mcpserver.yaml").Return(mcpServerConfigData, nil)
 			},
 			validateResult: func(t *testing.T, img v1.Image) {
 				assert.NotNil(t, img, "should return a valid image")
@@ -198,7 +211,8 @@ func TestImageBuilder_Build(t *testing.T) {
 		{
 			name: "failure - base image download error",
 			buildOptions: BuildOptions{
-				MCPFilePath: "/test/mcpfile.yaml",
+				MCPToolDefinitionsPath: "/test/mcpfile.yaml",
+				MCPServerConfigPath:    "/test/mcpserver.yaml",
 			},
 			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
 				mid.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(nil, errors.New("download failed"))
@@ -208,7 +222,8 @@ func TestImageBuilder_Build(t *testing.T) {
 		{
 			name: "failure - binary extraction error",
 			buildOptions: BuildOptions{
-				MCPFilePath: "/test/mcpfile.yaml",
+				MCPToolDefinitionsPath: "/test/mcpfile.yaml",
+				MCPServerConfigPath:    "/test/mcpserver.yaml",
 			},
 			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
 				baseImg := newTestImage(types.DockerManifestSchema2)
@@ -220,7 +235,8 @@ func TestImageBuilder_Build(t *testing.T) {
 		{
 			name: "failure - MCP file stat error",
 			buildOptions: BuildOptions{
-				MCPFilePath: "/nonexistent/mcpfile.yaml",
+				MCPToolDefinitionsPath: "/nonexistent/mcpfile.yaml",
+				MCPServerConfigPath:    "/test/mcpserver.yaml",
 			},
 			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
 				baseImg := newTestImage(types.DockerManifestSchema2)
@@ -232,12 +248,13 @@ func TestImageBuilder_Build(t *testing.T) {
 
 				mfs.On("Stat", "/nonexistent/mcpfile.yaml").Return(nil, errors.New("file not found"))
 			},
-			expectedError: "failed to stat MCPFile: file not found",
+			expectedError: "failed to stat MCP file: file not found",
 		},
 		{
 			name: "failure - MCP file read error",
 			buildOptions: BuildOptions{
-				MCPFilePath: "/test/mcpfile.yaml",
+				MCPToolDefinitionsPath: "/test/mcpfile.yaml",
+				MCPServerConfigPath:    "/test/mcpserver.yaml",
 			},
 			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
 				baseImg := newTestImage(types.DockerManifestSchema2)
@@ -247,16 +264,17 @@ func TestImageBuilder_Build(t *testing.T) {
 				binaryInfo := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryData))}
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(binaryData, binaryInfo, nil)
 
-				mcpFileInfo := &mockFileInfo{name: "mcpfile.yaml", size: 100}
-				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpFileInfo, nil)
+				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: 100}
+				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil)
 				mfs.On("ReadFile", "/test/mcpfile.yaml").Return([]byte{}, errors.New("read permission denied"))
 			},
-			expectedError: "failed to read MCPFile: read permission denied",
+			expectedError: "failed to read MCP file: read permission denied",
 		},
 		{
 			name: "failure - unsupported base image media type",
 			buildOptions: BuildOptions{
-				MCPFilePath: "/test/mcpfile.yaml",
+				MCPToolDefinitionsPath: "/test/mcpfile.yaml",
+				MCPServerConfigPath:    "/test/mcpserver.yaml",
 			},
 			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
 				baseImg := newTestImage("application/vnd.unsupported")
@@ -266,10 +284,15 @@ func TestImageBuilder_Build(t *testing.T) {
 				binaryInfo := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryData))}
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(binaryData, binaryInfo, nil)
 
-				mcpFileData := []byte("fake-mcp-file-data")
-				mcpFileInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpFileData))}
-				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpFileInfo, nil)
-				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpFileData, nil)
+				mcpToolDefsData := []byte("fake-mcp-tool-defs-data")
+				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
+				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil)
+				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpToolDefsData, nil)
+
+				mcpServerConfigData := []byte("fake-mcp-mcpserver-data")
+				mcpServerConfigInfo := &mockFileInfo{name: "mcpserver.yaml", size: int64(len(mcpServerConfigData))}
+				mfs.On("Stat", "/test/mcpserver.yaml").Return(mcpServerConfigInfo, nil)
+				mfs.On("ReadFile", "/test/mcpserver.yaml").Return(mcpServerConfigData, nil)
 			},
 			expectedError: "failed to get media type for layers: invalid base image media type",
 		},
@@ -404,16 +427,18 @@ func TestBuildOptions_SetDefaults(t *testing.T) {
 		{
 			name: "full options should remain unchanged",
 			input: BuildOptions{
-				Platform:    &v1.Platform{OS: "windows", Architecture: "arm64"},
-				BaseImage:   "custom:base",
-				MCPFilePath: "/custom/path",
-				ImageTag:    "custom:tag",
+				Platform:               &v1.Platform{OS: "windows", Architecture: "arm64"},
+				BaseImage:              "custom:base",
+				MCPToolDefinitionsPath: "/custom/path/mcpfile.yaml",
+				MCPServerConfigPath:    "/custom/path/mcpserver.yaml",
+				ImageTag:               "custom:tag",
 			},
 			expectedOutput: BuildOptions{
-				Platform:    &v1.Platform{OS: "windows", Architecture: "arm64"},
-				BaseImage:   "custom:base",
-				MCPFilePath: "/custom/path",
-				ImageTag:    "custom:tag",
+				Platform:               &v1.Platform{OS: "windows", Architecture: "arm64"},
+				BaseImage:              "custom:base",
+				MCPToolDefinitionsPath: "/custom/path/mcpfile.yaml",
+				MCPServerConfigPath:    "/custom/path/mcpserver.yaml",
+				ImageTag:               "custom:tag",
 			},
 		},
 	}
@@ -536,8 +561,9 @@ func TestImageBuilder_BuildMultiArch(t *testing.T) {
 		{
 			name: "successful multi-arch build with default platforms",
 			buildOptions: MultiArchBuildOptions{
-				MCPFilePath: "/test/mcpfile.yaml",
-				ImageTag:    "test:latest",
+				MCPToolDefinitionsPath: "/test/mcpfile.yaml",
+				MCPServerConfigPath:    "/test/mcpserver.yaml",
+				ImageTag:               "test:latest",
 			},
 			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
 				// Mock for linux/amd64
@@ -557,10 +583,16 @@ func TestImageBuilder_BuildMultiArch(t *testing.T) {
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "arm64"}).Return(binaryDataArm64, binaryInfoArm64, nil)
 
 				// Mock MCP file operations
-				mcpFileData := []byte("fake-mcp-file-data")
-				mcpFileInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpFileData))}
-				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpFileInfo, nil).Times(2)
-				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpFileData, nil).Times(2)
+				mcpToolDefsData := []byte("fake-mcp-tool-defs-data")
+				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
+				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil).Times(2)
+				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpToolDefsData, nil).Times(2)
+
+				// Mock MCP server config file operations
+				mcpServerConfigData := []byte("fake-mcp-mcpserver-data")
+				mcpServerConfigInfo := &mockFileInfo{name: "mcpserver.yaml", size: int64(len(mcpServerConfigData))}
+				mfs.On("Stat", "/test/mcpserver.yaml").Return(mcpServerConfigInfo, nil).Times(2)
+				mfs.On("ReadFile", "/test/mcpserver.yaml").Return(mcpServerConfigData, nil).Times(2)
 			},
 			validateResult: func(t *testing.T, idx v1.ImageIndex) {
 				assert.NotNil(t, idx, "should return a valid image index")
@@ -587,9 +619,10 @@ func TestImageBuilder_BuildMultiArch(t *testing.T) {
 					{OS: "linux", Architecture: "amd64"},
 					{OS: "windows", Architecture: "amd64"},
 				},
-				BaseImage:   "custom:base",
-				MCPFilePath: "/custom/mcpfile.yaml",
-				ImageTag:    "custom:tag",
+				BaseImage:              "custom:base",
+				MCPToolDefinitionsPath: "/custom/mcpfile.yaml",
+				MCPServerConfigPath:    "/custom/mcpserver.yaml",
+				ImageTag:               "custom:tag",
 			},
 			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
 				// Mock for linux/amd64
@@ -609,10 +642,16 @@ func TestImageBuilder_BuildMultiArch(t *testing.T) {
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "windows", Architecture: "amd64"}).Return(binaryDataWindows, binaryInfoWindows, nil)
 
 				// Mock MCP file operations
-				mcpFileData := []byte("custom-mcp-data")
-				mcpFileInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpFileData))}
-				mfs.On("Stat", "/custom/mcpfile.yaml").Return(mcpFileInfo, nil).Times(2)
-				mfs.On("ReadFile", "/custom/mcpfile.yaml").Return(mcpFileData, nil).Times(2)
+				mcpToolDefsData := []byte("custom-mcp-tool-defs-data")
+				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
+				mfs.On("Stat", "/custom/mcpfile.yaml").Return(mcpToolDefsInfo, nil).Times(2)
+				mfs.On("ReadFile", "/custom/mcpfile.yaml").Return(mcpToolDefsData, nil).Times(2)
+
+				// Mock MCP server config file operations
+				mcpServerConfigData := []byte("custom-mcp-mcpserver-data")
+				mcpServerConfigInfo := &mockFileInfo{name: "mcpserver.yaml", size: int64(len(mcpServerConfigData))}
+				mfs.On("Stat", "/custom/mcpserver.yaml").Return(mcpServerConfigInfo, nil).Times(2)
+				mfs.On("ReadFile", "/custom/mcpserver.yaml").Return(mcpServerConfigData, nil).Times(2)
 			},
 			validateResult: func(t *testing.T, idx v1.ImageIndex) {
 				assert.NotNil(t, idx, "should return a valid image index")
@@ -629,7 +668,8 @@ func TestImageBuilder_BuildMultiArch(t *testing.T) {
 					{OS: "linux", Architecture: "amd64"},
 					{OS: "linux", Architecture: "arm64"},
 				},
-				MCPFilePath: "/test/mcpfile.yaml",
+				MCPToolDefinitionsPath: "/test/mcpfile.yaml",
+				MCPServerConfigPath:    "/test/mcpserver.yaml",
 			},
 			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
 				// First platform succeeds
@@ -640,10 +680,15 @@ func TestImageBuilder_BuildMultiArch(t *testing.T) {
 				binaryInfoAmd64 := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryDataAmd64))}
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(binaryDataAmd64, binaryInfoAmd64, nil)
 
-				mcpFileData := []byte("fake-mcp-file-data")
-				mcpFileInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpFileData))}
-				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpFileInfo, nil).Maybe()
-				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpFileData, nil).Maybe()
+				mcpToolDefsData := []byte("fake-mcp-tool-defs-data")
+				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
+				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil).Maybe()
+				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpToolDefsData, nil).Maybe()
+
+				mcpServerConfigData := []byte("fake-mcp-mcpserver-data")
+				mcpServerConfigInfo := &mockFileInfo{name: "mcpserver.yaml", size: int64(len(mcpServerConfigData))}
+				mfs.On("Stat", "/test/mcpserver.yaml").Return(mcpServerConfigInfo, nil).Maybe()
+				mfs.On("ReadFile", "/test/mcpserver.yaml").Return(mcpServerConfigData, nil).Maybe()
 
 				// Second platform fails
 				mid.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "arm64"}).Return(newTestImage(types.DockerManifestSchema2), nil)
@@ -781,18 +826,20 @@ func TestMultiArchBuildOptions_SetDefaults(t *testing.T) {
 					{OS: "windows", Architecture: "amd64"},
 					{OS: "linux", Architecture: "arm64"},
 				},
-				BaseImage:   "custom:base",
-				MCPFilePath: "/custom/path",
-				ImageTag:    "custom:tag",
+				BaseImage:              "custom:base",
+				MCPToolDefinitionsPath: "/custom/path/mcpfile.yaml",
+				MCPServerConfigPath:    "/custom/path/mcpserver.yaml",
+				ImageTag:               "custom:tag",
 			},
 			expectedOutput: MultiArchBuildOptions{
 				Platforms: []*v1.Platform{
 					{OS: "windows", Architecture: "amd64"},
 					{OS: "linux", Architecture: "arm64"},
 				},
-				BaseImage:   "custom:base",
-				MCPFilePath: "/custom/path",
-				ImageTag:    "custom:tag",
+				BaseImage:              "custom:base",
+				MCPToolDefinitionsPath: "/custom/path/mcpfile.yaml",
+				MCPServerConfigPath:    "/custom/path/mcpserver.yaml",
+				ImageTag:               "custom:tag",
 			},
 		},
 	}
@@ -803,7 +850,8 @@ func TestMultiArchBuildOptions_SetDefaults(t *testing.T) {
 
 			tc.input.SetDefaults()
 			assert.Equal(t, tc.expectedOutput.BaseImage, tc.input.BaseImage, "BaseImage should match")
-			assert.Equal(t, tc.expectedOutput.MCPFilePath, tc.input.MCPFilePath, "MCPFilePath should match")
+			assert.Equal(t, tc.expectedOutput.MCPToolDefinitionsPath, tc.input.MCPToolDefinitionsPath, "MCPToolDefinitionsPath should match")
+			assert.Equal(t, tc.expectedOutput.MCPServerConfigPath, tc.input.MCPServerConfigPath, "MCPServerConfigPath should match")
 			assert.Equal(t, tc.expectedOutput.ImageTag, tc.input.ImageTag, "ImageTag should match")
 			assert.Equal(t, len(tc.expectedOutput.Platforms), len(tc.input.Platforms), "Platforms length should match")
 

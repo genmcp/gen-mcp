@@ -53,7 +53,8 @@ docs/
 │       ├── theme-toggle.js    # Dark/light mode
 │       └── navigation.js      # Smooth scrolling & nav
 ├── index.md              # Homepage
-└── mcp_file_format.md    # MCP File Format documentation
+├── mcpfile.md            # MCP File documentation
+└── mcpserver.md          # MCP Server Config File documentation
 ```
 
 ## Adding New Pages

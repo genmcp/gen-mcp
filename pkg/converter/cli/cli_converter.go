@@ -6,9 +6,11 @@ import (
 	"regexp"
 	"strings"
 
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
+	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/genmcp/gen-mcp/pkg/invocation/cli"
-	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
@@ -44,13 +46,13 @@ func ExtractCLICommandInfo(cliCommand string, commandItems *[]CommandItem) (bool
 	return true, nil
 }
 
-func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpfile.MCPFile, error) {
+func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpserver.MCPServer, error) {
 	if commandItems == nil || len(*commandItems) == 0 {
 		return nil, fmt.Errorf("no command items provided")
 	}
 
 	// Create tools from command items
-	tools := make([]*mcpfile.Tool, 0, len(*commandItems))
+	tools := make([]*definitions.Tool, 0, len(*commandItems))
 
 	for _, commandItem := range *commandItems {
 		tool, err := convertCommandItemToTool(commandItem)
@@ -60,26 +62,27 @@ func ConvertCommandsToMCPFile(commandItems *[]CommandItem) (*mcpfile.MCPFile, er
 		tools = append(tools, tool)
 	}
 
-	// Create MCP file
-	mcpFile := &mcpfile.MCPFile{
-		FileVersion: mcpfile.MCPFileVersion,
-		MCPServer: mcpfile.MCPServer{
+	// Create MCP server
+	mcpServer := &mcpserver.MCPServer{
+		MCPToolDefinitions: definitions.MCPToolDefinitions{
 			Name:    "cli-generated-server",
 			Version: "0.0.1",
-			Runtime: &mcpfile.ServerRuntime{
-				TransportProtocol: mcpfile.TransportProtocolStreamableHttp,
-				StreamableHTTPConfig: &mcpfile.StreamableHTTPConfig{
+			Tools:   tools,
+		},
+		MCPServerConfig: serverconfig.MCPServerConfig{
+			Runtime: &serverconfig.ServerRuntime{
+				TransportProtocol: serverconfig.TransportProtocolStreamableHttp,
+				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
 					Port: 7008,
 				},
 			},
-			Tools: tools,
 		},
 	}
 
-	return mcpFile, nil
+	return mcpServer, nil
 }
 
-func convertCommandItemToTool(commandItem CommandItem) (*mcpfile.Tool, error) {
+func convertCommandItemToTool(commandItem CommandItem) (*definitions.Tool, error) {
 	// Create input schema for the tool based on arguments
 	inputSchema, err := createInputSchemaFromArguments(commandItem.Data.Arguments, commandItem.Data.Options)
 	if err != nil {
@@ -100,7 +103,7 @@ func convertCommandItemToTool(commandItem CommandItem) (*mcpfile.Tool, error) {
 		return nil, fmt.Errorf("failed to unmarshal invocation data: %w", err)
 	}
 
-	tool := &mcpfile.Tool{
+	tool := &definitions.Tool{
 		Name:        toolName,
 		Title:       commandItem.Command,
 		Description: commandItem.Data.Description,
@@ -174,7 +177,7 @@ func createCLIInvocationData(command string, arguments []Argument, options []Opt
 		return nil, fmt.Errorf("failed to marshal CLI invocation data: %w", err)
 	}
 
-	return json.RawMessage(data), nil
+	return data, nil
 }
 
 func createTemplateVariables(arguments []Argument, options []Option) map[string]interface{} {

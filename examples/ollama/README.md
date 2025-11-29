@@ -6,13 +6,13 @@ This directory demonstrates two different approaches to integrate Ollama with ge
 
 ## Two Integration Methods
 
-### HTTP-based Integration (`ollama-http.yaml`)
+### HTTP-based Integration (`ollama-http-mcpfile.yaml`)
 Uses Ollama's REST API endpoints directly:
 - Requires Ollama to be running locally at `http://localhost:11434`
 - Provides tools for completions, embeddings, model management via HTTP calls
 - More reliable and provides structured JSON responses
 
-### CLI-based Integration (`ollama-cli.yaml`) 
+### CLI-based Integration (`ollama-cli-mcpfile.yaml`) 
 Uses Ollama's command-line interface:
 - Executes `ollama` CLI commands directly
 - Useful when you prefer command-line interaction
@@ -24,14 +24,14 @@ Uses Ollama's command-line interface:
 1. **Make sure Ollama is running** locally (usually at `http://localhost:11434`).
 2. Run the HTTP-based integration:
    ```bash
-   genmcp run -f examples/ollama/ollama-http.yaml
+   genmcp run -f examples/ollama/ollama-http-mcpfile.yaml -s examples/ollama/ollama-http-mcpserver.yaml
    ```
 
 ### CLI Method  
 1. **Ensure Ollama is installed** and available in your PATH.
 2. Run the CLI-based integration:
    ```bash
-   genmcp run -f examples/ollama/ollama-cli.yaml
+   genmcp run -f examples/ollama/ollama-cli-mcpfile.yaml -s examples/ollama/ollama-cli-mcpserver.yaml
    ```
 
 Both methods expose Ollama functionality as MCP tools, allowing AI assistants to interact with your local language models seamlessly!

@@ -1,0 +1,7 @@
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8009
+

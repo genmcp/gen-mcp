@@ -8,21 +8,21 @@ import (
 	"path/filepath"
 
 	"github.com/genmcp/gen-mcp/pkg/cli/utils"
-	"github.com/genmcp/gen-mcp/pkg/invocation"
-	_ "github.com/genmcp/gen-mcp/pkg/invocation/cli"
-	_ "github.com/genmcp/gen-mcp/pkg/invocation/http"
-	"github.com/genmcp/gen-mcp/pkg/mcpfile"
-	"github.com/genmcp/gen-mcp/pkg/mcpserver"
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
+	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
+	"github.com/genmcp/gen-mcp/pkg/runtime"
 	"github.com/spf13/cobra"
 )
 
 func init() {
 	rootCmd.AddCommand(runCmd)
-	runCmd.Flags().StringVarP(&mcpFilePath, "file", "f", "mcpfile.yaml", "mcp file to read from")
+	runCmd.Flags().StringVarP(&runToolDefinitionsPath, "file", "f", "mcpfile.yaml", "the path to the MCP file")
+	runCmd.Flags().StringVarP(&runServerConfigPath, "server-config", "s", "mcpserver.yaml", "the path to the server config file")
 	runCmd.Flags().BoolVarP(&detach, "detach", "d", false, "whether to detach when running")
 }
 
-var mcpFilePath string
+var runToolDefinitionsPath string
+var runServerConfigPath string
 var detach bool
 
 var runCmd = &cobra.Command{
@@ -31,39 +31,56 @@ var runCmd = &cobra.Command{
 	Run:   executeRunCmd,
 }
 
-func executeRunCmd(cobraCmd *cobra.Command, args []string) {
-	mcpFilePath, err := filepath.Abs(mcpFilePath)
+func executeRunCmd(_ *cobra.Command, _ []string) {
+	toolDefinitionsPath, err := filepath.Abs(runToolDefinitionsPath)
 	if err != nil {
-		fmt.Printf("failed to resolve mcp file path: %s\n", err.Error())
+		fmt.Printf("failed to resolve MCP file path: %s\n", err.Error())
 		return
 	}
 
-	if _, err := os.Stat(mcpFilePath); err != nil {
-		fmt.Printf("no file found at mcp file path\n")
-		return
-	}
-
-	mcpFile, err := mcpfile.ParseMCPFile(mcpFilePath)
+	serverConfigPath, err := filepath.Abs(runServerConfigPath)
 	if err != nil {
-		fmt.Printf("invalid mcp file: %s\n", err)
+		fmt.Printf("failed to resolve server config file path: %s\n", err.Error())
 		return
 	}
 
-	err = mcpFile.Validate(invocation.InvocationValidator)
+	if _, err := os.Stat(toolDefinitionsPath); err != nil {
+		fmt.Printf("no file found at MCP file path: %s\n", toolDefinitionsPath)
+		return
+	}
+
+	if _, err := os.Stat(serverConfigPath); err != nil {
+		fmt.Printf("no file found at server config path: %s\n", serverConfigPath)
+		return
+	}
+
+	// Parse and validate MCP file
+	_, err = definitions.ParseMCPFile(toolDefinitionsPath)
 	if err != nil {
-		fmt.Printf("invalid mcp file: %s\n", err)
+		fmt.Printf("invalid MCP file: %s\n", err)
 		return
 	}
 
-	if mcpFile.Runtime.TransportProtocol == mcpfile.TransportProtocolStdio && detach {
+	// Parse and validate server config file
+	serverConfigFile, err := serverconfig.ParseMCPFile(serverConfigPath)
+	if err != nil {
+		fmt.Printf("invalid server config file: %s\n", err)
+		return
+	}
+
+	// Check transport protocol for detach validation
+	if serverConfigFile.Runtime != nil && serverConfigFile.Runtime.TransportProtocol == serverconfig.TransportProtocolStdio && detach {
 		// TODO: re-enable this logging when we figure out logging w. stdio
 		// fmt.Printf("cannot detach when running stdio transport\n")
 		detach = false
 	}
 
+	// Use tool definitions path as the identifier for process management (for backward compatibility)
+	processIdentifier := toolDefinitionsPath
+
 	if !detach {
 		// Run servers directly in the current process
-		err := mcpserver.RunServers(context.Background(), mcpFilePath)
+		err := runtime.RunServer(context.Background(), toolDefinitionsPath, serverConfigPath)
 		if err != nil {
 			fmt.Printf("genmcp-server failed with %s\n", err.Error())
 		}
@@ -71,16 +88,16 @@ func executeRunCmd(cobraCmd *cobra.Command, args []string) {
 	}
 
 	// Detached mode: spawn the same command without --detach flag
-	cmd := exec.Command(os.Args[0], "run", "-f", mcpFilePath)
+	cmd := exec.Command(os.Args[0], "run", "-f", toolDefinitionsPath, "-s", serverConfigPath)
 	err = cmd.Start()
 	if err != nil {
 		fmt.Printf("failed to start genmcp-server: %s\n", err.Error())
 		return
 	}
 
-	// Save PID for stop command
+	// Save PID for stop command (using tool definitions path as identifier)
 	processManager := utils.GetProcessManager()
-	err = processManager.SaveProcessId(mcpFilePath, cmd.Process.Pid)
+	err = processManager.SaveProcessId(processIdentifier, cmd.Process.Pid)
 	if err != nil {
 		fmt.Printf("failed to save pid for genmcp server, to stop the server you will need to manually kill pid %d: %s\n", cmd.Process.Pid, err.Error())
 	}

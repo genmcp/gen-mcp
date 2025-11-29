@@ -12,19 +12,19 @@ import (
 
 func init() {
 	rootCmd.AddCommand(convertCliCmd)
-	convertCliCmd.Flags().StringVarP(&mcpOutputPath, "out", "o", "mcpfile.yaml", "the path to write the mcp file to")
+	convertCliCmd.Flags().StringVarP(&mcpOutputPath, "out", "o", "mcpfile.yaml", "the path to write the MCP file to")
 }
 
 var mcpOutputPath string
 
 var convertCliCmd = &cobra.Command{
 	Use:   "convert-cli <command1> [command2] [command3] ...",
-	Short: "Convert one or more CLI commands to a MCPFile",
+	Short: "Generate MCP file from one or more CLI commands",
 	Args:  cobra.MinimumNArgs(1),
 	Run:   executeConvertCliCmd,
 }
 
-func executeConvertCliCmd(cobraCmd *cobra.Command, args []string) {
+func executeConvertCliCmd(_ *cobra.Command, args []string) {
 	commandItems := []cliconverter.CommandItem{}
 
 	for _, cliCommand := range args {
@@ -37,23 +37,23 @@ func executeConvertCliCmd(cobraCmd *cobra.Command, args []string) {
 
 	mcpFile, err := cliconverter.ConvertCommandsToMCPFile(&commandItems)
 	if err != nil {
-		fmt.Printf("encountered errors while converting commands to mcp file: %s\n", err.Error())
+		fmt.Printf("encountered errors while converting commands to MCP file: %s\n", err.Error())
 		return
 	}
 
 	mcpFileBytes, err := yaml.Marshal(mcpFile)
 	if err != nil {
-		fmt.Printf("could not marshal mcp file: %s\n", err.Error())
+		fmt.Printf("could not marshal MCP file: %s\n", err.Error())
 		return
 	}
 
-	mcpFileBytes = utils.AppendSchemaHeader(mcpFileBytes)
+	mcpFileBytes = utils.AppendToolDefinitionsSchemaHeader(mcpFileBytes)
 
 	fmt.Printf("%s", string(mcpFileBytes))
 
 	err = os.WriteFile(mcpOutputPath, mcpFileBytes, 0644)
 	if err != nil {
-		fmt.Printf("could not write mcpfile to file at path %s: %s", mcpOutputPath, err.Error())
+		fmt.Printf("could not write MCP file to path %s: %s", mcpOutputPath, err.Error())
 		return
 	}
 }

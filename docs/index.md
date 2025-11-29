@@ -147,7 +147,7 @@ genmcp run
     <p><strong>Option B: Create Custom Tools</strong></p>
     <div class="code-example">
 {% highlight bash %}
-# Create mcpfile.yaml with your tools (see documentation)
+# Create mcpfile.yaml and mcpserver.yaml with your tools (see documentation)
 genmcp run
 {% endhighlight %}
     </div>
@@ -168,9 +168,10 @@ genmcp run
     <h2 class="section-title">Documentation</h2>
     <div class="features-grid">
       <div class="feature-card">
-        <h3>📖 MCP File Format</h3>
+        <h3>📖 GenMCP Config File Format</h3>
         <p>Learn to write custom tool configurations with our comprehensive guide.</p>
-        <a href="{{ '/mcp_file_format.html' | relative_url }}" class="btn btn-primary" style="margin-top: var(--spacing-sm);">Read Guide</a>
+        <a href="{{ '/mcpfile.html' | relative_url }}" class="btn btn-primary" style="margin-top: var(--spacing-sm);">Read Guide</a>
+        <a href="{{ '/mcpserver.html' | relative_url }}" class="btn btn-primary" style="margin-top: var(--spacing-sm);">Server Config</a>
       </div>
       <div class="feature-card">
         <h3>📚 Examples</h3>
@@ -181,6 +182,11 @@ genmcp run
         <h3>🔧 Core Commands</h3>
         <p>Master the essential gen-mcp CLI commands.</p>
         <a href="{{ '/commands.html' | relative_url }}" class="btn btn-primary" style="margin-top: var(--spacing-sm);">Learn Commands</a>
+      </div>
+      <div class="feature-card">
+        <h3>🔄 Migration Guide</h3>
+        <p>Migrate between GenMCP configuration format versions with step-by-step instructions.</p>
+        <a href="https://github.com/genmcp/gen-mcp/blob/main/MIGRATION.md" class="btn btn-primary" style="margin-top: var(--spacing-sm);" target="_blank" rel="noopener">View Migration Guide</a>
       </div>
     </div>
   </div>

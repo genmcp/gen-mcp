@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/mcpserver-schema-0.2.0.json
+
+kind: MCPServerConfig
+runtime:
+  loggingConfig: null
+  streamableHttpConfig:
+    port: 8080
+  transportProtocol: streamablehttp
+schemaVersion: 0.2.0

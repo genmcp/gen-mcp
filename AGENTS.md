@@ -1,14 +1,14 @@
 # GenMCP Dev Guidance
 
 GenMCP provides a declarative way to create MCP servers around existing systems
-The declarative file format is described in `./docs/mcp_file_format.md`
+The declarative file formats are described in `./docs/mcpfile.md` (tool definitions) and `./docs/mcpserver.md` (server config)
 Some examples can be found in `./examples/`
 
 ## Repository Layout
 
-- `./pkg/builder`: builder to create container images from an mcp file that will contain the mcp server
+- `./pkg/builder`: builder to create container images from an MCP file that will contain the mcp server
 - `./pkg/cli`: cli commands and utilities for the `genmcp` cli
-- `./pkg/converter`: packages to automatically convert different types of applications into an mcp file. Currently there are subpackages for OpenAPI specs and cli conversion with an agent
+- `./pkg/converter`: packages to automatically convert different types of applications into an MCP file. Currently, there are subpackages for OpenAPI specs and cli conversion with an agent
 - `./pkg/invocation/`: core invocation interfaces and utilities. Subpackages for specific invocation types (http, cli)
 - `./pkg/mcpfile/`: core types for the mcp file
 - `./pkg/mcpserver/`: core mcp server implementation

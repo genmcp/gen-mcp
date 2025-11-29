@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=../../../../specs/mcpfile-schema.json
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
+name: test-server
+version: 1.0.0
+resourceTemplates:
+- name: weather-forecast
+  title: "Weather Forecast"
+  description: "Get weather forecast for any city and date"
+  mimeType: "application/json"
+  uriTemplate: "weather://forecast/{city}/{date}"
+  inputSchema:
+    type: object
+    properties:
+      city:
+        type: string
+        description: "The city to get weather for"
+      date:
+        type: string
+        description: "The date to get weather for"
+    required:
+      - city
+      - date
+  invocation:
+    http:
+      url: http://localhost:5000/forecast
+      method: GET

@@ -41,16 +41,16 @@ This tutorial uses a simple **Feature Request API** that manages product feature
 
 ### API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/features` | List all features (summaries) |
-| GET | `/features/top` | Get most-voted feature |
-| GET | `/features/{id}` | Get detailed feature by ID |
-| POST | `/features` | Create new feature request |
-| POST | `/features/vote` | Vote for a feature |
-| POST | `/features/complete` | Mark feature as completed |
-| DELETE | `/features/{id}` | Delete a feature |
-| GET | `/openapi.json` | OpenAPI specification |
+| Method | Endpoint             | Description                   |
+|--------|----------------------|-------------------------------|
+| GET    | `/features`          | List all features (summaries) |
+| GET    | `/features/top`      | Get most-voted feature        |
+| GET    | `/features/{id}`     | Get detailed feature by ID    |
+| POST   | `/features`          | Create new feature request    |
+| POST   | `/features/vote`     | Vote for a feature            |
+| POST   | `/features/complete` | Mark feature as completed     |
+| DELETE | `/features/{id}`     | Delete a feature              |
+| GET    | `/openapi.json`      | OpenAPI specification         |
 
 ## Step-by-Step Tutorial
 
@@ -114,7 +114,7 @@ cd ..
 genmcp convert http://localhost:9090/openapi.json
 ```
 
-gen-mcp will analyze the OpenAPI specification and create an `mcpfile.yaml` file with all endpoints defined as MCP tools.
+gen-mcp will analyze the OpenAPI specification and create two files: an MCP file (`mcpfile.yaml`) and a server config file (`mcpserver.yaml`).
 
 You should see output like:
 
@@ -122,20 +122,25 @@ You should see output like:
 INFO    Fetching OpenAPI spec from http://localhost:9090/openapi.json
 INFO    Converted 7 endpoints to MCP tools
 INFO    Created mcpfile.yaml
+INFO    Created mcpserver.yaml
 ```
 
 ### Step 5: Understanding the Generated Configuration
 
-Let's examine the generated `mcpfile.yaml`. Note that the full configuration includes all 7 tools from the API—we'll show a few key examples here to understand the structure:
+gen-mcp creates two separate files:
+
+1. **MCP File** (`mcpfile.yaml`) - Contains all the tools, prompts, resources, and invocation bases
+2. **Server Config File** (`mcpserver.yaml`) - Contains the server runtime configuration
+
+Let's examine the generated files. Note that the MCP file includes all 7 tools from the API—we'll show a few key examples here to understand the structure:
+
+**MCP File** (`mcpfile.yaml`):
 
 ```yaml
-mcpFileVersion: 0.1.0
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
 name: Feature Request API
 version: 0.0.1
-runtime:
-  transportProtocol: streamablehttp
-  streamableHttpConfig:
-    port: 8080
 
 invocationBases:
   baseApi:
@@ -322,25 +327,37 @@ For destructive operations:
     feature, call get_features-id with the feature's ID.
 ```
 
+**Server Config File** (`mcpserver.yaml`):
+
+```yaml
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8080
+```
+
 ### Step 8: Run the MCP Server
 
-Start your customized MCP server:
+Start your customized MCP server with both files:
 
 ```bash
-genmcp run -f mcpfile.yaml
+genmcp run -f mcpfile.yaml -s mcpserver.yaml
 ```
 
 You should see:
 
 ```
-INFO    Starting MCP server on port 8080
-INFO    Loaded 7 tools: get_features, get_features-id, post_features, ...
-INFO    Server ready at http://localhost:8080
+...
+INFO    runtime/server.go:138   Setting up streamable HTTP server   {"port": 8080, "base_path": "/mcp", "stateless": true}
+INFO    runtime/server.go:181   Starting MCP server on port 8080
+INFO    runtime/server.go:196   Starting HTTP server
 ```
 
 ### Step 9: Connect an MCP Client
 
-Now you can connect any MCP-compatible client (like Claude Desktop) to `http://localhost:8080`.
+Now you can connect any MCP-compatible client (like Claude Desktop) to `http://localhost:8080/mcp`.
 
 The client will discover all your tools and can call them:
 
@@ -719,7 +736,7 @@ INFO    Loaded 7 tools: get_features, get_features-id, ...
 ## Next Steps
 
 - **Explore Ollama Integration**: Learn CLI-based tool wrapping in the [Ollama Example]({{ '/example-ollama.html' | relative_url }})
-- **Read the MCP File Format Guide**: Master advanced configuration in the [format specification]({{ '/mcp_file_format.html' | relative_url }})
+- **Read the GenMCP Config File Format Guide**: Master advanced configuration in the [tool definitions guide]({{ '/mcpfile.html' | relative_url }}) and [server config guide]({{ '/mcpserver.html' | relative_url }})
 - **Join the Community**: Share your API conversions on [Discord](https://discord.gg/AwP6GAUEQR)
 
 ## Resources

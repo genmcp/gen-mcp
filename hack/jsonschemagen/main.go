@@ -12,11 +12,13 @@ import (
 
 	"github.com/invopop/jsonschema"
 
+	"github.com/genmcp/gen-mcp/pkg/config"
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
+	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 	"github.com/genmcp/gen-mcp/pkg/invocation/cli"
 	"github.com/genmcp/gen-mcp/pkg/invocation/extends"
 	"github.com/genmcp/gen-mcp/pkg/invocation/http"
-	"github.com/genmcp/gen-mcp/pkg/mcpfile"
 	googlejsonschema "github.com/google/jsonschema-go/jsonschema"
 )
 
@@ -327,15 +329,10 @@ func createJSONSchemaMetaSchema() *jsonschema.Schema {
 	return schema
 }
 
-func main() {
-	// Use a slice to guarantee the processing order.
-	// mcpfile.MCPFile will be processed first.
-	types := []schemaType{
-		{
-			Type: &mcpfile.MCPFile{},
-			Base: "github.com/genmcp/gen-mcp/pkg/mcpfile",
-			Path: "../../pkg/mcpfile",
-		},
+// generateSchema generates a JSON schema for the given type and common types
+func generateSchema(rootType interface{}, rootBase, rootPath string, schemaID, schemaRef string) *jsonschema.Schema {
+	// Common types used by both file types
+	commonTypes := []schemaType{
 		{
 			Type: &http.HttpInvocationConfig{},
 			Base: "github.com/genmcp/gen-mcp/pkg/invocation",
@@ -352,6 +349,15 @@ func main() {
 			Path: "../../pkg/invocation",
 		},
 	}
+
+	// Add the root type
+	types := append([]schemaType{
+		{
+			Type: rootType,
+			Base: rootBase,
+			Path: rootPath,
+		},
+	}, commonTypes...)
 
 	var schema *jsonschema.Schema
 
@@ -441,23 +447,74 @@ func main() {
 	// Fix required fields by reading the actual struct tags from our Go types
 	fixRequiredFields(schema, types)
 
-	schemaJSON, err := json.MarshalIndent(schema, "", "  ")
-	if err != nil {
-		log.Fatalf("Failed to marshal schema: %v", err)
-	}
+	// Set the schema ID and reference
+	schema.ID = jsonschema.ID(schemaID)
+	schema.Ref = schemaRef
 
-	// Build paths
+	return schema
+}
+
+func main() {
+	schemaVersion := config.SchemaVersion
 	specsDir := filepath.Join("..", "..", "specs")
-	versionedFile := filepath.Join(specsDir, fmt.Sprintf("mcpfile-schema-%s.json", mcpfile.MCPFileVersion))
-	latestFile := filepath.Join(specsDir, "mcpfile-schema.json")
 
-	// Write versioned schema
-	if err := os.WriteFile(versionedFile, schemaJSON, 0644); err != nil {
-		log.Fatalf("Failed to write versioned schema: %v", err)
+	// Generate Tool Definitions schema
+	fmt.Println("Generating Tool Definitions schema...")
+	toolDefsSchema := generateSchema(
+		&definitions.MCPToolDefinitionsFile{},
+		"github.com/genmcp/gen-mcp/pkg/config/definitions",
+		"../../pkg/config/definitions",
+		fmt.Sprintf("https://github.com/genmcp/gen-mcp/pkg/config/definitions/mcpfile-schema-%s", schemaVersion),
+		"#/$defs/MCPToolDefinitionsFile",
+	)
+
+	toolDefsSchemaJSON, err := json.MarshalIndent(toolDefsSchema, "", "  ")
+	if err != nil {
+		log.Fatalf("Failed to marshal tool definitions schema: %v", err)
 	}
 
-	// Write latest schema (same content)
-	if err := os.WriteFile(latestFile, schemaJSON, 0644); err != nil {
-		log.Fatalf("Failed to write latest schema: %v", err)
+	// Write Tool Definitions schema files
+	toolDefsVersionedFile := filepath.Join(specsDir, fmt.Sprintf("mcpfile-schema-%s.json", schemaVersion))
+	toolDefsLatestFile := filepath.Join(specsDir, "mcpfile-schema.json")
+
+	if err := os.WriteFile(toolDefsVersionedFile, toolDefsSchemaJSON, 0644); err != nil {
+		log.Fatalf("Failed to write versioned tool definitions schema: %v", err)
 	}
+	fmt.Printf("Wrote: %s\n", toolDefsVersionedFile)
+
+	if err := os.WriteFile(toolDefsLatestFile, toolDefsSchemaJSON, 0644); err != nil {
+		log.Fatalf("Failed to write latest tool definitions schema: %v", err)
+	}
+	fmt.Printf("Wrote: %s\n", toolDefsLatestFile)
+
+	// Generate Server Config schema
+	fmt.Println("\nGenerating Server Config schema...")
+	serverConfigSchema := generateSchema(
+		&serverconfig.MCPServerConfigFile{},
+		"github.com/genmcp/gen-mcp/pkg/config/server",
+		"../../pkg/config/server",
+		fmt.Sprintf("https://github.com/genmcp/gen-mcp/pkg/config/server/mcpserver-schema-%s", schemaVersion),
+		"#/$defs/MCPServerConfigFile",
+	)
+
+	serverConfigSchemaJSON, err := json.MarshalIndent(serverConfigSchema, "", "  ")
+	if err != nil {
+		log.Fatalf("Failed to marshal server config schema: %v", err)
+	}
+
+	// Write Server Config schema files
+	serverConfigVersionedFile := filepath.Join(specsDir, fmt.Sprintf("mcpserver-schema-%s.json", schemaVersion))
+	serverConfigLatestFile := filepath.Join(specsDir, "mcpserver-schema.json")
+
+	if err := os.WriteFile(serverConfigVersionedFile, serverConfigSchemaJSON, 0644); err != nil {
+		log.Fatalf("Failed to write versioned server config schema: %v", err)
+	}
+	fmt.Printf("Wrote: %s\n", serverConfigVersionedFile)
+
+	if err := os.WriteFile(serverConfigLatestFile, serverConfigSchemaJSON, 0644); err != nil {
+		log.Fatalf("Failed to write latest server config schema: %v", err)
+	}
+	fmt.Printf("Wrote: %s\n", serverConfigLatestFile)
+
+	fmt.Println("\nSchema generation complete!")
 }

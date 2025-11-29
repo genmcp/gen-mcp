@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../../../specs/mcpserver-schema.json
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 7007
+    tls:
+      certFile: /path/to/server.crt
+      keyFile: /path/to/server.key

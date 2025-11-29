@@ -4,7 +4,7 @@ import (
 	"github.com/genmcp/gen-mcp/pkg/invocation"
 )
 
-// Configuration for executing a command-line tool.
+// CliInvocationConfig is the configuration for executing a command-line tool.
 // This is a pure data structure with no parsing logic - all struct tags only.
 type CliInvocationConfig struct {
 	// The command-line string to be executed. It can contain placeholders in the form of '{paramName}' which correspond to parameters defined in the input schema.
@@ -34,7 +34,7 @@ func (c *CliInvocationConfig) DeepCopy() invocation.InvocationConfig {
 	return cp
 }
 
-// The formatting for a single parameter in the command template
+// TemplateVariable is the formatting for a single parameter in the command template.
 type TemplateVariable struct {
 	// Template is the format string for the variable. It can be a simple string or contain template variables like '{paramName}'.
 	// For example, "--user={username}" or "--verbose".

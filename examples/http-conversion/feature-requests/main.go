@@ -105,7 +105,7 @@ func main() {
 	fmt.Printf("error: %s\n", err.Error())
 }
 
-func getTopFeature(w http.ResponseWriter, r *http.Request) {
+func getTopFeature(w http.ResponseWriter, _ *http.Request) {
 	mu.RLock()
 	defer mu.RUnlock()
 
@@ -252,7 +252,7 @@ func getFeatureDetails(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getAllFeatures(w http.ResponseWriter, r *http.Request) {
+func getAllFeatures(w http.ResponseWriter, _ *http.Request) {
 	mu.RLock()
 	defer mu.RUnlock()
 
@@ -282,7 +282,7 @@ func getAllFeatures(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getOpenAPISpec(w http.ResponseWriter, r *http.Request) {
+func getOpenAPISpec(w http.ResponseWriter, _ *http.Request) {
 	// Get the path to the OpenAPI spec file
 	// When deployed with ko, KO_DATA_PATH points to the kodata directory
 	// When running locally, fall back to the local kodata directory
@@ -507,7 +507,7 @@ func generateFeatureAnalysisPrompt(features []*Feature, context, focus string) s
 	return prompt
 }
 
-func getFeatureProgressReport(w http.ResponseWriter, r *http.Request) {
+func getFeatureProgressReport(w http.ResponseWriter, _ *http.Request) {
 	mu.RLock()
 	defer mu.RUnlock()
 

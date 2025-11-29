@@ -12,43 +12,50 @@ import (
 func TestConvertFromOpenApiSpec(t *testing.T) {
 	docBytes, _ := os.ReadFile("testdata/petstorev3.json")
 
-	mcpfile, err := DocumentToMcpFile(docBytes, "")
-	assert.Error(t, err, "creating the mcp file from the openapi model should have errors on endpoints genmcp does not support")
-	assert.NotNil(t, mcpfile)
+	convertedFiles, err := DocumentToMcpFile(docBytes, "")
+	assert.Error(t, err, "creating the GenMCP config files from the openapi model should have errors on endpoints genmcp does not support")
+	assert.NotNil(t, convertedFiles)
+	assert.NotNil(t, convertedFiles.ToolDefinitions)
+	assert.NotNil(t, convertedFiles.ServerConfig)
 
-	mcpYaml, err := yaml.Marshal(mcpfile)
-	assert.NoError(t, err, "marshalling mcpfile to yaml should not cause an error")
+	toolDefYaml, err := yaml.Marshal(convertedFiles.ToolDefinitions)
+	assert.NoError(t, err, "marshalling tool definitions to yaml should not cause an error")
 
-	fmt.Printf("%s", mcpYaml)
+	serverConfigYaml, err := yaml.Marshal(convertedFiles.ServerConfig)
+	assert.NoError(t, err, "marshalling server config to yaml should not cause an error")
+
+	fmt.Printf("Tool Definitions:\n%s\n\nServer Config:\n%s", toolDefYaml, serverConfigYaml)
 }
 
 func TestDefaultPort8080InOpenAPIV3Conversion(t *testing.T) {
 	docBytes, _ := os.ReadFile("testdata/petstorev3.json")
 
-	mcpfile, err := DocumentToMcpFile(docBytes, "")
-	assert.Error(t, err, "creating the mcp file from the openapi model should have errors on endpoints genmcp does not support")
-	assert.NotNil(t, mcpfile)
+	convertedFiles, err := DocumentToMcpFile(docBytes, "")
+	assert.Error(t, err, "creating the GenMCP config files from the openapi model should have errors on endpoints genmcp does not support")
+	assert.NotNil(t, convertedFiles)
+	assert.NotNil(t, convertedFiles.ServerConfig)
 
-	assert.Equal(t, 8080, mcpfile.Runtime.StreamableHTTPConfig.Port, "OpenAPI v3 conversion should default to port 8080")
+	assert.Equal(t, 8080, convertedFiles.ServerConfig.Runtime.StreamableHTTPConfig.Port, "OpenAPI v3 conversion should default to port 8080")
 }
 
 func TestInvalidToolsAreSkippedButValidOnesIncluded(t *testing.T) {
 	docBytes, _ := os.ReadFile("testdata/openapi_v3_with_invalid_tools.json")
 
-	mcpfile, err := DocumentToMcpFile(docBytes, "")
+	convertedFiles, err := DocumentToMcpFile(docBytes, "")
 
-	// We should get an error about the invalid tool but still get a valid MCP file
+	// We should get an error about the invalid tool but still get valid GenMCP config files
 	assert.Error(t, err, "conversion should report errors about invalid tools")
-	assert.NotNil(t, mcpfile, "MCP file should still be generated")
+	assert.NotNil(t, convertedFiles, "GenMCP config files should still be generated")
+	assert.NotNil(t, convertedFiles.ToolDefinitions, "tool definitions should be generated")
 
-	assert.NotNil(t, mcpfile.Tools, "server should have tools")
+	assert.NotNil(t, convertedFiles.ToolDefinitions.Tools, "tool definitions should have tools")
 
 	// Should have exactly 2 valid tools (the ones with descriptions)
-	assert.Len(t, mcpfile.Tools, 2, "should have exactly 2 valid tools")
+	assert.Len(t, convertedFiles.ToolDefinitions.Tools, 2, "should have exactly 2 valid tools")
 
 	// Check that the valid tools are present
-	toolNames := make([]string, len(mcpfile.Tools))
-	for i, tool := range mcpfile.Tools {
+	toolNames := make([]string, len(convertedFiles.ToolDefinitions.Tools))
+	for i, tool := range convertedFiles.ToolDefinitions.Tools {
 		toolNames[i] = tool.Name
 		assert.NotEmpty(t, tool.Description, "all included tools should have descriptions")
 	}
@@ -64,13 +71,14 @@ func TestInvalidToolsAreSkippedButValidOnesIncluded(t *testing.T) {
 func TestAllToolsInvalidStillReturnsEmptyMcpFile(t *testing.T) {
 	docBytes, _ := os.ReadFile("testdata/openapi_v3_all_invalid_tools.json")
 
-	mcpfile, err := DocumentToMcpFile(docBytes, "")
+	convertedFiles, err := DocumentToMcpFile(docBytes, "")
 
 	// Should get an error about all invalid tools
 	assert.Error(t, err, "conversion should report errors about all invalid tools")
-	assert.NotNil(t, mcpfile, "MCP file should still be generated")
+	assert.NotNil(t, convertedFiles, "GenMCP config files should still be generated")
+	assert.NotNil(t, convertedFiles.ToolDefinitions, "tool definitions should be generated")
 
-	assert.Empty(t, mcpfile.Tools, "server should have no tools when all are invalid")
+	assert.Empty(t, convertedFiles.ToolDefinitions.Tools, "tool definitions should have no tools when all are invalid")
 
 	// Check that error mentions both skipped tools
 	assert.Contains(t, err.Error(), "get_no-description-1", "error should mention first skipped tool")
@@ -80,13 +88,14 @@ func TestAllToolsInvalidStillReturnsEmptyMcpFile(t *testing.T) {
 func TestOpenAPIV2BodyParameterHandling(t *testing.T) {
 	docBytes, _ := os.ReadFile("testdata/openapi_v2_body_param.json")
 
-	mcpfile, err := DocumentToMcpFile(docBytes, "")
+	convertedFiles, err := DocumentToMcpFile(docBytes, "")
 	assert.NoError(t, err, "conversion should not produce errors")
-	assert.NotNil(t, mcpfile, "MCP file should be generated")
+	assert.NotNil(t, convertedFiles, "GenMCP config files should be generated")
+	assert.NotNil(t, convertedFiles.ToolDefinitions, "tool definitions should be generated")
 
-	assert.Len(t, mcpfile.Tools, 1, "should have exactly 1 tool")
+	assert.Len(t, convertedFiles.ToolDefinitions.Tools, 1, "should have exactly 1 tool")
 
-	tool := mcpfile.Tools[0]
+	tool := convertedFiles.ToolDefinitions.Tools[0]
 	assert.Equal(t, "post_features-vote", tool.Name)
 	assert.Equal(t, "Vote for feature", tool.Title)
 
@@ -104,13 +113,14 @@ func TestOpenAPIV2BodyParameterHandling(t *testing.T) {
 func TestOpenAPIV2BodyParameterWithPathParameters(t *testing.T) {
 	docBytes, _ := os.ReadFile("testdata/openapi_v2_body_and_path.json")
 
-	mcpfile, err := DocumentToMcpFile(docBytes, "")
+	convertedFiles, err := DocumentToMcpFile(docBytes, "")
 	assert.NoError(t, err, "conversion should not produce errors")
-	assert.NotNil(t, mcpfile, "MCP file should be generated")
+	assert.NotNil(t, convertedFiles, "GenMCP config files should be generated")
+	assert.NotNil(t, convertedFiles.ToolDefinitions, "tool definitions should be generated")
 
-	assert.Len(t, mcpfile.Tools, 1, "should have exactly 1 tool")
+	assert.Len(t, convertedFiles.ToolDefinitions.Tools, 1, "should have exactly 1 tool")
 
-	tool := mcpfile.Tools[0]
+	tool := convertedFiles.ToolDefinitions.Tools[0]
 	assert.Equal(t, "post_users-userId-posts", tool.Name)
 
 	// Should have both path parameter and body schema properties

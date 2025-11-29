@@ -1,0 +1,241 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/genmcp/gen-mcp/pkg/config/server/mcpserver-schema-0.2.0",
+  "$ref": "#/$defs/MCPServerConfigFile",
+  "$defs": {
+    "AuthConfig": {
+      "properties": {
+        "authorizationServers": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "jwksUri": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "CliInvocationConfig": {
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "The command-line string to be executed. It can contain placeholders in the form of '{paramName}' which correspond to parameters defined in the input schema."
+        },
+        "templateVariables": {
+          "additionalProperties": {
+            "$ref": "#/$defs/TemplateVariable"
+          },
+          "type": "object",
+          "description": "Defines how input parameters are formatted into the command string.\nThe map key corresponds to the parameter name from the input schema."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "command"
+      ],
+      "description": "CliInvocationConfig is the configuration for executing a command-line tool."
+    },
+    "ExtendsConfig": {
+      "properties": {
+        "from": {
+          "type": "string",
+          "description": "From specifies the invocation base to extend from."
+        },
+        "extend": {
+          "type": "object",
+          "description": "Extend adds or merges new fields into the base configuration (e.g., append to arrays, merge maps)."
+        },
+        "override": {
+          "type": "object",
+          "description": "Override replaces fields in the base configuration with new values."
+        },
+        "remove": {
+          "type": "object",
+          "description": "Remove deletes specific fields from the base configuration (e.g., remove map keys, clear strings)."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "from"
+      ],
+      "description": "ExtendsConfig allows extending an invocation base with modifications."
+    },
+    "HttpInvocationConfig": {
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "The URL for the HTTP request.\n\nIt can contain placeholders in the form of {paramName} which correspond to parameters from the input schema.\nIt can contain placeholders in the form of {headers.paramName} which correspond to headers from the incoming\nhttp request (won't work in stdio).\nIt can contain placeholders in the form of ${ENV_VAR_NAME} or {env.ENV_VAR_NAME} which correspond to env vars"
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "The headers for the HTTP request.\n\nValues can contain placeholders in the form of {paramName} which correspond to parameters from the input schema.\nValues can contain placeholders in the form of {headers.paramName} which correspond to headers from the incoming\nhttp request (won't work in stdio).\nValues can contain placeholders in the form of ${ENV_VAR_NAME} or {env.ENV_VAR_NAME} which correspond to env vars"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "HEAD"
+          ],
+          "description": "The HTTP method to be used for the request (e.g., \"GET\", \"POST\")."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "method",
+        "url"
+      ],
+      "description": "HttpInvocationConfig is the configuration for making an HTTP request."
+    },
+    "LoggingConfig": {
+      "properties": {
+        "level": {
+          "type": "string"
+        },
+        "development": {
+          "type": "boolean"
+        },
+        "disableCaller": {
+          "type": "boolean"
+        },
+        "disableStacktrace": {
+          "type": "boolean"
+        },
+        "encoding": {
+          "type": "string"
+        },
+        "outputPaths": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "errorOutputPaths": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "initialFields": {
+          "type": "object"
+        },
+        "enableMcpLogs": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "MCPServerConfigFile": {
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "schemaVersion": {
+          "type": "string"
+        },
+        "runtime": {
+          "$ref": "#/$defs/ServerRuntime"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "kind",
+        "schemaVersion"
+      ]
+    },
+    "ServerRuntime": {
+      "properties": {
+        "transportProtocol": {
+          "type": "string"
+        },
+        "streamableHttpConfig": {
+          "$ref": "#/$defs/StreamableHTTPConfig"
+        },
+        "stdioConfig": {
+          "$ref": "#/$defs/StdioConfig"
+        },
+        "loggingConfig": {
+          "$ref": "#/$defs/LoggingConfig"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "transportProtocol"
+      ]
+    },
+    "StdioConfig": {
+      "properties": {},
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "StreamableHTTPConfig": {
+      "properties": {
+        "port": {
+          "type": "integer"
+        },
+        "basePath": {
+          "type": "string"
+        },
+        "stateless": {
+          "type": "boolean"
+        },
+        "auth": {
+          "$ref": "#/$defs/AuthConfig"
+        },
+        "tls": {
+          "$ref": "#/$defs/TLSConfig"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "port"
+      ]
+    },
+    "TLSConfig": {
+      "properties": {
+        "certFile": {
+          "type": "string"
+        },
+        "keyFile": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "TemplateVariable": {
+      "properties": {
+        "format": {
+          "type": "string",
+          "description": "Template is the format string for the variable. It can be a simple string or contain template variables like '{paramName}'.\nFor example, \"--user={username}\" or \"--verbose\"."
+        },
+        "omitIfFalse": {
+          "type": "boolean",
+          "description": "OmitIfFalse, if true, causes the template to be omitted entirely if the input\nvalue is a boolean `false`. This is useful for optional flags like \"--force\"."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "format"
+      ],
+      "description": "TemplateVariable is the formatting for a single parameter in the command template."
+    }
+  }
+}

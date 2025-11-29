@@ -105,20 +105,22 @@ genmcp run
 
 ## 📖 Documentation
 
-- **[MCP File Format Guide](./docs/mcp_file_format.md)** - Learn to write custom tool configurations
+- **[MCP File Format Guide](./docs/mcpfile.md)** - Learn to write custom tool configurations
+- **[Server Config Guide](./docs/mcpserver.md)** - Configure server runtime settings
+- **[Migration Guide](./MIGRATION.md)** - Migrate between GenMCP versions
 - **[Examples Directory](./examples/)** - Real-world integration examples
 
 ## 💻 Usage
 
 ### Core Commands
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `run` | Start MCP server | `genmcp run -f myapi.yaml` |
-| `stop` | Stop running server | `genmcp stop` |
-| `convert` | OpenAPI → MCP conversion | `genmcp convert api-spec.json` |
-| `build` | Build container image from mcpfile | `genmcp build -f myapi.yaml --tag myapi:latest` |
-| `version` | Display version information | `genmcp version` |
+| Command   | Description                        | Example                                         |
+|-----------|------------------------------------|-------------------------------------------------|
+| `run`     | Start MCP server                   | `genmcp run -f myapi.yaml`                      |
+| `stop`    | Stop running server                | `genmcp stop`                                   |
+| `convert` | OpenAPI → MCP conversion           | `genmcp convert api-spec.json`                  |
+| `build`   | Build container image from mcpfile | `genmcp build -f myapi.yaml --tag myapi:latest` |
+| `version` | Display version information        | `genmcp version`                                |
 
 ### Starting Your Server
 
@@ -222,16 +224,26 @@ genmcp stop
 genmcp stop -f /path/to/mcpfile.yaml
 ```
 
-## 💡 Authoring `mcpfile.yaml` with auto complete
+## 💡 Authoring GenMCP config files with auto complete
 
-To improve the development experience and prevent configuration errors, this project includes a **JSON schema** for the `mcpfile.yaml` format. This schema enables validation, autocompletion, and inline documentation in compatible code editors like Visual Studio Code, helping you write valid configuration files faster.
+To improve the development experience and prevent configuration errors, this project includes **JSON schemas** for both GenMCP config file formats. These schemas enable validation, autocompletion, and inline documentation in compatible code editors like Visual Studio Code, helping you write valid configuration files faster.
 
-To make use of the schema, add a `yaml-language-server` comment at the top of your `mcpfile.yaml`:
+To make use of the schemas, add a `yaml-language-server` comment at the top of your files:
 
+**MCP File:**
 ```yaml
 # yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/mcpfile-schema.json
-mcpFileVersion: 0.1.0
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
 name: ...
+```
+
+**Server Config File:**
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/genmcp/gen-mcp/refs/heads/main/specs/mcpserver-schema.json
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
+runtime: ...
 ```
 
 Intellij IDEs [support](https://www.jetbrains.com/help/idea/json.html#ws_json_schema_add_custom) JSON schema validation natively.
@@ -317,7 +329,9 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 ## 🔗 Links
 
 - **[Model Context Protocol](https://modelcontextprotocol.io/)** - Official MCP documentation
-- **[MCP File Format](./docs/mcp_file_format.md)** - gen-mcp configuration reference
+- **[MCP File Format](./docs/mcpfile.md)** - Tool definitions reference
+- **[Server Config](./docs/mcpserver.md)** - Server runtime configuration reference
+- **[Migration Guide](./MIGRATION.md)** - Migrate between GenMCP versions
 - **[Examples](./examples/)** - Real-world integration examples
 - **[gRPC Integration Demo](https://github.com/genmcp/grpc-demo/)** - Pattern for exposing gRPC services via HTTP proxy
 

@@ -1,6 +1,7 @@
 package test
 
 import (
+	"github.com/genmcp/gen-mcp/pkg/runtime"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -15,7 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
+	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -49,7 +51,7 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 		var (
 			backendServer       *httptest.Server
 			callbackServer      *httptest.Server
-			mcpConfig           *mcpfile.MCPFile
+			mcpConfig           *mcpserver.MCPServer
 			mcpServerCancelFunc context.CancelFunc
 		)
 
@@ -64,13 +66,7 @@ var _ = Describe("OAuth Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				mcpServer := &mcpfile.MCPServer{
-					Name:    mcpConfig.Name,
-					Version: mcpConfig.Version,
-					Runtime: mcpConfig.Runtime,
-					Tools:   mcpConfig.Tools,
-				}
-				err := mcpserver.RunServer(ctx, mcpServer)
+				err := runtime.DoRunServer(ctx, mcpConfig)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}
@@ -487,22 +483,14 @@ func createOAuthCallbackServer() *httptest.Server {
 	}))
 }
 
-func createTestMCPConfig(backendURL string, port int) *mcpfile.MCPFile {
+func createTestMCPConfig(backendURL string, port int) *mcpserver.MCPServer {
 	By("creating test MCP configuration")
 
-	mcpYAML := fmt.Sprintf(`
-mcpFileVersion: 0.1.0
+	toolDefsYAML := fmt.Sprintf(`
+kind: MCPToolDefinitions
+schemaVersion: 0.2.0
 name: test-oauth-server-full-flow
 version: "1.0"
-runtime:
-  streamableHttpConfig:
-    port: %d
-    basePath: "/mcp"
-    auth:
-      authorizationServers:
-        - %s/realms/%s
-      jwksUri: "%s/realms/%s/protocol/openid-connect/certs"
-  transportProtocol: streamablehttp
 tools:
   - name: get_status
     description: "Get server status"
@@ -539,21 +527,52 @@ tools:
     requiredScopes:
       - "read"
       - "user:read"
-`, port, keycloakBaseURL, masterRealm, keycloakBaseURL, masterRealm, backendURL, backendURL)
+`, backendURL, backendURL)
 
-	tmpfile, err := os.CreateTemp("", "mcp-oauth-*.yaml")
+	serverConfigYAML := fmt.Sprintf(`
+kind: MCPServerConfig
+schemaVersion: 0.2.0
+runtime:
+  streamableHttpConfig:
+    port: %d
+    basePath: "/mcp"
+    auth:
+      authorizationServers:
+        - %s/realms/%s
+      jwksUri: "%s/realms/%s/protocol/openid-connect/certs"
+  transportProtocol: streamablehttp
+`, port, keycloakBaseURL, masterRealm, keycloakBaseURL, masterRealm)
+
+	toolDefsFile, err := os.CreateTemp("", "mcp-oauth-tooldefs-*.yaml")
 	Expect(err).NotTo(HaveOccurred())
 	defer func() {
-		err := os.Remove(tmpfile.Name())
+		err := os.Remove(toolDefsFile.Name())
 		Expect(err).NotTo(HaveOccurred())
 	}()
 
-	_, err = tmpfile.WriteString(mcpYAML)
+	_, err = toolDefsFile.WriteString(toolDefsYAML)
 	Expect(err).NotTo(HaveOccurred())
-	err = tmpfile.Close()
+	_ = toolDefsFile.Close()
+
+	serverConfigFile, err := os.CreateTemp("", "mcp-oauth-serverconfig-*.yaml")
+	Expect(err).NotTo(HaveOccurred())
+	defer func() {
+		err := os.Remove(serverConfigFile.Name())
+		Expect(err).NotTo(HaveOccurred())
+	}()
+
+	_, err = serverConfigFile.WriteString(serverConfigYAML)
+	Expect(err).NotTo(HaveOccurred())
+	_ = serverConfigFile.Close()
+
+	toolDefs, err := definitions.ParseMCPFile(toolDefsFile.Name())
 	Expect(err).NotTo(HaveOccurred())
 
-	config, err := mcpfile.ParseMCPFile(tmpfile.Name())
+	serverConfig, err := serverconfig.ParseMCPFile(serverConfigFile.Name())
 	Expect(err).NotTo(HaveOccurred())
-	return config
+
+	return &mcpserver.MCPServer{
+		MCPToolDefinitions: toolDefs.MCPToolDefinitions,
+		MCPServerConfig:    serverConfig.MCPServerConfig,
+	}
 }

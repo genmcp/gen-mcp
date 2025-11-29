@@ -75,16 +75,15 @@ curl http://localhost:11434
 
 ### Step 2: Understanding the Configuration
 
-Here's the complete `ollama-http.yaml` configuration file that defines the MCP tools:
+GenMCP uses two separate files. Here's the complete configuration:
+
+**MCP File** (`ollama-http-mcpfile.yaml`):
 
 ```yaml
-mcpFileVersion: "0.1.0"
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
 name: ollama
 version: "1.0.0"
-runtime:
-  transportProtocol: streamablehttp
-  streamableHttpConfig:
-    port: 8009
 tools:
 - name: generate
   title: "Generate a response"
@@ -190,11 +189,22 @@ tools:
       url: http://localhost:11434/api/ps
 ```
 
+**Server Config File** (`ollama-http-mcpserver.yaml`):
+
+```yaml
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8009
+```
+
 ### Step 3: Configuration Breakdown
 
 Let's understand each section:
 
-#### Runtime Configuration
+#### Runtime Configuration (Server Config File)
 
 ```yaml
 runtime:
@@ -206,7 +216,7 @@ runtime:
 - `transportProtocol: streamablehttp`: Uses HTTP streaming protocol for real-time communication
 - `port: 8009`: The MCP server will listen on this port
 
-#### Tool Definition Structure
+#### Tool Definition Structure (MCP File)
 
 Each tool follows this pattern:
 
@@ -237,22 +247,23 @@ Each tool follows this pattern:
 
 ### Step 4: Run the MCP Server
 
-Start the gen-mcp server with your configuration:
+Start the gen-mcp server with both configuration files:
 
 ```bash
-genmcp run -f ollama-http.yaml
+genmcp run -f ollama-http-mcpfile.yaml -s ollama-http-mcpserver.yaml
 ```
 
 You should see:
 
 ```
-INFO    Starting MCP server on port 8009
-INFO    Loaded 5 tools from ollama-http.yaml
+INFO    runtime/server.go:138	Setting up streamable HTTP server	{"port": 8009, "base_path": "/mcp", "stateless": true}
+INFO    runtime/server.go:181	Starting MCP server on port 8009
+INFO    runtime/server.go:196	Starting HTTP server
 ```
 
 ### Step 5: Test Your Integration
 
-You can now connect an MCP client (like Claude Desktop or any MCP-compatible tool) to `http://localhost:8009` and use the Ollama tools.
+You can now connect an MCP client (like Claude Desktop or any MCP-compatible tool) to `http://localhost:8009/mcp` and use the Ollama tools.
 
 Example tool calls:
 
@@ -279,16 +290,15 @@ Example tool calls:
 
 The CLI approach is simpler but more limited. Here's the complete configuration:
 
-### CLI Configuration File
+### CLI Configuration Files
+
+**MCP File** (`ollama-cli-mcpfile.yaml`):
 
 ```yaml
-mcpFileVersion: 0.1.0
+kind: MCPToolDefinitions
+schemaVersion: "0.2.0"
 name: Ollama
 version: 0.0.1
-runtime:
-  streamableHttpConfig:
-    port: 7008
-  transportProtocol: streamablehttp
 tools:
 - name: start_ollama
   title: Start Ollama
@@ -338,37 +348,46 @@ tools:
     properties:
       model:
         type: string
-        description: The model to use
+        description: The name of the model to use
       prompt:
         type: string
-        description: The prompt to give the model
+        description: The prompt to generate a response for
+    required:
+      - model
+      - prompt
   invocation:
     cli:
-      command: 'ollama run {model} {prompt}'
-      templateVariables:
-        prompt:
-          format: '"{prompt}"'
+      command: ollama run {model} {prompt}
 ```
 
-### CLI Configuration Explained
-
-The key difference is the `invocation` type:
+**Server Config File** (`ollama-cli-mcpserver.yaml`):
 
 ```yaml
-invocation:
-  cli:
-    command: ollama pull {model}
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 7008
 ```
 
-- **command**: The shell command to execute
-- **{model}**: Template variable replaced with input parameter
-- **templateVariables**: Advanced formatting for parameters
-
-### Running the CLI Integration
+### Running the CLI-Based Server
 
 ```bash
-genmcp run -f ollama-cli.yaml
+genmcp run -f ollama-cli-mcpfile.yaml -s ollama-cli-mcpserver.yaml
 ```
+
+## Summary
+
+Both HTTP and CLI integrations require two files:
+- **MCP File**: Defines the tools (what capabilities are available)
+- **Server Config File**: Defines runtime configuration (how the server runs)
+
+For HTTP-based integrations, tools call Ollama's REST API. For CLI-based integrations, tools execute shell commands directly.
+
+## Next Steps
+
+- **Read the GenMCP Config File Format Guide**: Deep dive into [tool definitions]({{ '/mcpfile.html' | relative_url }}) and [server configuration]({{ '/mcpserver.html' | relative_url }})
 
 ## Understanding Input Schema Validation
 
@@ -473,7 +492,7 @@ ollama pull llama2
 ## Next Steps
 
 - **Explore HTTP Conversion**: Learn how to convert any REST API to MCP tools in the [HTTP Conversion Example]({{ '/example-http-conversion.html' | relative_url }})
-- **Read the MCP File Format Guide**: Deep dive into [configuration options]({{ '/mcp_file_format.html' | relative_url }})
+- **Read the GenMCP Config File Format Guide**: Deep dive into [tool definitions]({{ '/mcpfile.html' | relative_url }}) and [server configuration]({{ '/mcpserver.html' | relative_url }})
 - **Join the Community**: Get help on [Discord](https://discord.gg/AwP6GAUEQR)
 
 ## Resources

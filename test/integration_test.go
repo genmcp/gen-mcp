@@ -13,8 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/genmcp/gen-mcp/pkg/mcpfile"
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
+	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/mcpserver"
+	"github.com/genmcp/gen-mcp/pkg/runtime"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -27,7 +29,7 @@ var _ = Describe("Basic Integration", Ordered, func() {
 
 		var (
 			backendServer       *httptest.Server
-			mcpConfig           *mcpfile.MCPFile
+			mcpConfig           *mcpserver.MCPServer
 			mcpServerCancelFunc context.CancelFunc
 		)
 
@@ -41,16 +43,7 @@ var _ = Describe("Basic Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				mcpServer := &mcpfile.MCPServer{
-					Name:         mcpConfig.Name,
-					Version:      mcpConfig.Version,
-					Runtime:      mcpConfig.Runtime,
-					Instructions: mcpConfig.Instructions,
-					Tools:        mcpConfig.Tools,
-					Prompts:      mcpConfig.Prompts,
-					Resources:    mcpConfig.Resources,
-				}
-				err := mcpserver.RunServer(ctx, mcpServer)
+				err := runtime.DoRunServer(ctx, mcpConfig)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}
@@ -217,7 +210,7 @@ var _ = Describe("Basic Integration", Ordered, func() {
 		)
 
 		var (
-			mcpConfig           *mcpfile.MCPFile
+			mcpConfig           *mcpserver.MCPServer
 			mcpServerCancelFunc context.CancelFunc
 		)
 
@@ -230,15 +223,7 @@ var _ = Describe("Basic Integration", Ordered, func() {
 
 			go func() {
 				defer GinkgoRecover()
-				mcpServer := &mcpfile.MCPServer{
-					Name:      mcpConfig.Name,
-					Version:   mcpConfig.Version,
-					Runtime:   mcpConfig.Runtime,
-					Tools:     mcpConfig.Tools,
-					Prompts:   mcpConfig.Prompts,
-					Resources: mcpConfig.Resources,
-				}
-				err := mcpserver.RunServer(ctx, mcpServer)
+				err := runtime.DoRunServer(ctx, mcpConfig)
 				if err != nil && !strings.Contains(err.Error(), "Server closed") {
 					Fail(fmt.Sprintf("Failed to start MCP server: %v", err))
 				}
@@ -390,19 +375,15 @@ func createMockBackendServerIntegration() *httptest.Server {
 	}))
 }
 
-func createBasicTestMCPConfig(backendURL string, port int) *mcpfile.MCPFile {
+func createBasicTestMCPConfig(backendURL string, port int) *mcpserver.MCPServer {
 	By("creating basic test MCP configuration")
 
-	mcpYAML := fmt.Sprintf(`
-mcpFileVersion: 0.1.0
+	toolDefsYAML := fmt.Sprintf(`
+kind: MCPToolDefinitions
+schemaVersion: 0.2.0
 name: test-server
 version: "1.0"
 instructions: "This is a test HTTP server with tools, prompts, and resources for integration testing."
-runtime:
-  streamableHttpConfig:
-    port: %d
-    basePath: "/mcp"
-  transportProtocol: streamablehttp
 tools:
   - name: get_users
     title: Users Provider
@@ -443,42 +424,60 @@ resources:
       http:
         url: "%s/server/info"
         method: GET
-`, port, backendURL, backendURL, backendURL, backendURL)
+`, backendURL, backendURL, backendURL, backendURL)
 
-	tmpfile, err := os.CreateTemp("", "mcp-basic-*.yaml")
-	Expect(err).NotTo(HaveOccurred())
-	defer func() {
-		err := tmpfile.Close()
-		if err != nil {
-			fmt.Printf("closing temp mcp file failed, may cause issues with test: %s\n", err.Error())
-		}
-	}()
-
-	_, err = tmpfile.WriteString(mcpYAML)
-	Expect(err).NotTo(HaveOccurred())
-
-	config, err := mcpfile.ParseMCPFile(tmpfile.Name())
-	Expect(err).NotTo(HaveOccurred())
-
-	// Clean up the temporary config file immediately since ParseMCPFile has read it
-	err = os.Remove(tmpfile.Name())
-	Expect(err).NotTo(HaveOccurred())
-
-	return config
-}
-
-func createCLITestMCPConfig(port int) *mcpfile.MCPFile {
-	By("creating CLI test MCP configuration")
-
-	mcpYAML := fmt.Sprintf(`
-mcpFileVersion: 0.1.0
-name: test-cli-server
-version: "1.0"
+	serverConfigYAML := fmt.Sprintf(`
+kind: MCPServerConfig
+schemaVersion: 0.2.0
 runtime:
   streamableHttpConfig:
     port: %d
     basePath: "/mcp"
   transportProtocol: streamablehttp
+`, port)
+
+	toolDefsFile, err := os.CreateTemp("", "mcp-tooldefs-*.yaml")
+	Expect(err).NotTo(HaveOccurred())
+	defer func() {
+		err := os.Remove(toolDefsFile.Name())
+		Expect(err).NotTo(HaveOccurred())
+	}()
+
+	_, err = toolDefsFile.WriteString(toolDefsYAML)
+	Expect(err).NotTo(HaveOccurred())
+	_ = toolDefsFile.Close()
+
+	serverConfigFile, err := os.CreateTemp("", "mcp-serverconfig-*.yaml")
+	Expect(err).NotTo(HaveOccurred())
+	defer func() {
+		err := os.Remove(serverConfigFile.Name())
+		Expect(err).NotTo(HaveOccurred())
+	}()
+
+	_, err = serverConfigFile.WriteString(serverConfigYAML)
+	Expect(err).NotTo(HaveOccurred())
+	_ = serverConfigFile.Close()
+
+	toolDefs, err := definitions.ParseMCPFile(toolDefsFile.Name())
+	Expect(err).NotTo(HaveOccurred())
+
+	serverConfig, err := serverconfig.ParseMCPFile(serverConfigFile.Name())
+	Expect(err).NotTo(HaveOccurred())
+
+	return &mcpserver.MCPServer{
+		MCPToolDefinitions: toolDefs.MCPToolDefinitions,
+		MCPServerConfig:    serverConfig.MCPServerConfig,
+	}
+}
+
+func createCLITestMCPConfig(port int) *mcpserver.MCPServer {
+	By("creating CLI test MCP configuration")
+
+	toolDefsYAML := `
+kind: MCPToolDefinitions
+schemaVersion: 0.2.0
+name: test-cli-server
+version: "1.0"
 tools:
   - name: list_files
     title: List Files
@@ -516,26 +515,48 @@ resources:
     invocation:
       cli:
         command: "echo 'test-server-cli-server version 1.0 running'"
+`
+
+	serverConfigYAML := fmt.Sprintf(`
+kind: MCPServerConfig
+schemaVersion: 0.2.0
+runtime:
+  streamableHttpConfig:
+    port: %d
+    basePath: "/mcp"
+  transportProtocol: streamablehttp
 `, port)
 
-	tmpfile, err := os.CreateTemp("", "mcp-cli-*.yaml")
+	toolDefsFile, err := os.CreateTemp("", "mcp-cli-tooldefs-*.yaml")
 	Expect(err).NotTo(HaveOccurred())
 	defer func() {
-		err := tmpfile.Close()
-		if err != nil {
-			fmt.Printf("closing temp mcp file failed, may cause issues with test: %s\n", err.Error())
-		}
+		err := os.Remove(toolDefsFile.Name())
+		Expect(err).NotTo(HaveOccurred())
 	}()
 
-	_, err = tmpfile.WriteString(mcpYAML)
+	_, err = toolDefsFile.WriteString(toolDefsYAML)
+	Expect(err).NotTo(HaveOccurred())
+	_ = toolDefsFile.Close()
+
+	serverConfigFile, err := os.CreateTemp("", "mcp-cli-serverconfig-*.yaml")
+	Expect(err).NotTo(HaveOccurred())
+	defer func() {
+		err := os.Remove(serverConfigFile.Name())
+		Expect(err).NotTo(HaveOccurred())
+	}()
+
+	_, err = serverConfigFile.WriteString(serverConfigYAML)
+	Expect(err).NotTo(HaveOccurred())
+	_ = serverConfigFile.Close()
+
+	toolDefs, err := definitions.ParseMCPFile(toolDefsFile.Name())
 	Expect(err).NotTo(HaveOccurred())
 
-	config, err := mcpfile.ParseMCPFile(tmpfile.Name())
+	serverConfig, err := serverconfig.ParseMCPFile(serverConfigFile.Name())
 	Expect(err).NotTo(HaveOccurred())
 
-	// Clean up the temporary config file immediately since ParseMCPFile has read it
-	err = os.Remove(tmpfile.Name())
-	Expect(err).NotTo(HaveOccurred())
-
-	return config
+	return &mcpserver.MCPServer{
+		MCPToolDefinitions: toolDefs.MCPToolDefinitions,
+		MCPServerConfig:    serverConfig.MCPServerConfig,
+	}
 }

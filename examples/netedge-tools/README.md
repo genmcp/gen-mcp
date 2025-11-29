@@ -14,5 +14,6 @@ Docs
 
 Key files
 - `mcpfile.yaml` — curated MCP tool definitions used by these examples.
+- `mcpserver.yaml` — server configuration for runtime settings (transport protocol, logging, etc.).
 
 Update the canonical notes if you need to expand or refine the documentation.
