@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **BREAKING**: Migrated from single-file format (schema version 0.1.0) to two-file format (schema version 0.2.0). The `mcpfile.yaml` now contains only tool definitions (`MCPToolDefinitions`), while server runtime configuration has been moved to a separate `mcpserver.yaml` file (`MCPServerConfig`). The `mcpFileVersion` field has been renamed to `schemaVersion`, and both files now require a `kind` field. Users must migrate existing configurations - see `MIGRATION.md` for step-by-step instructions. (#213)
-## [Unreleased] – PR #151
+
+## [Unreleased] – PR #217
 
 ### Added
 - Binary download and caching system for `genmcp build` command - server binaries are now downloaded from GitHub releases instead of being embedded in the CLI (#151)

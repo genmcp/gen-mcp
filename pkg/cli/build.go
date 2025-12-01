@@ -59,7 +59,6 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	b := builder.New(push)
 	// Determine which server version to use
 	version := serverVersion
 	if version == "" {
