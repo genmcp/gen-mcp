@@ -23,6 +23,7 @@ func init() {
 	buildCmd.Flags().StringVar(&imageTag, "tag", "", "image tag for the registry")
 	buildCmd.Flags().BoolVar(&push, "push", false, "push the image to the registry (if false, store locally)")
 	buildCmd.Flags().StringVar(&serverVersion, "server-version", "", "server binary version to download (default: latest release, or match CLI version if set)")
+	buildCmd.Flags().BoolVarP(&verbose, "verbose", "v", true, "show download progress")
 }
 
 var buildCmd = &cobra.Command{
@@ -39,6 +40,7 @@ var (
 	imageTag               string
 	push                   bool
 	serverVersion          string
+	verbose                bool
 )
 
 func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
@@ -76,7 +78,7 @@ func executeBuildCmd(cobraCmd *cobra.Command, args []string) {
 	}
 
 	// Create builder
-	b, err := builder.New(push, version)
+	b, err := builder.New(push, version, verbose)
 	if err != nil {
 		fmt.Printf("Failed to setup binary downloader: %s\n", err.Error())
 		os.Exit(1)

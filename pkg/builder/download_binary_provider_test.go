@@ -25,7 +25,7 @@ func TestNewDownloadBinaryProvider(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			provider, err := NewDownloadBinaryProvider(tc.version)
+			provider, err := NewDownloadBinaryProvider(tc.version, false) // Disable verbose in tests
 			if err != nil {
 				// Check if error is due to missing network access (Sigstore TUF fetch)
 				if strings.Contains(err.Error(), "fetch trusted root") ||

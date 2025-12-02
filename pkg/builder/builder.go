@@ -211,7 +211,7 @@ type ImageBuilder struct {
 }
 
 // New creates a new ImageBuilder that downloads binaries from GitHub releases
-func New(saveToRegistry bool, version string) (*ImageBuilder, error) {
+func New(saveToRegistry bool, version string, verbose bool) (*ImageBuilder, error) {
 	var saver ImageSaver
 	if saveToRegistry {
 		saver = &RegistryImageSaver{}
@@ -219,7 +219,7 @@ func New(saveToRegistry bool, version string) (*ImageBuilder, error) {
 		saver = &DaemonImageSaver{}
 	}
 
-	binaryProvider, err := NewDownloadBinaryProvider(version)
+	binaryProvider, err := NewDownloadBinaryProvider(version, verbose)
 	if err != nil {
 		return nil, err
 	}

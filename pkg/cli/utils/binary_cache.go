@@ -16,8 +16,8 @@ import (
 type BinaryCacheEntry struct {
 	Version      string `json:"version"`
 	Platform     string `json:"platform"`      // e.g., "linux-amd64"
-	Path         string `json:"path"`          // absolute path to binary
-	SHA256       string `json:"sha256"`        // checksum of binary
+	ZipPath      string `json:"zip_path"`      // absolute path to verified zip file
+	SHA256       string `json:"sha256"`        // checksum of zip file
 	DownloadedAt string `json:"downloaded_at"` // timestamp
 }
 
@@ -67,22 +67,22 @@ func (bc *BinaryCache) Get(version, platform string) (string, bool) {
 		return "", false
 	}
 
-	if _, err := os.Stat(entry.Path); err != nil {
+	if _, err := os.Stat(entry.ZipPath); err != nil {
 		delete(bc.entries, key)
 		_ = bc.saveIndex()
 		return "", false
 	}
 
-	if err := bc.verifyChecksum(entry.Path, entry.SHA256); err != nil {
+	if err := bc.verifyChecksum(entry.ZipPath, entry.SHA256); err != nil {
 		delete(bc.entries, key)
 		_ = bc.saveIndex()
 		return "", false
 	}
 
-	return entry.Path, true
+	return entry.ZipPath, true
 }
 
-// Add adds a binary to the cache
+// Add adds a binary zip file to the cache
 func (bc *BinaryCache) Add(version, platform, sourcePath string) (string, error) {
 	key := fmt.Sprintf("%s-%s", version, platform)
 
@@ -98,13 +98,13 @@ func (bc *BinaryCache) Add(version, platform, sourcePath string) (string, error)
 	destPath := filepath.Join(bc.cacheDir, filename)
 
 	if err := bc.copyFile(sourcePath, destPath); err != nil {
-		return "", fmt.Errorf("failed to copy binary to cache: %w", err)
+		return "", fmt.Errorf("failed to copy zip to cache: %w", err)
 	}
 
 	entry := BinaryCacheEntry{
 		Version:      version,
 		Platform:     platform,
-		Path:         destPath,
+		ZipPath:      destPath,
 		SHA256:       checksum,
 		DownloadedAt: time.Now().Format(time.RFC3339),
 	}
@@ -221,7 +221,7 @@ func (bc *BinaryCache) GetLatestCached(platform string) (string, string) {
 	}
 
 	if latestEntry != nil {
-		return latestEntry.Version, latestEntry.Path
+		return latestEntry.Version, latestEntry.ZipPath
 	}
 
 	return "", ""
@@ -245,7 +245,7 @@ func (bc *BinaryCache) Clean(keepVersions int) error {
 		// Remove old entries
 		for i := keepVersions; i < len(entries); i++ {
 			key := fmt.Sprintf("%s-%s", entries[i].Version, platform)
-			if err := os.Remove(entries[i].Path); err != nil && !os.IsNotExist(err) {
+			if err := os.Remove(entries[i].ZipPath); err != nil && !os.IsNotExist(err) {
 				return err
 			}
 			delete(bc.entries, key)

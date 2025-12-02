@@ -16,8 +16,8 @@ type DownloadBinaryProvider struct {
 }
 
 // NewDownloadBinaryProvider creates a new provider that downloads binaries
-func NewDownloadBinaryProvider(version string) (*DownloadBinaryProvider, error) {
-	downloader, err := utils.NewBinaryDownloader()
+func NewDownloadBinaryProvider(version string, verbose bool) (*DownloadBinaryProvider, error) {
+	downloader, err := utils.NewBinaryDownloader(verbose)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create binary downloader: %w", err)
 	}

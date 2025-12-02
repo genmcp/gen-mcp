@@ -23,10 +23,11 @@ type BinaryDownloader struct {
 	cache    *BinaryCache
 	client   *http.Client
 	verifier *SigstoreVerifier
+	verbose  bool // Enable progress output
 }
 
 // NewBinaryDownloader creates a new binary downloader
-func NewBinaryDownloader() (*BinaryDownloader, error) {
+func NewBinaryDownloader(verbose bool) (*BinaryDownloader, error) {
 	cache, err := NewBinaryCache()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create binary cache: %w", err)
@@ -38,12 +39,20 @@ func NewBinaryDownloader() (*BinaryDownloader, error) {
 	}
 
 	return &BinaryDownloader{
-		cache: cache,
+		cache:    cache,
 		client: &http.Client{
 			Timeout: 5 * time.Minute, // timeout for binary downloads
 		},
 		verifier: verifier,
+		verbose:  verbose,
 	}, nil
+}
+
+// printf outputs formatted message if verbose mode is enabled
+func (bd *BinaryDownloader) printf(format string, args ...interface{}) {
+	if bd.verbose {
+		fmt.Printf(format, args...)
+	}
 }
 
 // GetBinary retrieves a server binary for the specified version and platform
@@ -55,44 +64,99 @@ func (bd *BinaryDownloader) GetBinary(version, goos, goarch string) (string, err
 			return "", fmt.Errorf("failed to fetch latest version: %w", err)
 		}
 		version = actualVersion
+		bd.printf("Resolved latest version: %s\n", version)
 	}
 
 	platform := fmt.Sprintf("%s-%s", goos, goarch)
 
-	if cachedPath, found := bd.cache.Get(version, platform); found {
-		return cachedPath, nil
+	// Try to get requested version from cache first
+	cachedZipPath, foundInCache := bd.cache.Get(version, platform)
+	if foundInCache {
+		bd.printf("Using cached binary: %s (%s)\n", version, platform)
+		binaryPath, err := bd.verifyAndExtractZip(cachedZipPath, version, goos, goarch)
+		if err == nil {
+			return binaryPath, nil
+		}
+		fmt.Printf("Warning: Cached binary verification failed: %v\n", err)
+		fmt.Printf("Re-downloading %s...\n", version)
 	}
 
-	binaryPath, err := bd.downloadAndVerify(version, goos, goarch)
+	// Download and verify the requested version
+	bd.printf("Downloading binary: %s (%s)\n", version, platform)
+	zipPath, err := bd.downloadAndVerify(version, goos, goarch)
 	if err != nil {
-		// Download failed, try to use cached version as fallback
-		if cachedVersion, cachedPath := bd.cache.GetLatestCached(platform); cachedVersion != "" {
-			fmt.Printf("Warning: Failed to download %s: %v\n", version, err)
-			fmt.Printf("Using cached version %s as fallback\n", cachedVersion)
-			return cachedPath, nil
-		}
+
 		return "", fmt.Errorf("failed to download and no cached version available: %w", err)
 	}
 
-	// Extract temp directory from binary path for cleanup
-	// Binary is extracted to: /tmp/genmcp-download-xxx/genmcp-server-linux-amd64
-	tempDir := filepath.Dir(binaryPath)
+	tempDir := filepath.Dir(zipPath)
 	defer func() { _ = os.RemoveAll(tempDir) }() // Clean up after caching
 
 	if err := bd.CleanOldBinaries(CacheKeepVersionsCount); err != nil {
 		fmt.Printf("Warning: Failed to clean old binaries: %v\n", err)
 	}
 
-	cachedPath, err := bd.cache.Add(version, platform, binaryPath)
+	cachedZipPath, err = bd.cache.Add(version, platform, zipPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to cache binary: %w", err)
 	}
 
-	return cachedPath, nil
+	// Extract binary from cached zip
+	binaryPath, err := bd.verifyAndExtractZip(cachedZipPath, version, goos, goarch)
+	if err != nil {
+		return "", fmt.Errorf("failed to extract cached binary: %w", err)
+	}
+
+	return binaryPath, nil
 }
 
-// downloadAndVerify downloads a binary and verifies it with cosign
-// Returns the path to the extracted binary. Caller is responsible for cleanup.
+// verifyAndExtractZip verifies a zip file with Sigstore and extracts the binary
+// Returns the path to the extracted binary in a temp directory. Caller is responsible for cleanup.
+func (bd *BinaryDownloader) verifyAndExtractZip(zipPath, version, goos, goarch string) (string, error) {
+	if err := bd.verifyZipWithBundle(zipPath, version, goos, goarch); err != nil {
+		return "", err
+	}
+
+	extractDir, err := os.MkdirTemp("", "genmcp-extract-*")
+	if err != nil {
+		return "", fmt.Errorf("failed to create extract dir: %w", err)
+	}
+
+	binaryPath, err := bd.extractBinary(zipPath, extractDir, goos, goarch)
+	if err != nil {
+		_ = os.RemoveAll(extractDir)
+		return "", fmt.Errorf("failed to extract binary: %w", err)
+	}
+
+	return binaryPath, nil
+}
+
+// verifyZipWithBundle downloads a fresh bundle and verifies a zip file with Sigstore
+func (bd *BinaryDownloader) verifyZipWithBundle(zipPath, version, goos, goarch string) error {
+	tempDir, err := os.MkdirTemp("", "genmcp-verify-*")
+	if err != nil {
+		return fmt.Errorf("failed to create temp dir: %w", err)
+	}
+	defer func() { _ = os.RemoveAll(tempDir) }()
+
+	platform := fmt.Sprintf("%s-%s", goos, goarch)
+	zipFilename := fmt.Sprintf("genmcp-server-%s.zip", platform)
+	bundlePath := filepath.Join(tempDir, zipFilename+".bundle")
+
+	if err := bd.downloadFile(version, zipFilename+".bundle", bundlePath); err != nil {
+		return fmt.Errorf("failed to download bundle: %w", err)
+	}
+
+	bd.printf("  Verifying with Sigstore...\n")
+	if err := bd.verifier.VerifyBlob(zipPath, bundlePath); err != nil {
+		return fmt.Errorf("sigstore verification failed: %w", err)
+	}
+
+	return nil
+}
+
+// downloadAndVerify downloads a binary and verifies it with Sigstore
+// Returns the path to the verified zip file in temp directory.
 func (bd *BinaryDownloader) downloadAndVerify(version, goos, goarch string) (string, error) {
 	tempDir, err := os.MkdirTemp("", "genmcp-download-*")
 	if err != nil {
@@ -107,26 +171,18 @@ func (bd *BinaryDownloader) downloadAndVerify(version, goos, goarch string) (str
 		return "", fmt.Errorf("failed to download binary: %w", err)
 	}
 
-	bundlePath := filepath.Join(tempDir, zipFilename+".bundle")
-	if err := bd.downloadFile(version, zipFilename+".bundle", bundlePath); err != nil {
-		return "", fmt.Errorf("failed to download bundle: %w", err)
+	if err := bd.verifyZipWithBundle(zipPath, version, goos, goarch); err != nil {
+		return "", err
 	}
 
-	if err := bd.verifier.VerifyBlob(zipPath, bundlePath); err != nil {
-		return "", fmt.Errorf("sigstore verification failed: %w", err)
-	}
-
-	binaryPath, err := bd.extractBinary(zipPath, tempDir, goos, goarch)
-	if err != nil {
-		return "", fmt.Errorf("failed to extract binary: %w", err)
-	}
-
-	return binaryPath, nil
+	return zipPath, nil
 }
 
 // downloadFile downloads a file from GitHub releases
 func (bd *BinaryDownloader) downloadFile(version, filename, destPath string) error {
 	url := fmt.Sprintf("%s/%s/%s", GitHubReleasesURL, version, filename)
+
+	bd.printf("  Downloading: %s\n", filename)
 
 	resp, err := bd.client.Get(url)
 	if err != nil {
@@ -153,6 +209,8 @@ func (bd *BinaryDownloader) downloadFile(version, filename, destPath string) err
 
 // extractBinary extracts the binary from a ZIP file
 func (bd *BinaryDownloader) extractBinary(zipPath, destDir, goos, goarch string) (string, error) {
+	bd.printf("  Extracting binary...\n")
+
 	r, err := zip.OpenReader(zipPath)
 	if err != nil {
 		return "", err
