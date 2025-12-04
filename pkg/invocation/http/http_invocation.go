@@ -38,7 +38,6 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 	logger.Debug("Starting HTTP tool invocation")
 
 	hasBody := hi.Method != nethttp.MethodGet && hi.Method != nethttp.MethodDelete && hi.Method != nethttp.MethodHead
-	buildQuery := !hasBody && len(hi.ParsedTemplate.Variables) > 0
 
 	// Extract incoming headers from request
 	var incomingHeaders nethttp.Header
@@ -46,7 +45,7 @@ func (hi *HttpInvoker) Invoke(ctx context.Context, req *mcp.CallToolRequest) (*m
 		incomingHeaders = req.Extra.Header
 	}
 
-	url, headers, parsed, err := hi.buildRequestComponents(ctx, req.Params.Arguments, buildQuery, incomingHeaders)
+	url, headers, parsed, err := hi.buildRequestComponents(ctx, req.Params.Arguments, !hasBody, incomingHeaders)
 	if err != nil {
 		return nil, err
 	}
