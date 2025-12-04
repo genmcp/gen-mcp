@@ -93,7 +93,6 @@ func (hi *HttpInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReque
 	logger.Debug("Starting HTTP prompt invocation")
 
 	hasBody := hi.Method != nethttp.MethodGet && hi.Method != nethttp.MethodDelete && hi.Method != nethttp.MethodHead
-	buildQuery := !hasBody && len(hi.ParsedTemplate.Variables) > 0
 
 	args := req.Params.Arguments
 	if args == nil {
@@ -112,7 +111,7 @@ func (hi *HttpInvoker) InvokePrompt(ctx context.Context, req *mcp.GetPromptReque
 		incomingHeaders = req.Extra.Header
 	}
 
-	url, headers, parsed, err := hi.buildRequestComponents(ctx, argsBytes, buildQuery, incomingHeaders)
+	url, headers, parsed, err := hi.buildRequestComponents(ctx, argsBytes, !hasBody, incomingHeaders)
 	if err != nil {
 		return nil, err
 	}
