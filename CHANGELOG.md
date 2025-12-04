@@ -17,6 +17,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **BREAKING**: Migrated from single-file format (schema version 0.1.0) to two-file format (schema version 0.2.0). The `mcpfile.yaml` now contains only tool definitions (`MCPToolDefinitions`), while server runtime configuration has been moved to a separate `mcpserver.yaml` file (`MCPServerConfig`). The `mcpFileVersion` field has been renamed to `schemaVersion`, and both files now require a `kind` field. Users must migrate existing configurations - see `MIGRATION.md` for step-by-step instructions. (#213)
 
+## [Unreleased] – PR #217
+
+### Added
+- Binary download and caching system for `genmcp build` command - server binaries are now downloaded from GitHub releases instead of being embedded in the CLI (#151)
+- Sigstore-based cryptographic verification of downloaded binaries for security (built into CLI, no external dependencies) (#151)
+- Version-platform cache management to store and reuse downloaded binaries across builds (#151)
+- `--server-version` flag to specify which server binary version to download (#151)
+- Automatic "latest" resolution for development builds - dev CLI versions automatically download the latest stable server binaries (#151)
+- Automatic fallback to cached version if download fails - works offline with previously cached binaries (#151)
+- Automatic cache cleanup - keeps last 3 versions per platform to prevent unbounded cache growth (#151)
+
+### Changed
+- `genmcp build` now downloads server binaries from GitHub releases, significantly reducing CLI binary size (#151)
+- Server binaries are cached locally (in user cache directory) and reused across builds (#151)
+
+### Removed
+- Embedded server binaries from CLI - binaries are now downloaded on-demand, reducing the CLI size from ~100MB to ~78MB (#151)
+- `--use-embedded-binaries` flag (no longer needed as embedded binaries have been removed) (#151)
+
 ## [v0.1.1]
 
 ### Added

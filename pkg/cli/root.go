@@ -59,3 +59,8 @@ func getDevVersion() devVersion {
 
 	return dv
 }
+
+// GetVersion returns the current CLI version
+func GetVersion() string {
+	return cliVersion
+}

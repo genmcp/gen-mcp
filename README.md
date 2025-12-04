@@ -152,6 +152,27 @@ genmcp convert https://petstore.swagger.io/v2/swagger.json
 
 The `build` command packages your MCP server and mcpfile into a container image. By default, it builds multi-architecture images for broader platform support.
 
+**Binary Downloads:** The build process automatically downloads the required server binaries from GitHub releases and caches them locally for reuse. Downloaded binaries are cryptographically verified using Sigstore to ensure authenticity and integrity.
+
+**Version Matching:**
+- **Release builds**: Download server binaries matching the CLI version (e.g., `v0.1.0` downloads `v0.1.0` server)
+- **Development builds**: Automatically use latest release server binaries
+- **Custom version**: Use `--server-version` flag to specify a specific server version
+
+**Requirements:**
+- Network access to download binaries from GitHub releases and query GitHub API
+- No external dependencies required (verification is built into the CLI)
+
+**Offline Support:**
+- If download fails, automatically uses the latest cached version for that platform
+- Warns when using cached fallback version
+- Works completely offline once binaries are cached
+
+**Cache Management:**
+- Automatically keeps the last 3 versions per platform
+- Older versions are cleaned up when downloading new binaries
+- Manual cleanup: remove `~/.cache/genmcp/binaries/` (Linux), `~/Library/Caches/.genmcp/binaries/` (macOS), or `%LOCALAPPDATA%\.genmcp\binaries\` (Windows)
+
 #### Multi-Architecture Build (Default)
 
 When no `--platform` is specified, builds for both `linux/amd64` and `linux/arm64`:
@@ -186,13 +207,24 @@ genmcp build --tag myapp:latest \
 # Specify mcpfile location
 genmcp build --tag myapp:latest -f path/to/mcpfile.yaml
 
+# Use specific server version
+genmcp build --tag myapp:latest --server-version v0.1.0
+
 # Full example with all options
 genmcp build \
   --tag myregistry.io/myapp:v1.0.0 \
   --file ./custom-mcpfile.yaml \
   --platform linux/amd64 \
+  --server-version v0.1.1 \
   --push
 ```
+
+**Binary Cache Location:** Downloaded binaries are cached in your user cache directory and reused across builds:
+- **Linux**: `~/.cache/genmcp/binaries/`
+- **macOS**: `~/Library/Caches/.genmcp/binaries/`
+- **Windows**: `%LOCALAPPDATA%\.genmcp\binaries\`
+
+The cache stores version-platform pairs and validates checksums on each use.
 
 **Note:** When building multi-arch locally, Docker daemon doesn't support manifest lists, so each platform is saved with a platform-specific tag (e.g., `myapp:latest-linux-amd64`). Additionally, the original tag (`myapp:latest`) is saved with your host platform's image if available, otherwise the first built platform. When pushing to a registry with `--push`, a proper multi-arch manifest list is created.
 
