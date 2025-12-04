@@ -69,17 +69,17 @@ jobs:
         if: env.SKIP_NIGHTLY != 'true'
         run: |
           # Extract the Unreleased section from CHANGELOG.md
-          CHANGELOG_CONTENT=$(sed -n '/## \[Unreleased\]/,/## \[/p' CHANGELOG.md | sed '$d' | tail -n +2 | awk '/^### /{section=$0; items=""; next} /^( *)?- /{items=items $0 "\n"; next} /^$/ && items{print section "\n" items; items=""}' | sed '/^$/d')
-          
+          CHANGELOG_CONTENT=$(make extract-changelog VERSION="Unreleased")
+
           # If changelog content is empty, provide a default message
           if [ -z "$CHANGELOG_CONTENT" ]; then
             CHANGELOG_CONTENT="See CHANGELOG.md for details."
           fi
-          
+
           # Save to environment variable, handling multiline content
           {
             echo 'CHANGELOG_BODY<<EOF'
-            echo "$CHANGELOG_CONTENT"
+            printf '%s\n' "$CHANGELOG_CONTENT"
             echo 'EOF'
           } >> "$GITHUB_ENV"
 
@@ -107,14 +107,18 @@ jobs:
           VERSION="${{ env.NIGHTLY_VERSION }}"
           CURRENT_DATE=$(date -u +%Y-%m-%d)
           SHORT_COMMIT=$(git rev-parse --short HEAD)
-          
+
+          # Write changelog to a temp file to avoid backtick interpretation
+          printf '%s\n' "$CHANGELOG_BODY" > /tmp/release-notes.md
+
           echo "Creating nightly release: $VERSION"
           gh release create "$VERSION" \
             --title "Nightly Release ($CURRENT_DATE - $SHORT_COMMIT)" \
-            --notes "${{ env.CHANGELOG_BODY }}" \
+            --notes-file /tmp/release-notes.md \
             --prerelease
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHANGELOG_BODY: ${{ env.CHANGELOG_BODY }}
 
   build-and-upload:
     needs: check-and-create-nightly

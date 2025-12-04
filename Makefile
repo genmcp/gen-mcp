@@ -78,3 +78,40 @@ build-server-platform:
 
 .PHONY: build
 build: build-server-binaries build-cli
+
+# Extract changelog section for a given version
+# Usage: make extract-changelog VERSION=v0.2.0
+# For unreleased: make extract-changelog VERSION=Unreleased
+.PHONY: extract-changelog
+extract-changelog:
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Error: VERSION must be set"; \
+		echo "Usage: make extract-changelog VERSION=v0.2.0"; \
+		echo "       make extract-changelog VERSION=Unreleased"; \
+		exit 1; \
+	fi
+	@sed -n '/## \[$(VERSION)\]/,/## \[/p' CHANGELOG.md | \
+		sed '$$d' | \
+		tail -n +2 | \
+		awk '/^### /{section=$$0; items=""; next} /^( *)?- /{items=items $$0 "\n"; next} /^$$/ && items{print section "\n" items; items=""}' | \
+		sed '/^$$/d'
+
+# Determine the next release version for a given base version (x.y)
+# Finds the latest release tag (excluding prereleases) and increments z
+# Usage: make next-release-version BASE_VERSION=v0.2
+# Output: prints the next version (e.g., v0.2.0 or v0.2.1)
+.PHONY: next-release-version
+next-release-version:
+	@if [ -z "$(BASE_VERSION)" ]; then \
+		echo "Error: BASE_VERSION must be set" >&2; \
+		echo "Usage: make next-release-version BASE_VERSION=v0.2" >&2; \
+		exit 1; \
+	fi; \
+	LATEST_RELEASE=$$(git tag -l "$(BASE_VERSION).*" --sort=-version:refname | grep -v '\-' | head -n1); \
+	if [ -z "$$LATEST_RELEASE" ]; then \
+		echo "$(BASE_VERSION).0"; \
+	else \
+		LATEST_Z=$$(echo "$$LATEST_RELEASE" | sed "s/$(BASE_VERSION)\.//"); \
+		Z_VERSION=$$((LATEST_Z + 1)); \
+		echo "$(BASE_VERSION).$$Z_VERSION"; \
+	fi
