@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.2.0]
+
 ### Added
 - Introduced the NETEDGE MCP manifest with the ingress and DNS diagnostic toolset used for evaluation (`examples/netedge-tools/mcpfile.yaml`). (#162)
 - Added supporting documentation and agent transcripts for the scenarios, including a pointer to the canonical evaluation notes in `github.com/genmcp/gevals` (`examples/netedge-tools/docs`). (#162)
