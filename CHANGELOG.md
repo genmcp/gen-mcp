@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] – PR #162
+## [Unreleased]
 
 ### Added
 - Introduced the NETEDGE MCP manifest with the ingress and DNS diagnostic toolset used for evaluation (`examples/netedge-tools/mcpfile.yaml`). (#162)
@@ -13,13 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documented the NETEDGE Phase-0 gen-mcp tooling notes (`examples/netedge-tools/docs/NETEDGE-GEN-MCP-NOTES.md`). (#162)
 - Added a focused unit test for the Prometheus query tool to ensure `.svc` URLs fall back to the routed endpoint (`test/query_prometheus_tool_test.go`). (#162)
 - Updated `.gitignore` to drop generated evaluation artifacts from version control. (#162)
-
-### Changed
-- **BREAKING**: Migrated from single-file format (schema version 0.1.0) to two-file format (schema version 0.2.0). The `mcpfile.yaml` now contains only tool definitions (`MCPToolDefinitions`), while server runtime configuration has been moved to a separate `mcpserver.yaml` file (`MCPServerConfig`). The `mcpFileVersion` field has been renamed to `schemaVersion`, and both files now require a `kind` field. Users must migrate existing configurations - see `MIGRATION.md` for step-by-step instructions. (#213)
-
-## [Unreleased] – PR #217
-
-### Added
 - Binary download and caching system for `genmcp build` command - server binaries are now downloaded from GitHub releases instead of being embedded in the CLI (#151)
 - Sigstore-based cryptographic verification of downloaded binaries for security (built into CLI, no external dependencies) (#151)
 - Version-platform cache management to store and reuse downloaded binaries across builds (#151)
@@ -29,8 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic cache cleanup - keeps last 3 versions per platform to prevent unbounded cache growth (#151)
 
 ### Changed
+- **BREAKING**: Migrated from single-file format (schema version 0.1.0) to two-file format (schema version 0.2.0). The `mcpfile.yaml` now contains only tool definitions (`MCPToolDefinitions`), while server runtime configuration has been moved to a separate `mcpserver.yaml` file (`MCPServerConfig`). The `mcpFileVersion` field has been renamed to `schemaVersion`, and both files now require a `kind` field. Users must migrate existing configurations - see `MIGRATION.md` for step-by-step instructions. (#213)
 - `genmcp build` now downloads server binaries from GitHub releases, significantly reducing CLI binary size (#151)
 - Server binaries are cached locally (in user cache directory) and reused across builds (#151)
+
+### Fixed
+- Http invocations which should set query params work now with urls that have no template variables. (#222)
 
 ### Removed
 - Embedded server binaries from CLI - binaries are now downloaded on-demand, reducing the CLI size from ~100MB to ~78MB (#151)

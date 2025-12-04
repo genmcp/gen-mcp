@@ -291,6 +291,32 @@ func TestHttpInvocation(t *testing.T) {
 			expectedQuery:     make(neturl.Values),
 			expectedPath:      "/users/alice",
 		},
+		{
+			name:         "GET request with query params and no template variables",
+			responseCode: 200,
+			responseBody: func() []byte { return []byte("search results") },
+			urlTemplate:  "/search",
+			schema:       resolvedWithPath,
+			method:       "GET",
+			request: &mcp.CallToolRequest{
+				Params: &mcp.CallToolParamsRaw{
+					Arguments: []byte(`{"limit": 10, "search": "test query"}`),
+				},
+			},
+			expectedResult: &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "search results",
+					},
+				},
+			},
+			expectedReqMethod: "GET",
+			expectedQuery: map[string][]string{
+				"limit":  {"10"},
+				"search": {"test query"},
+			},
+			expectedPath: "/search",
+		},
 	}
 
 	for _, tc := range tt {
