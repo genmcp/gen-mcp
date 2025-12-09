@@ -32,7 +32,7 @@ jobs:
           VERSION=$(make next-release-version BASE_VERSION="${BASE_VERSION}")
 
           # Check if there are new commits since the latest release tag
-          LATEST_RELEASE=$(git tag -l "${BASE_VERSION}.*" --sort=-version:refname | grep -v '\-' | head -n1)
+          LATEST_RELEASE=$(make latest-release-tag BASE_VERSION="${BASE_VERSION}")
           if [ -n "$LATEST_RELEASE" ]; then
             COMMITS_SINCE_RELEASE=$(git rev-list ${LATEST_RELEASE}..HEAD --count)
 

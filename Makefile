@@ -93,8 +93,20 @@ extract-changelog:
 	@sed -n '/## \[$(VERSION)\]/,/## \[/p' CHANGELOG.md | \
 		sed '$$d' | \
 		tail -n +2 | \
-		awk '/^### /{section=$$0; items=""; next} /^( *)?- /{items=items $$0 "\n"; next} /^$$/ && items{print section "\n" items; items=""}' | \
+		awk '/^### /{section=$$0; items=""; next} /^( *)?- /{items=items $$0 "\n"; next} /^$$/ && items{print section "\n" items; items=""} END {if (section && items) print section "\n" items}' | \
 		sed '/^$$/d'
+
+# Get the latest non-prerelease tag for a given base version (x.y)
+# Usage: make latest-release-tag BASE_VERSION=v0.2
+# Output: prints the latest release tag (e.g., v0.2.1) or empty if none exists
+.PHONY: latest-release-tag
+latest-release-tag:
+	@if [ -z "$(BASE_VERSION)" ]; then \
+		echo "Error: BASE_VERSION must be set" >&2; \
+		echo "Usage: make latest-release-tag BASE_VERSION=v0.2" >&2; \
+		exit 1; \
+	fi; \
+	git tag -l "$(BASE_VERSION).*" --sort=-version:refname | grep -v '\-prerelease' | head -n1
 
 # Determine the next release version for a given base version (x.y)
 # Finds the latest release tag (excluding prereleases) and increments z
@@ -107,7 +119,7 @@ next-release-version:
 		echo "Usage: make next-release-version BASE_VERSION=v0.2" >&2; \
 		exit 1; \
 	fi; \
-	LATEST_RELEASE=$$(git tag -l "$(BASE_VERSION).*" --sort=-version:refname | grep -v '\-' | head -n1); \
+	LATEST_RELEASE=$$($(MAKE) -s latest-release-tag BASE_VERSION="$(BASE_VERSION)"); \
 	if [ -z "$$LATEST_RELEASE" ]; then \
 		echo "$(BASE_VERSION).0"; \
 	else \
