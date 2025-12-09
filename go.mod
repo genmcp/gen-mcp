@@ -10,12 +10,12 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lestrrat-go/jwx/v3 v3.0.12
 	github.com/modelcontextprotocol/go-sdk v1.1.0
-	github.com/onsi/ginkgo/v2 v2.27.2
-	github.com/onsi/gomega v1.38.2
+	github.com/onsi/ginkgo/v2 v2.27.3
+	github.com/onsi/gomega v1.38.3
 	github.com/openai/openai-go/v2 v2.7.1
 	github.com/pb33f/libopenapi v0.28.2
 	github.com/sigstore/sigstore-go v1.1.3
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/yosida95/uritemplate/v3 v3.0.2
 	go.uber.org/zap v1.27.1
