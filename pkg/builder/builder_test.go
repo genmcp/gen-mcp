@@ -162,7 +162,7 @@ func TestImageBuilder_Build(t *testing.T) {
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(binaryData, binaryInfo, nil)
 
 				// Mock MCP file operations
-				mcpToolDefsData := []byte("fake-mcp-tool-defs-data")
+				mcpToolDefsData := []byte("kind: MCPToolDefinitions\nschemaVersion: 0.2.0\nname: test-server\nversion: 1.0.0\n")
 				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
 				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil)
 				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpToolDefsData, nil)
@@ -175,6 +175,43 @@ func TestImageBuilder_Build(t *testing.T) {
 			},
 			validateResult: func(t *testing.T, img v1.Image) {
 				assert.NotNil(t, img, "should return a valid image")
+			},
+		},
+		{
+			name: "sets mcp image tag correctly",
+			buildOptions: BuildOptions{
+				MCPToolDefinitionsPath: "/test/mcpfile.yaml",
+				MCPServerConfigPath:    "/test/mcpserver.yaml",
+				ImageTag:               "test:latest",
+			},
+			setupMocks: func(mfs *mockFileSystem, mbp *mockBinaryProvider, mid *mockImageDownloader) {
+				// Mock base image download
+				baseImg := newTestImage(types.DockerManifestSchema2)
+				mid.On("DownloadImage", mock.Anything, DefaultBaseImage, &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(baseImg, nil)
+
+				// Mock binary extraction
+				binaryData := []byte("fake-binary-data")
+				binaryInfo := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryData))}
+				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(binaryData, binaryInfo, nil)
+
+				// Mock MCP file operations
+				mcpToolDefsData := []byte("kind: MCPToolDefinitions\nschemaVersion: 0.2.0\nname: test-server\nversion: 1.0.0\n")
+				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
+				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil)
+				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpToolDefsData, nil)
+
+				// Mock MCP server config file operations
+				mcpServerConfigData := []byte("fake-mcp-mcpserver-data")
+				mcpServerConfigInfo := &mockFileInfo{name: "mcpserver.yaml", size: int64(len(mcpServerConfigData))}
+				mfs.On("Stat", "/test/mcpserver.yaml").Return(mcpServerConfigInfo, nil)
+				mfs.On("ReadFile", "/test/mcpserver.yaml").Return(mcpServerConfigData, nil)
+			},
+			validateResult: func(t *testing.T, img v1.Image) {
+				configFile, err := img.ConfigFile()
+				assert.NoError(t, err)
+
+				assert.Equal(t, "test-server", configFile.Config.Labels[McpServerNameLabel])
+				assert.Equal(t, "test-server", configFile.Config.Labels[ImageTitleLabel])
 			},
 		},
 		{
@@ -194,7 +231,7 @@ func TestImageBuilder_Build(t *testing.T) {
 				binaryInfo := &mockFileInfo{name: "genmcp-server.exe", size: int64(len(binaryData))}
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "windows", Architecture: "amd64"}).Return(binaryData, binaryInfo, nil)
 
-				mcpToolDefsData := []byte("custom-mcp-tool-defs-data")
+				mcpToolDefsData := []byte("kind: MCPToolDefinitions\nschemaVersion: 0.2.0\nname: custom-server\nversion: 1.0.0\n")
 				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
 				mfs.On("Stat", "/custom/mcpfile.yaml").Return(mcpToolDefsInfo, nil)
 				mfs.On("ReadFile", "/custom/mcpfile.yaml").Return(mcpToolDefsData, nil)
@@ -284,7 +321,7 @@ func TestImageBuilder_Build(t *testing.T) {
 				binaryInfo := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryData))}
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(binaryData, binaryInfo, nil)
 
-				mcpToolDefsData := []byte("fake-mcp-tool-defs-data")
+				mcpToolDefsData := []byte("kind: MCPToolDefinitions\nschemaVersion: 0.2.0\nname: test-server\nversion: 1.0.0\n")
 				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
 				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil)
 				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpToolDefsData, nil)
@@ -583,7 +620,7 @@ func TestImageBuilder_BuildMultiArch(t *testing.T) {
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "arm64"}).Return(binaryDataArm64, binaryInfoArm64, nil)
 
 				// Mock MCP file operations
-				mcpToolDefsData := []byte("fake-mcp-tool-defs-data")
+				mcpToolDefsData := []byte("kind: MCPToolDefinitions\nschemaVersion: 0.2.0\nname: test-server\nversion: 1.0.0\n")
 				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
 				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil).Times(2)
 				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpToolDefsData, nil).Times(2)
@@ -642,7 +679,7 @@ func TestImageBuilder_BuildMultiArch(t *testing.T) {
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "windows", Architecture: "amd64"}).Return(binaryDataWindows, binaryInfoWindows, nil)
 
 				// Mock MCP file operations
-				mcpToolDefsData := []byte("custom-mcp-tool-defs-data")
+				mcpToolDefsData := []byte("kind: MCPToolDefinitions\nschemaVersion: 0.2.0\nname: custom-server\nversion: 1.0.0\n")
 				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
 				mfs.On("Stat", "/custom/mcpfile.yaml").Return(mcpToolDefsInfo, nil).Times(2)
 				mfs.On("ReadFile", "/custom/mcpfile.yaml").Return(mcpToolDefsData, nil).Times(2)
@@ -680,7 +717,7 @@ func TestImageBuilder_BuildMultiArch(t *testing.T) {
 				binaryInfoAmd64 := &mockFileInfo{name: "genmcp-server", size: int64(len(binaryDataAmd64))}
 				mbp.On("ExtractServerBinary", &v1.Platform{OS: "linux", Architecture: "amd64"}).Return(binaryDataAmd64, binaryInfoAmd64, nil)
 
-				mcpToolDefsData := []byte("fake-mcp-tool-defs-data")
+				mcpToolDefsData := []byte("kind: MCPToolDefinitions\nschemaVersion: 0.2.0\nname: test-server\nversion: 1.0.0\n")
 				mcpToolDefsInfo := &mockFileInfo{name: "mcpfile.yaml", size: int64(len(mcpToolDefsData))}
 				mfs.On("Stat", "/test/mcpfile.yaml").Return(mcpToolDefsInfo, nil).Maybe()
 				mfs.On("ReadFile", "/test/mcpfile.yaml").Return(mcpToolDefsData, nil).Maybe()

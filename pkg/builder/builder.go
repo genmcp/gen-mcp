@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	mcpfile "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -21,6 +22,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	"github.com/google/go-containerregistry/pkg/v1/types"
+	"sigs.k8s.io/yaml"
 )
 
 // FileSystem interface for file operations
@@ -201,6 +203,7 @@ const (
 	ImageCreatedLabel     = "org.opencontainers.image.created"
 	ImageRefNameLabel     = "org.opencontainers.image.ref.name"
 	ImageVersionLabel     = "org.opencontainers.image.version"
+	McpServerNameLabel    = "io.modelcontextprotocol.server.name"
 )
 
 type ImageBuilder struct {
@@ -256,6 +259,13 @@ func (b *ImageBuilder) Build(ctx context.Context, opts BuildOptions) (v1.Image, 
 		return nil, fmt.Errorf("failed to read MCP file: %w", err)
 	}
 
+	defs := &mcpfile.MCPToolDefinitionsFile{}
+
+	err = yaml.Unmarshal(mcpToolDefsData, defs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse MCP file: %w", err)
+	}
+
 	// Read and create layer for MCP server config file
 	mcpServerConfigInfo, err := b.fs.Stat(opts.MCPServerConfigPath)
 	if err != nil {
@@ -287,7 +297,7 @@ func (b *ImageBuilder) Build(ctx context.Context, opts BuildOptions) (v1.Image, 
 		return nil, fmt.Errorf("failed to create layer for mcpserver.yaml: %w", err)
 	}
 
-	img, err := b.assembleImage(baseImg, opts, binaryLayer, mcpToolDefsLayer, mcpServerConfigLayer)
+	img, err := b.assembleImage(baseImg, opts, defs, binaryLayer, mcpToolDefsLayer, mcpServerConfigLayer)
 	if err != nil {
 		return nil, fmt.Errorf("failed to assemble final image: %w", err)
 	}
@@ -352,7 +362,12 @@ func (b *ImageBuilder) getLayerMediaType(baseImg v1.Image) (types.MediaType, err
 	}
 }
 
-func (b *ImageBuilder) assembleImage(baseImg v1.Image, opts BuildOptions, layers ...v1.Layer) (v1.Image, error) {
+func (b *ImageBuilder) assembleImage(
+	baseImg v1.Image,
+	opts BuildOptions,
+	defs *mcpfile.MCPToolDefinitionsFile,
+	layers ...v1.Layer,
+) (v1.Image, error) {
 	img, err := mutate.AppendLayers(baseImg, layers...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add layers to base image: %w", err)
@@ -390,9 +405,12 @@ func (b *ImageBuilder) assembleImage(baseImg v1.Image, opts BuildOptions, layers
 	}
 
 	// add standard OCI labels
-	cfg.Config.Labels[ImageTitleLabel] = "genmcp-server"
+	cfg.Config.Labels[ImageTitleLabel] = defs.Name
 	cfg.Config.Labels[ImageDescriptionLabel] = "GenMCP Server Image"
 	cfg.Config.Labels[ImageCreatedLabel] = createTime.Format(time.RFC3339)
+
+	// add MCP registry required label
+	cfg.Config.Labels[McpServerNameLabel] = defs.Name
 
 	if opts.ImageTag != "" {
 		cfg.Config.Labels[ImageRefNameLabel] = opts.ImageTag
