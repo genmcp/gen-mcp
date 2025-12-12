@@ -14,14 +14,6 @@ clean:
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-.PHONY: build-server-binaries
-build-server-binaries: clean $(BUILD_DIR)
-	@echo "Building genmcp-server binaries for all platforms..."
-	GOOS=linux GOARCH=amd64 go build -o $(BUILD_DIR)/genmcp-server-linux-amd64 $(SERVER_CMD)
-	GOOS=linux GOARCH=arm64 go build -o $(BUILD_DIR)/genmcp-server-linux-arm64 $(SERVER_CMD)
-	GOOS=windows GOARCH=amd64 go build -o $(BUILD_DIR)/genmcp-server-windows-amd64.exe $(SERVER_CMD)
-	@echo "Server binaries built successfully"
-
 .PHONY: update-codegen
 update-codegen:
 	@echo "Running code generation script..."
@@ -29,19 +21,19 @@ update-codegen:
 	@echo "Code generation completed successfully."
 
 .PHONY: build-cli
-build-cli: update-codegen build-server-binaries
+build-cli: update-codegen
 	go build -o $(CLI_BINARY_NAME) ./cmd/genmcp
 
 .PHONY: test
-test: build-server-binaries
+test:
 	go test -v -race -count=1 ./...
 
 .PHONY: lint
-lint: build-server-binaries
+lint:
 	golangci-lint run
 
 .PHONY: build-cli-platform
-build-cli-platform: build-server-binaries
+build-cli-platform:
 	@if [ -z "$(GOOS)" ] || [ -z "$(GOARCH)" ]; then \
 		echo "Error: GOOS and GOARCH must be set"; \
 		echo "Usage: make build-cli-platform GOOS=linux GOARCH=amd64 [VERSION_TAG=v1.0.0]"; \
@@ -77,7 +69,7 @@ build-server-platform:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o "$$OUTPUT_NAME" $(SERVER_CMD)
 
 .PHONY: build
-build: build-server-binaries build-cli
+build: build-cli
 
 # Extract changelog section for a given version
 # Usage: make extract-changelog VERSION=v0.2.0
