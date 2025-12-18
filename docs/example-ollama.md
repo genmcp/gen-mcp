@@ -100,9 +100,18 @@ tools:
       system:
         type: string
         description: "A system message to override the model's default behavior."
+      template:
+        type: string
+        description: "The prompt template to use."
+      context:
+        type: string
+        description: "The context from a previous response to maintain conversational memory."
       stream:
         type: boolean
-        description: "Whether to stream the response. Must be false."
+        description: "Whether to stream the response back or not. Must be false."
+      keep_alive:
+        type: string
+        description: "How long to keep the model loaded in memory."
     required:
     - model
     - prompt
@@ -137,7 +146,10 @@ tools:
           - content
       stream:
         type: boolean
-        description: "Whether to stream. Must be false."
+        description: "Whether to stream the response back or not. Must be false."
+      keep_alive:
+        type: string
+        description: "How long to keep the model loaded in memory."
     required:
     - model
     - messages
@@ -158,6 +170,22 @@ tools:
       method: GET
       url: http://localhost:11434/api/tags
 
+- name: show
+  title: "Show model information"
+  description: "Returns information about a model, including its Modelfile, template, and parameters."
+  inputSchema:
+    type: object
+    properties:
+      model:
+        type: string
+        description: "The name of the model to show."
+    required:
+    - model
+  invocation:
+    http:
+      method: POST
+      url: http://localhost:11434/api/show
+
 - name: pull_model
   title: "Pull model"
   description: "Download a model from the ollama library."
@@ -169,7 +197,7 @@ tools:
         description: "The name of the model to pull."
       stream:
         type: boolean
-        description: "Must be false."
+        description: "whether the response will be returned as a single response object. Must be false"
     required:
     - model
     - stream
@@ -180,9 +208,10 @@ tools:
 
 - name: running_models
   title: "Get running models"
-  description: "List models currently loaded into memory."
+  description: "List models that are currently loaded into memory"
   inputSchema:
     type: object
+    properties:
   invocation:
     http:
       method: GET
@@ -302,7 +331,7 @@ version: 0.0.1
 tools:
 - name: start_ollama
   title: Start Ollama
-  description: Start ollama. Only run if not already started.
+  description: Start ollama. Only run this if Ollama has not already started (use check_ollama_running).
   inputSchema:
     type: object
   invocation:
@@ -348,16 +377,16 @@ tools:
     properties:
       model:
         type: string
-        description: The name of the model to use
+        description: The name of the model to use for the completion
       prompt:
         type: string
-        description: The prompt to generate a response for
-    required:
-      - model
-      - prompt
+        description: The prompt to give the model
   invocation:
     cli:
-      command: ollama run {model} {prompt}
+      command: 'ollama run {model} {prompt}'
+      templateVariables:
+        prompt:
+          format: '"{prompt}"'
 ```
 
 **Server Config File** (`ollama-cli-mcpserver.yaml`):
