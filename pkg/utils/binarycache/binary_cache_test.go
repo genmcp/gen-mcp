@@ -1,4 +1,4 @@
-package utils
+package binarycache
 
 import (
 	"os"
@@ -13,7 +13,7 @@ func TestBinaryCache(t *testing.T) {
 	}
 	defer func() { _ = os.RemoveAll(tmpDir) }()
 
-	bc, err := NewBinaryCacheWithDir(tmpDir)
+	bc, err := NewBinaryCacheWithDir(tmpDir, DefaultBinaryPrefix)
 	if err != nil {
 		t.Fatalf("Failed to create binary cache: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestBinaryCache(t *testing.T) {
 			t.Fatalf("Failed to add binary to cache: %v", err)
 		}
 
-		bc2, err := NewBinaryCacheWithDir(tmpDir)
+		bc2, err := NewBinaryCacheWithDir(tmpDir, DefaultBinaryPrefix)
 		if err != nil {
 			t.Fatalf("Failed to create new binary cache instance: %v", err)
 		}
