@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/genmcp/gen-mcp v0.2.0
-	github.com/google/jsonschema-go v0.3.0
+	github.com/google/jsonschema-go v0.4.2
 	github.com/invopop/jsonschema v0.13.0
 )
 
