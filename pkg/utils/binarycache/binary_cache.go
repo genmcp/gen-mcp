@@ -38,7 +38,7 @@ func NewBinaryCache(cfg *Config) (*BinaryCache, error) {
 
 	cacheDir = filepath.Join(cacheDir, cfg.GetCacheName())
 
-	return NewBinaryCacheWithDir(cacheDir, cfg.BinaryPrefix)
+	return NewBinaryCacheWithDir(cacheDir, cfg.GetBinaryPrefix())
 }
 
 // NewBinaryCacheWithDir creates a new binary cache manager with a custom cache directory

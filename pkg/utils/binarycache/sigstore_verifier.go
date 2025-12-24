@@ -67,7 +67,7 @@ func (sv *SigstoreVerifier) VerifyBlob(blobPath, bundlePath string) error {
 	}
 
 	certIdentity, err := verify.NewShortCertificateIdentity(
-		sv.certificateIdentityRegexp,
+		sv.certificateOIDCIssuer,
 		"",                           // issuer regex (empty = exact match)
 		"",                           // SAN (empty = use regex)
 		sv.certificateIdentityRegexp, // SAN regex

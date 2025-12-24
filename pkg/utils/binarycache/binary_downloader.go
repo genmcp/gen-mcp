@@ -255,7 +255,7 @@ func (bd *BinaryDownloader) GetCurrentBinary(version string) (string, error) {
 
 // fetchLatestVersion fetches the latest release version from GitHub API
 func (bd *BinaryDownloader) fetchLatestVersion() (string, error) {
-	resp, err := bd.client.Get(bd.cfg.GetGitHubReleasesURL())
+	resp, err := bd.client.Get(bd.cfg.GetGitHubAPIURL())
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch latest release: %w", err)
 	}
