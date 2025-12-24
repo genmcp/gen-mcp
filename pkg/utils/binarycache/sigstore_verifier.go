@@ -1,4 +1,4 @@
-package utils
+package binarycache
 
 import (
 	"crypto"
@@ -11,19 +11,16 @@ import (
 	"github.com/sigstore/sigstore-go/pkg/verify"
 )
 
-const (
-	CertificateIdentityRegexp = "https://github.com/genmcp/gen-mcp/.*"
-	CertificateOIDCIssuer     = "https://token.actions.githubusercontent.com"
-)
-
 // SigstoreVerifier verifies binaries using sigstore-go library
 type SigstoreVerifier struct {
-	trustedRoot *root.TrustedRoot
-	verifier    *verify.Verifier
+	trustedRoot               *root.TrustedRoot
+	verifier                  *verify.Verifier
+	certificateIdentityRegexp string
+	certificateOIDCIssuer     string
 }
 
 // NewSigstoreVerifier creates a new sigstore verifier using the public good instance
-func NewSigstoreVerifier() (*SigstoreVerifier, error) {
+func NewSigstoreVerifier(cfg *Config) (*SigstoreVerifier, error) {
 	// Use Sigstore Public Good Instance trusted root
 	// This fetches the trusted root from TUF (The Update Framework)
 	trustedRoot, err := root.FetchTrustedRoot()
@@ -43,8 +40,10 @@ func NewSigstoreVerifier() (*SigstoreVerifier, error) {
 	}
 
 	return &SigstoreVerifier{
-		trustedRoot: trustedRoot,
-		verifier:    verifier,
+		trustedRoot:               trustedRoot,
+		verifier:                  verifier,
+		certificateIdentityRegexp: cfg.GetSigstoreIdentityRegexp(),
+		certificateOIDCIssuer:     cfg.GetSigstoreOIDCIssuer(),
 	}, nil
 }
 
@@ -68,10 +67,10 @@ func (sv *SigstoreVerifier) VerifyBlob(blobPath, bundlePath string) error {
 	}
 
 	certIdentity, err := verify.NewShortCertificateIdentity(
-		CertificateOIDCIssuer,
-		"",                        // issuer regex (empty = exact match)
-		"",                        // SAN (empty = use regex)
-		CertificateIdentityRegexp, // SAN regex
+		sv.certificateOIDCIssuer,
+		"",                           // issuer regex (empty = exact match)
+		"",                           // SAN (empty = use regex)
+		sv.certificateIdentityRegexp, // SAN regex
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create certificate identity: %w", err)

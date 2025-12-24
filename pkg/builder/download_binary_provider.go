@@ -5,19 +5,21 @@ import (
 	"io/fs"
 	"os"
 
-	"github.com/genmcp/gen-mcp/pkg/cli/utils"
+	"github.com/genmcp/gen-mcp/pkg/utils/binarycache"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 )
 
 // DownloadBinaryProvider implements BinaryProvider by downloading from GitHub releases
 type DownloadBinaryProvider struct {
-	downloader *utils.BinaryDownloader
+	downloader *binarycache.BinaryDownloader
 	version    string
 }
 
 // NewDownloadBinaryProvider creates a new provider that downloads binaries
 func NewDownloadBinaryProvider(version string, verbose bool) (*DownloadBinaryProvider, error) {
-	downloader, err := utils.NewBinaryDownloader(verbose)
+	cfg := binarycache.DefaultConfig()
+	cfg.Verbose = verbose
+	downloader, err := binarycache.NewBinaryDownloader(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create binary downloader: %w", err)
 	}
