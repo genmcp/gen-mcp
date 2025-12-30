@@ -13,7 +13,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.27.3
 	github.com/onsi/gomega v1.38.3
 	github.com/openai/openai-go/v2 v2.7.1
-	github.com/pb33f/libopenapi v0.30.5
+	github.com/pb33f/libopenapi v0.31.0
 	github.com/sigstore/sigstore-go v1.1.4
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
