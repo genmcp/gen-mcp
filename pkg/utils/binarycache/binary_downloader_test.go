@@ -1,4 +1,4 @@
-package utils
+package binarycache
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ func TestBinaryDownloader_VerboseOutput(t *testing.T) {
 	os.Stdout = w
 
 	// Create downloader with verbose=true
-	bd, err := NewBinaryDownloader(true)
+	bd, err := NewBinaryDownloader(&Config{Verbose: true})
 	if err != nil {
 		if strings.Contains(err.Error(), "fetch trusted root") ||
 			strings.Contains(err.Error(), "TUF") ||
@@ -49,7 +49,7 @@ func TestBinaryDownloader_SilentMode(t *testing.T) {
 	os.Stdout = w
 
 	// Create downloader with verbose=false
-	bd, err := NewBinaryDownloader(false)
+	bd, err := NewBinaryDownloader(DefaultConfig())
 	if err != nil {
 		if strings.Contains(err.Error(), "fetch trusted root") ||
 			strings.Contains(err.Error(), "TUF") ||

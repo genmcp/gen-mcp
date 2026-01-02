@@ -1,4 +1,4 @@
-package utils
+package binarycache
 
 import (
 	"archive/zip"
@@ -13,8 +13,6 @@ import (
 )
 
 const (
-	GitHubReleasesURL      = "https://github.com/genmcp/gen-mcp/releases/download"
-	GitHubAPIURL           = "https://api.github.com/repos/genmcp/gen-mcp/releases/latest"
 	CacheKeepVersionsCount = 3 // Number of versions to keep per platform in cache
 )
 
@@ -23,34 +21,34 @@ type BinaryDownloader struct {
 	cache    *BinaryCache
 	client   *http.Client
 	verifier *SigstoreVerifier
-	verbose  bool // Enable progress output
+	cfg      *Config
 }
 
 // NewBinaryDownloader creates a new binary downloader
-func NewBinaryDownloader(verbose bool) (*BinaryDownloader, error) {
-	cache, err := NewBinaryCache()
+func NewBinaryDownloader(cfg *Config) (*BinaryDownloader, error) {
+	cache, err := NewBinaryCache(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create binary cache: %w", err)
 	}
 
-	verifier, err := NewSigstoreVerifier()
+	verifier, err := NewSigstoreVerifier(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sigstore verifier: %w", err)
 	}
 
 	return &BinaryDownloader{
-		cache:    cache,
+		cache: cache,
 		client: &http.Client{
 			Timeout: 5 * time.Minute, // timeout for binary downloads
 		},
 		verifier: verifier,
-		verbose:  verbose,
+		cfg:      cfg,
 	}, nil
 }
 
 // printf outputs formatted message if verbose mode is enabled
 func (bd *BinaryDownloader) printf(format string, args ...interface{}) {
-	if bd.verbose {
+	if bd.cfg.GetVerbose() {
 		fmt.Printf(format, args...)
 	}
 }
@@ -117,7 +115,7 @@ func (bd *BinaryDownloader) verifyAndExtractZip(zipPath, version, goos, goarch s
 		return "", err
 	}
 
-	extractDir, err := os.MkdirTemp("", "genmcp-extract-*")
+	extractDir, err := os.MkdirTemp("", fmt.Sprintf("%s-extract-*", bd.cfg.GetCacheName()))
 	if err != nil {
 		return "", fmt.Errorf("failed to create extract dir: %w", err)
 	}
@@ -133,14 +131,14 @@ func (bd *BinaryDownloader) verifyAndExtractZip(zipPath, version, goos, goarch s
 
 // verifyZipWithBundle downloads a fresh bundle and verifies a zip file with Sigstore
 func (bd *BinaryDownloader) verifyZipWithBundle(zipPath, version, goos, goarch string) error {
-	tempDir, err := os.MkdirTemp("", "genmcp-verify-*")
+	tempDir, err := os.MkdirTemp("", fmt.Sprintf("%s-verify-*", bd.cfg.GetCacheName()))
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
 	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	platform := fmt.Sprintf("%s-%s", goos, goarch)
-	zipFilename := fmt.Sprintf("genmcp-server-%s.zip", platform)
+	zipFilename := fmt.Sprintf("%s-%s.zip", bd.cfg.GetBinaryPrefix(), platform)
 	bundlePath := filepath.Join(tempDir, zipFilename+".bundle")
 
 	if err := bd.downloadFile(version, zipFilename+".bundle", bundlePath); err != nil {
@@ -158,13 +156,13 @@ func (bd *BinaryDownloader) verifyZipWithBundle(zipPath, version, goos, goarch s
 // downloadAndVerify downloads a binary and verifies it with Sigstore
 // Returns the path to the verified zip file in temp directory.
 func (bd *BinaryDownloader) downloadAndVerify(version, goos, goarch string) (string, error) {
-	tempDir, err := os.MkdirTemp("", "genmcp-download-*")
+	tempDir, err := os.MkdirTemp("", fmt.Sprintf("%s-download-*", bd.cfg.GetCacheName()))
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp dir: %w", err)
 	}
 
 	platform := fmt.Sprintf("%s-%s", goos, goarch)
-	zipFilename := fmt.Sprintf("genmcp-server-%s.zip", platform)
+	zipFilename := fmt.Sprintf("%s-%s.zip", bd.cfg.GetBinaryPrefix(), platform)
 
 	zipPath := filepath.Join(tempDir, zipFilename)
 	if err := bd.downloadFile(version, zipFilename, zipPath); err != nil {
@@ -180,7 +178,7 @@ func (bd *BinaryDownloader) downloadAndVerify(version, goos, goarch string) (str
 
 // downloadFile downloads a file from GitHub releases
 func (bd *BinaryDownloader) downloadFile(version, filename, destPath string) error {
-	url := fmt.Sprintf("%s/%s/%s", GitHubReleasesURL, version, filename)
+	url := fmt.Sprintf("%s/%s/%s", bd.cfg.GetGitHubReleasesURL(), version, filename)
 
 	bd.printf("  Downloading: %s\n", filename)
 
@@ -217,7 +215,7 @@ func (bd *BinaryDownloader) extractBinary(zipPath, destDir, goos, goarch string)
 	}
 	defer func() { _ = r.Close() }()
 
-	expectedName := fmt.Sprintf("genmcp-server-%s-%s", goos, goarch)
+	expectedName := fmt.Sprintf("%s-%s-%s", bd.cfg.GetBinaryPrefix(), goos, goarch)
 	if goos == "windows" {
 		expectedName += ".exe"
 	}
@@ -257,7 +255,7 @@ func (bd *BinaryDownloader) GetCurrentBinary(version string) (string, error) {
 
 // fetchLatestVersion fetches the latest release version from GitHub API
 func (bd *BinaryDownloader) fetchLatestVersion() (string, error) {
-	resp, err := bd.client.Get(GitHubAPIURL)
+	resp, err := bd.client.Get(bd.cfg.GetGitHubAPIURL())
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch latest release: %w", err)
 	}

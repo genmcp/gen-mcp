@@ -1,4 +1,4 @@
-package utils
+package binarycache
 
 import (
 	"crypto/sha256"
@@ -24,21 +24,25 @@ type BinaryCacheEntry struct {
 // BinaryCache manages cached server binaries
 type BinaryCache struct {
 	cacheDir  string
+	prefix    string
 	indexPath string
 	entries   map[string]BinaryCacheEntry // key: "version-platform"
 }
 
-// NewBinaryCache creates a new binary cache manager using the default cache directory
-func NewBinaryCache() (*BinaryCache, error) {
-	cacheDir, err := GetCacheDir()
+// NewBinaryCache creates a new binary cache manager using the default user cache dir and the provided name for the cache
+func NewBinaryCache(cfg *Config) (*BinaryCache, error) {
+	cacheDir, err := os.UserCacheDir()
 	if err != nil {
 		return nil, err
 	}
-	return NewBinaryCacheWithDir(cacheDir)
+
+	cacheDir = filepath.Join(cacheDir, cfg.GetCacheName())
+
+	return NewBinaryCacheWithDir(cacheDir, cfg.GetBinaryPrefix())
 }
 
 // NewBinaryCacheWithDir creates a new binary cache manager with a custom cache directory
-func NewBinaryCacheWithDir(cacheDir string) (*BinaryCache, error) {
+func NewBinaryCacheWithDir(cacheDir, prefix string) (*BinaryCache, error) {
 	binariesDir := filepath.Join(cacheDir, "binaries")
 	if err := os.MkdirAll(binariesDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create binaries cache dir: %w", err)
@@ -48,6 +52,7 @@ func NewBinaryCacheWithDir(cacheDir string) (*BinaryCache, error) {
 
 	bc := &BinaryCache{
 		cacheDir:  binariesDir,
+		prefix:    prefix,
 		indexPath: indexPath,
 		entries:   make(map[string]BinaryCacheEntry),
 	}
@@ -91,7 +96,7 @@ func (bc *BinaryCache) Add(version, platform, sourcePath string) (string, error)
 		return "", fmt.Errorf("failed to calculate checksum: %w", err)
 	}
 
-	filename := fmt.Sprintf("genmcp-server-%s-%s", version, platform)
+	filename := fmt.Sprintf("%s-%s-%s", bc.prefix, version, platform)
 	if filepath.Ext(sourcePath) != "" {
 		filename += filepath.Ext(sourcePath)
 	}
