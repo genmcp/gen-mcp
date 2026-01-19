@@ -394,7 +394,7 @@ func (hi *HttpInvoker) prepareRequestBody(parsed map[string]any) ([]byte, error)
 	if hi.BodyRoot != "" {
 		val, ok := getValueByPath(parsed, hi.BodyRoot)
 		if !ok {
-			return nil, fmt.Errorf("bodyRoot protery %q not found in arguments", hi.BodyRoot)
+			return nil, fmt.Errorf("bodyRoot property %q not found in arguments", hi.BodyRoot)
 		}
 		body = val
 	} else if hi.BodyAsArray {
