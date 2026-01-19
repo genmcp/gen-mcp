@@ -74,6 +74,14 @@
             "HEAD"
           ],
           "description": "The HTTP method to be used for the request (e.g., \"GET\", \"POST\")."
+        },
+        "bodyRoot": {
+          "type": "string",
+          "description": "BodyRoot specifies a dot-separated path to a property whose value should be used as the HTTP request body.\nThis allows sending non-object request bodies, despite MCP requiring all tool call params to be rooted in\na top-level object.\nMutually exclusive with BodyAsArray"
+        },
+        "bodyAsArray": {
+          "type": "boolean",
+          "description": "BodyAsArray wraps the entire request body into a JSON array.\nFor example, if the arguments are {\"name\": \"foo\"}, the HTTP body will be [{\"name\": \"foo\"}].\nThis is useful for APIs that expect array inputs but you want to expose a simpler single-item interface.\nMutually exclusive with BodyRoot."
         }
       },
       "additionalProperties": false,

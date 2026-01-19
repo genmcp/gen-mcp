@@ -67,6 +67,8 @@ func (f *InvokerFactory) CreateInvoker(config invocation.InvocationConfig, primi
 		Method:          hic.Method,
 		InputSchema:     primitive.GetResolvedInputSchema(),
 		URITemplate:     uriTemplate,
+		BodyRoot:        hic.BodyRoot,
+		BodyAsArray:     hic.BodyAsArray,
 	}
 
 	return invoker, nil
