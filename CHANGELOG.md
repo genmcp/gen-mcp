@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v0.2.1]
 
+### Added
+- Support for calling HTTP endpoints which require non-object top level JSON types (e.g. JSON array, strings, etc.). (#238)
+
 ### Fixed
 - HTTP invocations which have headers do not also include those variables in the request body/query. (#247)
 

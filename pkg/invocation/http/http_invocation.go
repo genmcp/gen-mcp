@@ -8,6 +8,7 @@ import (
 	"io"
 	nethttp "net/http"
 	neturl "net/url"
+	"strconv"
 	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -29,6 +30,8 @@ type HttpInvoker struct {
 	Method          string                              // Http request method
 	InputSchema     *jsonschema.Resolved                // InputSchema for the tool
 	URITemplate     string                              // MCP URI template (for resource templates only)
+	BodyRoot        string                              // Dot-separated path to extract as the request body
+	BodyAsArray     bool                                // Wrap the entire body in a JSON array
 }
 
 var _ invocation.Invoker = &HttpInvoker{}
@@ -372,6 +375,8 @@ func (hi *HttpInvoker) executeHTTPRequest(
 
 // prepareRequestBody creates a JSON body from the parsed arguments,
 // excluding any variables that are used in the URL template or header templates
+// if BodyRoot is set, it extracts that property's value as the body
+// if BodyAsArray is set, it wraps the entire body in a JSON array
 func (hi *HttpInvoker) prepareRequestBody(parsed map[string]any) ([]byte, error) {
 	varNames := make([]string, 0, len(hi.ParsedTemplate.Variables))
 	for _, v := range hi.ParsedTemplate.Variables {
@@ -384,7 +389,20 @@ func (hi *HttpInvoker) prepareRequestBody(parsed map[string]any) ([]byte, error)
 		}
 	}
 
-	return json.Marshal(deletePathsFromMap(parsed, varNames))
+	var body any = deletePathsFromMap(parsed, varNames)
+
+	if hi.BodyRoot != "" {
+		val, ok := getValueByPath(parsed, hi.BodyRoot)
+		if !ok {
+			return nil, fmt.Errorf("bodyRoot protery %q not found in arguments", hi.BodyRoot)
+		}
+		body = val
+	} else if hi.BodyAsArray {
+		// wrap the body in an array
+		body = []any{body}
+	}
+
+	return json.Marshal(body)
 }
 
 // buildRequestComponents builds the URL and headers from request arguments and incoming headers.
@@ -652,4 +670,82 @@ func deletePathFromMap(m map[string]any, path string) {
 	if len(currentMap) == 0 && parentMap != nil {
 		delete(parentMap, keys[len(keys)-2])
 	}
+}
+
+type pathSegment struct {
+	key     string
+	index   int
+	isIndex bool
+}
+
+func getValueByPath(m map[string]any, path string) (any, bool) {
+	segments, err := parsePathSegments(path)
+	if err != nil {
+		return nil, false
+	}
+
+	var current any = m
+
+	for _, seg := range segments {
+		switch v := current.(type) {
+		case map[string]any:
+			if seg.isIndex {
+				return nil, false
+			}
+			var ok bool
+			current, ok = v[seg.key]
+			if !ok {
+				return nil, false
+			}
+		case []any:
+			if !seg.isIndex {
+				return nil, false
+			}
+			if seg.index < 0 || seg.index >= len(v) {
+				return nil, false
+			}
+			current = v[seg.index]
+		default:
+			return nil, false
+		}
+	}
+
+	return current, true
+}
+
+func parsePathSegments(path string) ([]pathSegment, error) {
+	var segments []pathSegment
+	var err error
+
+	for part := range strings.SplitSeq(path, ".") {
+		for len(part) > 0 {
+			bracketStart := strings.Index(part, "[")
+			if bracketStart == -1 {
+				if part != "" {
+					segments = append(segments, pathSegment{key: part})
+				}
+				break
+			}
+
+			if bracketStart > 0 {
+				segments = append(segments, pathSegment{key: part[:bracketStart]})
+			}
+
+			bracketEnd := strings.Index(part, "]")
+			if bracketEnd == -1 || bracketEnd <= bracketStart+1 {
+				return nil, fmt.Errorf("failed to find matching closing bracket for opening bracket")
+			}
+
+			indexStr := part[bracketStart+1 : bracketEnd]
+			var index int64
+			if index, err = strconv.ParseInt(indexStr, 10, 0); err != nil {
+				return nil, fmt.Errorf("failed to parse array index as int: %w", err)
+			}
+
+			segments = append(segments, pathSegment{index: int(index), isIndex: true})
+			part = part[bracketEnd+1:]
+		}
+	}
+
+	return segments, nil
 }

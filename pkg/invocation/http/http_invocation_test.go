@@ -17,9 +17,34 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type testHttpInvokerOptions struct {
+	BodyRoot    string
+	BodyAsArray bool
+}
+
 // testHttpInvoker creates an HttpInvoker for testing from a URL template
-func testHttpInvoker(t *testing.T, urlTemplate string, headerTemplates map[string]string, schema *jsonschema.Resolved, method string, uriTemplate string) HttpInvoker {
+func testHttpInvoker(
+	t *testing.T,
+	urlTemplate string,
+	headerTemplates map[string]string,
+	schema *jsonschema.Resolved,
+	method string,
+	uriTemplate string,
+) HttpInvoker {
 	t.Helper()
+
+	return testHttpInvokerWithOptions(t, urlTemplate, headerTemplates, schema, method, uriTemplate, testHttpInvokerOptions{})
+}
+
+func testHttpInvokerWithOptions(
+	t *testing.T,
+	urlTemplate string,
+	headerTemplates map[string]string,
+	schema *jsonschema.Resolved,
+	method string,
+	uriTemplate string,
+	opts testHttpInvokerOptions,
+) HttpInvoker {
 
 	sources := template.CreateHeadersSourceFactory()
 
@@ -45,6 +70,8 @@ func testHttpInvoker(t *testing.T, urlTemplate string, headerTemplates map[strin
 		InputSchema:     schema,
 		Method:          method,
 		URITemplate:     uriTemplate,
+		BodyRoot:        opts.BodyRoot,
+		BodyAsArray:     opts.BodyAsArray,
 	}
 }
 
@@ -64,6 +91,29 @@ var (
 			"search": {Type: invocation.JsonSchemaTypeString},
 		},
 	}).Resolve(nil)
+	resolvedWithArrays, _ = (&jsonschema.Schema{
+		Type: invocation.JsonSchemaTypeObject,
+		Properties: map[string]*jsonschema.Schema{
+			"name": {Type: invocation.JsonSchemaTypeString},
+			"tags": {
+				Type:  invocation.JsonSchemaTypeArray,
+				Items: &jsonschema.Schema{Type: invocation.JsonSchemaTypeString},
+			},
+			"scores": {
+				Type:  invocation.JsonSchemaTypeArray,
+				Items: &jsonschema.Schema{Type: invocation.JsonSchemaTypeInteger},
+			},
+			"nested": {
+				Type: invocation.JsonSchemaTypeObject,
+				Properties: map[string]*jsonschema.Schema{
+					"items": {
+						Type:  invocation.JsonSchemaTypeArray,
+						Items: &jsonschema.Schema{Type: invocation.JsonSchemaTypeString},
+					},
+				},
+			},
+		},
+	}).Resolve(nil)
 )
 
 func TestHttpInvocation(t *testing.T) {
@@ -76,11 +126,12 @@ func TestHttpInvocation(t *testing.T) {
 		schema            *jsonschema.Resolved
 		method            string
 		request           *mcp.CallToolRequest
+		opts              testHttpInvokerOptions
 		expectedResult    *mcp.CallToolResult
 		expectedReqMethod string
 		expectedPath      string
 		expectedQuery     neturl.Values
-		expectedBody      map[string]any
+		expectedBody      any
 		expectedHeaders   nethttp.Header
 		expectError       bool
 	}{
@@ -379,6 +430,121 @@ func TestHttpInvocation(t *testing.T) {
 				"X-Limit": []string{"100"},
 			},
 		},
+		{
+			name:         "POST request with string array in body",
+			responseCode: 200,
+			responseBody: func() []byte { return []byte(`{"status": "ok"}`) },
+			urlTemplate:  "/items",
+			schema:       resolvedWithArrays,
+			method:       "POST",
+			request: &mcp.CallToolRequest{
+				Params: &mcp.CallToolParamsRaw{
+					Arguments: []byte(`{"name": "test-item", "tags": ["alpha", "beta"]}`),
+				},
+			},
+			expectedResult: &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: `{"status": "ok"}`,
+					},
+				},
+			},
+			expectedReqMethod: "POST",
+			expectedQuery:     make(neturl.Values),
+			expectedPath:      "/items",
+			expectedBody: map[string]any{
+				"name": "test-item",
+				"tags": []any{"alpha", "beta"},
+			},
+		},
+		{
+			name:         "POST request with BodyAsArray wraps body in array",
+			responseCode: 200,
+			responseBody: func() []byte { return []byte(`{"status": "created"}`) },
+			urlTemplate:  "/batch",
+			schema:       resolvedWithArrays,
+			method:       "POST",
+			request: &mcp.CallToolRequest{
+				Params: &mcp.CallToolParamsRaw{
+					Arguments: []byte(`{"name": "item1", "tags": ["a", "b"]}`),
+				},
+			},
+			opts: testHttpInvokerOptions{
+				BodyAsArray: true,
+			},
+			expectedResult: &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: `{"status": "created"}`,
+					},
+				},
+			},
+			expectedReqMethod: "POST",
+			expectedQuery:     make(neturl.Values),
+			expectedPath:      "/batch",
+			expectedBody: []any{
+				map[string]any{
+					"name": "item1",
+					"tags": []any{"a", "b"},
+				},
+			},
+		},
+		{
+			name:         "POST request with BodyRoot extracts nested property as body",
+			responseCode: 200,
+			responseBody: func() []byte { return []byte(`{"received": true}`) },
+			urlTemplate:  "/tags",
+			schema:       resolvedWithArrays,
+			method:       "POST",
+			request: &mcp.CallToolRequest{
+				Params: &mcp.CallToolParamsRaw{
+					Arguments: []byte(`{"name": "test", "tags": ["x", "y", "z"]}`),
+				},
+			},
+			opts: testHttpInvokerOptions{
+				BodyRoot: "tags",
+			},
+			expectedResult: &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: `{"received": true}`,
+					},
+				},
+			},
+			expectedReqMethod: "POST",
+			expectedQuery:     make(neturl.Values),
+			expectedPath:      "/tags",
+			expectedBody:      []any{"x", "y", "z"},
+		},
+		{
+			name:         "POST request with BodyRoot extracts nested object as body",
+			responseCode: 200,
+			responseBody: func() []byte { return []byte(`{"ok": true}`) },
+			urlTemplate:  "/nested",
+			schema:       resolvedWithArrays,
+			method:       "POST",
+			request: &mcp.CallToolRequest{
+				Params: &mcp.CallToolParamsRaw{
+					Arguments: []byte(`{"name": "test", "nested": {"items": ["foo", "bar"]}}`),
+				},
+			},
+			opts: testHttpInvokerOptions{
+				BodyRoot: "nested",
+			},
+			expectedResult: &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: `{"ok": true}`,
+					},
+				},
+			},
+			expectedReqMethod: "POST",
+			expectedQuery:     make(neturl.Values),
+			expectedPath:      "/nested",
+			expectedBody: map[string]any{
+				"items": []any{"foo", "bar"},
+			},
+		},
 	}
 
 	for _, tc := range tt {
@@ -386,7 +552,7 @@ func TestHttpInvocation(t *testing.T) {
 			t.Parallel()
 
 			var receivedQuery neturl.Values
-			var receivedBody map[string]any
+			var receivedBody any
 			var receievedMethod string
 			var receivedPath string
 			var receivedHeaders nethttp.Header
@@ -412,7 +578,7 @@ func TestHttpInvocation(t *testing.T) {
 			}))
 			defer s.Close()
 
-			httpInvoker := testHttpInvoker(t, s.URL+tc.urlTemplate, tc.headerTemplates, tc.schema, tc.method, "")
+			httpInvoker := testHttpInvokerWithOptions(t, s.URL+tc.urlTemplate, tc.headerTemplates, tc.schema, tc.method, "", tc.opts)
 
 			res, err := httpInvoker.Invoke(context.Background(), tc.request)
 			if tc.expectError {

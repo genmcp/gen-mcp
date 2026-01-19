@@ -38,6 +38,18 @@ type HttpInvocationConfig struct {
 
 	// The HTTP method to be used for the request (e.g., "GET", "POST").
 	Method string `json:"method,omitempty" jsonschema:"required,enum=GET,enum=POST,enum=PUT,enum=PATCH,enum=DELETE,enum=HEAD"`
+
+	// BodyRoot specifies a dot-separated path to a property whose value should be used as the HTTP request body.
+	// This allows sending non-object request bodies, despite MCP requiring all tool call params to be rooted in
+	// a top-level object.
+	// Mutually exclusive with BodyAsArray
+	BodyRoot string `json:"bodyRoot,omitempty" jsonschema:"optional"`
+
+	// BodyAsArray wraps the entire request body into a JSON array.
+	// For example, if the arguments are {"name": "foo"}, the HTTP body will be [{"name": "foo"}].
+	// This is useful for APIs that expect array inputs but you want to expose a simpler single-item interface.
+	// Mutually exclusive with BodyRoot.
+	BodyAsArray bool `json:"bodyAsArray,omitempty" jsonschema:"optional"`
 }
 
 var _ invocation.InvocationConfig = &HttpInvocationConfig{}
@@ -52,6 +64,11 @@ func (hic *HttpInvocationConfig) Validate() error {
 		return fmt.Errorf("invalid http request method: '%s'", hic.Method)
 	}
 
+	// BodyRoot and BodyAsArray are mutually exclusive
+	if hic.BodyRoot != "" && hic.BodyAsArray {
+		return fmt.Errorf("bodyRoot and bodyAsArray are mutually exclusive")
+	}
+
 	return nil
 }
 
@@ -62,9 +79,11 @@ func (hic *HttpInvocationConfig) DeepCopy() invocation.InvocationConfig {
 	}
 
 	return &HttpInvocationConfig{
-		URL:     hic.URL,
-		Headers: headers,
-		Method:  hic.Method,
+		URL:         hic.URL,
+		Headers:     headers,
+		Method:      hic.Method,
+		BodyRoot:    hic.BodyRoot,
+		BodyAsArray: hic.BodyAsArray,
 	}
 }
 
