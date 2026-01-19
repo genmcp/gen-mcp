@@ -371,11 +371,17 @@ func (hi *HttpInvoker) executeHTTPRequest(
 }
 
 // prepareRequestBody creates a JSON body from the parsed arguments,
-// excluding any variables that are used in the URL template.
+// excluding any variables that are used in the URL template or header templates
 func (hi *HttpInvoker) prepareRequestBody(parsed map[string]any) ([]byte, error) {
 	varNames := make([]string, 0, len(hi.ParsedTemplate.Variables))
 	for _, v := range hi.ParsedTemplate.Variables {
 		varNames = append(varNames, v.Name)
+	}
+
+	for _, headerTemplate := range hi.HeaderTemplates {
+		for _, v := range headerTemplate.Variables {
+			varNames = append(varNames, v.Name)
+		}
 	}
 
 	return json.Marshal(deletePathsFromMap(parsed, varNames))
@@ -471,9 +477,18 @@ func (hi *HttpInvoker) newUrlBuilder(buildQuery bool) (*urlBuilder, error) {
 		templateVarNames[varName] = true
 	}
 
+	// Build set of variable names used in header templates (to exclude from query params)
+	headerVarNames := make(map[string]bool)
+	for _, headerTemplate := range hi.HeaderTemplates {
+		for _, v := range headerTemplate.Variables {
+			headerVarNames[v.Name] = true
+		}
+	}
+
 	ub := &urlBuilder{
 		templateBuilder:  templateBuilder,
 		templateVarNames: templateVarNames,
+		headerVarNames:   headerVarNames,
 		buildQuery:       buildQuery,
 	}
 
@@ -487,6 +502,7 @@ func (hi *HttpInvoker) newUrlBuilder(buildQuery bool) (*urlBuilder, error) {
 type urlBuilder struct {
 	templateBuilder  *template.TemplateBuilder
 	templateVarNames map[string]bool // Set of variable names the template cares about
+	headerVarNames   map[string]bool // Set of variable names used in headers (to exclude from query)
 	queryParams      neturl.Values
 	buildQuery       bool
 }
@@ -497,6 +513,11 @@ func (ub *urlBuilder) SetField(path string, value any) {
 	// If this is a variable that the template cares about, propagate to the template
 	if ub.templateVarNames[path] {
 		ub.templateBuilder.SetField(path, value)
+		return
+	}
+
+	// Skip fields that are used in headers - they should not appear in query params
+	if ub.headerVarNames[path] {
 		return
 	}
 

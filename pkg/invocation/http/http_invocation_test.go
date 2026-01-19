@@ -218,12 +218,43 @@ func TestHttpInvocation(t *testing.T) {
 			expectedPath:      "/items",
 			expectedBody: map[string]any{
 				"path": map[string]any{
-					"part1": float64(42),
 					"part2": "test",
 				},
 			},
 			expectedHeaders: nethttp.Header{
 				"X-User-Id": []string{"42"},
+			},
+		},
+		{
+			name:         "POST request excludes header params from body",
+			responseCode: 200,
+			responseBody: func() []byte { return []byte("ok") },
+			urlTemplate:  "/data",
+			headerTemplates: map[string]string{
+				"X-Limit": "{limit}",
+			},
+			schema: resolvedWithPath,
+			method: "POST",
+			request: &mcp.CallToolRequest{
+				Params: &mcp.CallToolParamsRaw{
+					Arguments: []byte(`{"limit": 100, "search": "test"}`),
+				},
+			},
+			expectedResult: &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "ok",
+					},
+				},
+			},
+			expectedReqMethod: "POST",
+			expectedQuery:     make(neturl.Values),
+			expectedPath:      "/data",
+			expectedBody: map[string]any{
+				"search": "test",
+			},
+			expectedHeaders: nethttp.Header{
+				"X-Limit": []string{"100"},
 			},
 		},
 		{
@@ -316,6 +347,37 @@ func TestHttpInvocation(t *testing.T) {
 				"search": {"test query"},
 			},
 			expectedPath: "/search",
+		},
+		{
+			name:         "GET request excludes header params from query",
+			responseCode: 200,
+			responseBody: func() []byte { return []byte("ok") },
+			urlTemplate:  "/data",
+			headerTemplates: map[string]string{
+				"X-Limit": "{limit}",
+			},
+			schema: resolvedWithPath,
+			method: "GET",
+			request: &mcp.CallToolRequest{
+				Params: &mcp.CallToolParamsRaw{
+					Arguments: []byte(`{"limit": 100, "search": "test"}`),
+				},
+			},
+			expectedResult: &mcp.CallToolResult{
+				Content: []mcp.Content{
+					&mcp.TextContent{
+						Text: "ok",
+					},
+				},
+			},
+			expectedReqMethod: "GET",
+			expectedQuery: map[string][]string{
+				"search": {"test"},
+			},
+			expectedPath: "/data",
+			expectedHeaders: nethttp.Header{
+				"X-Limit": []string{"100"},
+			},
 		},
 	}
 
