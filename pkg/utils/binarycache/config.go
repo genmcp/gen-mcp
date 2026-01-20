@@ -40,6 +40,22 @@ func (cfg *Config) GetCacheName() string {
 	return cfg.CacheName
 }
 
+// GetSanitizedCacheName returns the cache name with path separators replaced,
+// making it safe for use in temp directory prefixes and filenames.
+func (cfg *Config) GetSanitizedCacheName() string {
+	name := cfg.GetCacheName()
+	// Replace path separators with underscores to make it filesystem-safe
+	result := make([]byte, len(name))
+	for i := 0; i < len(name); i++ {
+		if name[i] == '/' || name[i] == '\\' {
+			result[i] = '_'
+		} else {
+			result[i] = name[i]
+		}
+	}
+	return string(result)
+}
+
 func (cfg *Config) GetBinaryPrefix() string {
 	if cfg == nil || cfg.BinaryPrefix == "" {
 		return DefaultBinaryPrefix
