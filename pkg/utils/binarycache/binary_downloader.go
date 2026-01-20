@@ -115,7 +115,7 @@ func (bd *BinaryDownloader) verifyAndExtractZip(zipPath, version, goos, goarch s
 		return "", err
 	}
 
-	extractDir, err := os.MkdirTemp("", fmt.Sprintf("%s-extract-*", bd.cfg.GetCacheName()))
+	extractDir, err := os.MkdirTemp("", fmt.Sprintf("%s-extract-*", bd.cfg.GetSanitizedCacheName()))
 	if err != nil {
 		return "", fmt.Errorf("failed to create extract dir: %w", err)
 	}
@@ -131,7 +131,7 @@ func (bd *BinaryDownloader) verifyAndExtractZip(zipPath, version, goos, goarch s
 
 // verifyZipWithBundle downloads a fresh bundle and verifies a zip file with Sigstore
 func (bd *BinaryDownloader) verifyZipWithBundle(zipPath, version, goos, goarch string) error {
-	tempDir, err := os.MkdirTemp("", fmt.Sprintf("%s-verify-*", bd.cfg.GetCacheName()))
+	tempDir, err := os.MkdirTemp("", fmt.Sprintf("%s-verify-*", bd.cfg.GetSanitizedCacheName()))
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
@@ -156,7 +156,7 @@ func (bd *BinaryDownloader) verifyZipWithBundle(zipPath, version, goos, goarch s
 // downloadAndVerify downloads a binary and verifies it with Sigstore
 // Returns the path to the verified zip file in temp directory.
 func (bd *BinaryDownloader) downloadAndVerify(version, goos, goarch string) (string, error) {
-	tempDir, err := os.MkdirTemp("", fmt.Sprintf("%s-download-*", bd.cfg.GetCacheName()))
+	tempDir, err := os.MkdirTemp("", fmt.Sprintf("%s-download-*", bd.cfg.GetSanitizedCacheName()))
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp dir: %w", err)
 	}

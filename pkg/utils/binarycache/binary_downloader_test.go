@@ -43,6 +43,28 @@ func TestBinaryDownloader_VerboseOutput(t *testing.T) {
 	}
 }
 
+func TestBinaryDownloader_PathSeparatorInCacheName(t *testing.T) {
+	// Test that cache names with path separators work correctly
+	// This is important for users who want cache names like ".gevals/something"
+	cfg := &Config{
+		CacheName:    ".gevals/something",
+		BinaryPrefix: "test-binary",
+	}
+
+	bd, err := NewBinaryDownloader(cfg)
+	if err != nil {
+		if strings.Contains(err.Error(), "fetch trusted root") ||
+			strings.Contains(err.Error(), "TUF") ||
+			strings.Contains(err.Error(), "network") {
+			t.Skipf("Skipping test: requires network access: %v", err)
+		}
+		t.Fatalf("Failed to create downloader with path separator in cache name: %v", err)
+	}
+	if bd == nil {
+		t.Fatal("Expected non-nil downloader")
+	}
+}
+
 func TestBinaryDownloader_SilentMode(t *testing.T) {
 	old := os.Stdout
 	r, w, _ := os.Pipe()
