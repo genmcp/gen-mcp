@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.2.2]
+
+## Fixed
+- Binary cache now supports cache names with path separators.
+
 ## [v0.2.1]
 
 ### Added
