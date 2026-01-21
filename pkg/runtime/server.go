@@ -12,11 +12,11 @@ import (
 	"go.uber.org/zap"
 
 	_ "github.com/genmcp/gen-mcp/pkg/invocation/cli"
-	_ "github.com/genmcp/gen-mcp/pkg/invocation/http"
 
 	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/genmcp/gen-mcp/pkg/invocation"
+	httpinvocation "github.com/genmcp/gen-mcp/pkg/invocation/http"
 	"github.com/genmcp/gen-mcp/pkg/invocation/utils"
 	"github.com/genmcp/gen-mcp/pkg/mcpserver"
 	"github.com/genmcp/gen-mcp/pkg/oauth"
@@ -494,6 +494,16 @@ func makeServerWithTools(mcpServer *mcpserver.MCPServer, tools []*definitions.To
 
 	logger.Debug("Adding logging middleware")
 	s.AddReceivingMiddleware(logging.WithLoggingMiddleware(logger))
+
+	// Add HTTP client middleware for custom CA certificates
+	httpClient, err := mcpServer.Runtime.GetHTTPClient()
+	if err != nil {
+		logger.Error("Failed to create HTTP client with custom TLS config", zap.Error(err))
+		return nil, fmt.Errorf("failed to create HTTP client: %w", err)
+	}
+	hasCustomTLS := mcpServer.Runtime != nil && mcpServer.Runtime.ClientTLSConfig != nil
+	logger.Debug("Adding HTTP client middleware", zap.Bool("has_custom_tls", hasCustomTLS))
+	s.AddReceivingMiddleware(httpinvocation.WithHTTPClientMiddleware(httpClient))
 
 	var serverErr error
 	logger.Debug("Registering tools", zap.Int("count", len(tools)))
