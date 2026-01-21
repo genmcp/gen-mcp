@@ -345,7 +345,8 @@ func (hi *HttpInvoker) executeHTTPRequest(
 		httpReq.Header.Set(contentTypeHeader, "application/json; charset=UTF-8")
 	}
 
-	client := &nethttp.Client{}
+	// Use HTTP client from context (configured with custom CA certs if provided)
+	client := HTTPClientFromContext(ctx)
 	response, err := client.Do(httpReq)
 	if err != nil {
 		baseLogger.Error("HTTP request execution failed", append(logFields, zap.Error(err))...)

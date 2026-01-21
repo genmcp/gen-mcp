@@ -62,6 +62,7 @@ The `ServerRuntime` object specifies the transport protocol and its configuratio
 | `streamableHttpConfig` | `StreamableHTTPConfig` | Configuration for the `streamablehttp` transport protocol. Required if `transportProtocol` is `streamablehttp`. | No       |
 | `stdioConfig`          | `StdioConfig`          | Configuration for the `stdio` transport protocol. Required if `transportProtocol` is `stdio`.                   | No       |
 | `loggingConfig`        | `LoggingConfig`        | Configuration for server logging.                                                                               | No       |
+| `clientTlsConfig`      | `ClientTLSConfig`      | TLS configuration for outbound HTTP requests (e.g., custom CA certificates).                                    | No       |
 
 ### 3.1. StreamableHTTPConfig Object
 
@@ -91,7 +92,24 @@ The `ServerRuntime` object specifies the transport protocol and its configuratio
 
 This object is currently empty and serves as a placeholder for future configuration options.
 
-### 3.5. LoggingConfig Object
+### 3.5. ClientTLSConfig Object
+
+The `ClientTLSConfig` object configures TLS settings for **outbound** HTTP requests made by the MCP server (e.g., when tools invoke external APIs). This is useful when connecting to internal services that use certificates signed by a corporate or private Certificate Authority (CA).
+
+| Field                | Type            | Description                                                                                                     | Required |
+|----------------------|-----------------|-----------------------------------------------------------------------------------------------------------------|----------|
+| `caCertFiles`        | array of string | Paths to CA certificate files (PEM format) to trust for outbound HTTPS requests.                               | No       |
+| `caCertDir`          | string          | Path to a directory containing CA certificate files. All `.pem` and `.crt` files will be loaded.               | No       |
+| `insecureSkipVerify` | boolean         | Skip TLS certificate verification. **WARNING: Insecure, use only for testing.**                                | No       |
+
+**Note**: The CA certificates specified here are added to the system's default certificate pool, so standard public CAs remain trusted.
+
+**Environment Variable Overrides**: These settings can also be configured via environment variables:
+- `GENMCP_CLIENTTLSCONFIG_CACERTFILES=/path/to/ca1.pem,/path/to/ca2.pem`
+- `GENMCP_CLIENTTLSCONFIG_CACERTDIR=/etc/ssl/certs/custom/`
+- `GENMCP_CLIENTTLSCONFIG_INSECURESKIPVERIFY=true`
+
+### 3.6. LoggingConfig Object
 
 | Field               | Type                   | Description                                                                         | Required |
 |---------------------|------------------------|-------------------------------------------------------------------------------------|----------|
@@ -222,6 +240,55 @@ runtime:
       authorizationServers:
         - https://auth.example.com
       jwksUri: https://auth.example.com/.well-known/jwks.json
+```
+
+### 5.4. Custom CA Certificates for Outbound Requests
+
+When your MCP server needs to make HTTPS requests to internal services that use certificates signed by a corporate or private CA, configure `clientTlsConfig`:
+
+**Server Config File** (`mcpserver.yaml`):
+
+```yaml
+kind: MCPServerConfig
+schemaVersion: "0.2.0"
+runtime:
+  transportProtocol: streamablehttp
+  streamableHttpConfig:
+    port: 8080
+  clientTlsConfig:
+    # Option 1: Specify individual CA certificate files
+    caCertFiles:
+      - /etc/pki/tls/certs/ca-bundle.crt
+      - /etc/ssl/certs/corporate-ca.pem
+
+    # Option 2: Specify a directory containing CA certificates
+    caCertDir: /etc/ssl/certs/custom-cas/
+```
+
+**Use Case**: This is commonly needed when:
+- Running in a Kubernetes cluster with a service mesh (e.g., Istio) that uses internal CAs
+- Connecting to internal APIs behind a corporate proxy
+- Accessing services with self-signed certificates in development/staging environments
+
+**Kubernetes Example** - Mount custom CA certificates from a Secret or ConfigMap:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mcp-server
+spec:
+  containers:
+    - name: mcp-server
+      image: my-mcp-server:latest
+      volumeMounts:
+        - name: ca-certs
+          mountPath: /etc/ssl/certs/custom-cas
+          readOnly: true
+  volumes:
+    - name: ca-certs
+      secret:
+        secretName: corporate-ca-bundle
 ```
 
 ## 6. Complete Example for a CLI

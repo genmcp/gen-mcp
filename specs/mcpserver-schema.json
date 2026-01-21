@@ -39,6 +39,24 @@
       ],
       "description": "CliInvocationConfig is the configuration for executing a command-line tool."
     },
+    "ClientTLSConfig": {
+      "properties": {
+        "caCertFiles": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "caCertDir": {
+          "type": "string"
+        },
+        "insecureSkipVerify": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
     "ExtendsConfig": {
       "properties": {
         "from": {
@@ -178,6 +196,9 @@
         },
         "loggingConfig": {
           "$ref": "#/$defs/LoggingConfig"
+        },
+        "clientTlsConfig": {
+          "$ref": "#/$defs/ClientTLSConfig"
         }
       },
       "additionalProperties": false,

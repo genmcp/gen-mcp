@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Custom CA certificate support for outbound HTTP requests via `clientTlsConfig` in `mcpserver.yaml`. This allows MCP servers to connect to internal services that use certificates signed by corporate or private CAs. (#285, fixes #284)
+
 ## [v0.2.2]
 
 ## Fixed
