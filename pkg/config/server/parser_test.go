@@ -27,6 +27,11 @@ func TestParseMcpFile(t *testing.T) {
 							Port:      3000,
 							BasePath:  DefaultBasePath,
 							Stateless: true,
+							Health: &HealthConfig{
+								Enabled:       true,
+								ReadinessPath: "/readyz",
+								LivenessPath:  "/healthz",
+							},
 						},
 					},
 				},
@@ -44,6 +49,11 @@ func TestParseMcpFile(t *testing.T) {
 							BasePath:  DefaultBasePath,
 							Port:      3000,
 							Stateless: false,
+							Health: &HealthConfig{
+								Enabled:       true,
+								ReadinessPath: "/readyz",
+								LivenessPath:  "/healthz",
+							},
 						},
 					},
 				},
@@ -72,6 +82,11 @@ func TestParseMcpFile(t *testing.T) {
 						StreamableHTTPConfig: &StreamableHTTPConfig{
 							Port:      8008,
 							Stateless: true,
+							Health: &HealthConfig{
+								Enabled:       true,
+								ReadinessPath: "/readyz",
+								LivenessPath:  "/healthz",
+							},
 						},
 					},
 				},
@@ -91,6 +106,11 @@ func TestParseMcpFile(t *testing.T) {
 							TLS: &TLSConfig{
 								CertFile: "/path/to/server.crt",
 								KeyFile:  "/path/to/server.key",
+							},
+							Health: &HealthConfig{
+								Enabled:       true,
+								ReadinessPath: "/readyz",
+								LivenessPath:  "/healthz",
 							},
 						},
 					},

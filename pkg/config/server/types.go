@@ -32,6 +32,9 @@ type StreamableHTTPConfig struct {
 
 	// TLS configuration for HTTPS.
 	TLS *TLSConfig `json:"tls,omitempty" jsonschema:"optional"`
+
+	// Health check configuration for k8s probes.
+	Health *HealthConfig `json:"health,omitempty" jsonschema:"optional"`
 }
 
 // TLSConfig defines paths to TLS certificate and private key files.
@@ -41,6 +44,17 @@ type TLSConfig struct {
 
 	// Absolute path to the server's private key.
 	KeyFile string `json:"keyFile,omitempty" jsonschema:"optional"`
+}
+
+type HealthConfig struct {
+	// Enable health endpoints (default: true when running HTTP)
+	Enabled bool `json:"enabled,omitempty" jsonschema:"optional"`
+
+	// Path for liveness probe (default: /healthz)
+	LivenessPath string `json:"livenessPath,omitempty" jsonschema:"optional"`
+
+	// Path for readiness probe (default: /readyz)
+	ReadinessPath string `json:"readinessPath,omitempty" jsonschema:"optional"`
 }
 
 // ClientTLSConfig defines TLS settings for outbound HTTP requests.
