@@ -83,6 +83,21 @@
       ],
       "description": "ExtendsConfig allows extending an invocation base with modifications."
     },
+    "HealthConfig": {
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "livenessPath": {
+          "type": "string"
+        },
+        "readinessPath": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
     "HttpInvocationConfig": {
       "properties": {
         "url": {
@@ -228,6 +243,9 @@
         },
         "tls": {
           "$ref": "#/$defs/TLSConfig"
+        },
+        "health": {
+          "$ref": "#/$defs/HealthConfig"
         }
       },
       "additionalProperties": false,

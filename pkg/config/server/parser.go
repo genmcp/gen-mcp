@@ -112,6 +112,14 @@ func (s *MCPServerConfig) UnmarshalJSON(data []byte) error {
 		}
 	}
 
+	if s.Runtime.TransportProtocol == TransportProtocolStreamableHttp && s.Runtime.StreamableHTTPConfig.Health == nil {
+		s.Runtime.StreamableHTTPConfig.Health = &HealthConfig{
+			Enabled:       true,
+			ReadinessPath: "/readyz",
+			LivenessPath:  "/healthz",
+		}
+	}
+
 	return nil
 
 }

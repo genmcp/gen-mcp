@@ -2,8 +2,10 @@ package runtime
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"slices"
 	"strings"
@@ -11,6 +13,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.uber.org/zap"
 
+	"github.com/genmcp/gen-mcp/pkg/health"
 	_ "github.com/genmcp/gen-mcp/pkg/invocation/cli"
 
 	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
@@ -135,6 +138,19 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpserver.MCP
 	basePath := mcpServerConfig.Runtime.StreamableHTTPConfig.BasePath
 	stateless := mcpServerConfig.Runtime.StreamableHTTPConfig.Stateless
 
+	healthChecker := health.NewChecker()
+	livenessPath := "/healthz"
+	readinessPath := "/readyz"
+
+	if mcpServerConfig.Runtime.StreamableHTTPConfig.Health != nil {
+		if mcpServerConfig.Runtime.StreamableHTTPConfig.Health.LivenessPath != "" {
+			livenessPath = mcpServerConfig.Runtime.StreamableHTTPConfig.Health.LivenessPath
+		}
+		if mcpServerConfig.Runtime.StreamableHTTPConfig.Health.ReadinessPath != "" {
+			readinessPath = mcpServerConfig.Runtime.StreamableHTTPConfig.Health.ReadinessPath
+		}
+	}
+
 	logger.Info("Setting up streamable HTTP server",
 		zap.Int("port", port),
 		zap.String("base_path", basePath),
@@ -143,6 +159,19 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpserver.MCP
 	sm := NewServerManager(mcpServerConfig)
 	// Create a root mux to handle different endpoints
 	mux := http.NewServeMux()
+
+	// Register health endpoints if enabled (default: true)
+	healthEnabled := true
+	if mcpServerConfig.Runtime.StreamableHTTPConfig.Health != nil {
+		healthEnabled = mcpServerConfig.Runtime.StreamableHTTPConfig.Health.Enabled
+	}
+	if healthEnabled {
+		mux.HandleFunc(livenessPath, healthChecker.LivenessHandler)
+		mux.HandleFunc(readinessPath, healthChecker.ReadinessHandler)
+		logger.Debug("Registered health endpoints",
+			zap.String("liveness_path", livenessPath),
+			zap.String("readiness_path", readinessPath))
+	}
 
 	logger.Debug("Creating MCP handler")
 	// Set up MCP server under /mcp (or whatever is under BasePath)
@@ -173,30 +202,51 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpserver.MCP
 		logger.Debug("Registered OAuth metadata handler", zap.String("path", oauth.ProtectedResourceMetadataEndpoint))
 	}
 
-	// Use custom server with the mux
+	// Create the HTTP server
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
 		Handler: mux,
 	}
+
+	// Create listener first so we know the port is bound before setting ready
+	addr := fmt.Sprintf(":%d", port)
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		logger.Error("Failed to bind to port", zap.Int("port", port), zap.Error(err))
+		return fmt.Errorf("failed to listen on port %d: %w", port, err)
+	}
+
+	// Wrap with TLS if configured
+	if mcpServerConfig.Runtime.StreamableHTTPConfig.TLS != nil {
+		tlsConfig := mcpServerConfig.Runtime.StreamableHTTPConfig.TLS
+		logger.Info("Configuring TLS",
+			zap.String("cert_file", tlsConfig.CertFile),
+			zap.String("key_file", tlsConfig.KeyFile))
+
+		cert, err := tls.LoadX509KeyPair(tlsConfig.CertFile, tlsConfig.KeyFile)
+		if err != nil {
+			logger.Error("Failed to load TLS certificates", zap.Error(err))
+			listenerErr := listener.Close()
+			if listenerErr != nil {
+				logger.Error("Failed to shut down listener", zap.Error(listenerErr))
+			}
+			return fmt.Errorf("failed to load TLS certificates: %w", err)
+		}
+
+		listener = tls.NewListener(listener, &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			MinVersion: tls.VersionTLS12,
+		})
+	}
+
 	logger.Info(fmt.Sprintf("Starting MCP server on port %d", port))
+
+	// Listener is bound and ready - mark server as ready
+	healthChecker.SetReady(true)
 
 	// Channel to capture server errors
 	errCh := make(chan error, 1)
 	go func() {
-		var err error
-		if mcpServerConfig.Runtime.StreamableHTTPConfig.TLS != nil {
-			logger.Info("Starting HTTPS server with TLS",
-				zap.String("cert_file", mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.CertFile),
-				zap.String("key_file", mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.KeyFile))
-			err = srv.ListenAndServeTLS(
-				mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.CertFile,
-				mcpServerConfig.Runtime.StreamableHTTPConfig.TLS.KeyFile,
-			)
-		} else {
-			logger.Info("Starting HTTP server")
-			err = srv.ListenAndServe()
-		}
-
+		err := srv.Serve(listener)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("HTTP server error", zap.Error(err))
 			errCh <- err
@@ -207,6 +257,8 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpserver.MCP
 	select {
 	case <-ctx.Done():
 		logger.Info("Received shutdown signal, shutting down HTTP server gracefully")
+		// Mark as not ready so k8s stops routing traffic during drain
+		healthChecker.SetReady(false)
 		if err := srv.Shutdown(context.Background()); err != nil {
 			logger.Error("Error during server shutdown", zap.Error(err))
 			return err
