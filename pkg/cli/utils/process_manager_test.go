@@ -25,7 +25,9 @@ func setupTestProcessManager(t *testing.T) (*ProcessManager, func()) {
 	}
 
 	cleanup := func() {
-		os.RemoveAll(tmpDir)
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("failed to remove temp dir: %v", err)
+		}
 	}
 
 	return pm, cleanup
@@ -33,11 +35,11 @@ func setupTestProcessManager(t *testing.T) (*ProcessManager, func()) {
 
 func TestSaveProcess(t *testing.T) {
 	tests := []struct {
-		name      string
-		key       string
-		info      ProcessInfo
-		wantErr   bool
-		setup     func(*ProcessManager)
+		name    string
+		key     string
+		info    ProcessInfo
+		wantErr bool
+		setup   func(*ProcessManager)
 	}{
 		{
 			name: "happy path - save new process",

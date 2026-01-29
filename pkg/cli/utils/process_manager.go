@@ -260,6 +260,10 @@ func (pm *ProcessManager) DeleteProcess(key string) error {
 
 // IsProcessAlive checks if a process with the given PID is still running.
 func IsProcessAlive(pid int) bool {
+	if pid <= 0 {
+		return false
+	}
+
 	process, err := os.FindProcess(pid)
 	if err != nil {
 		return false
