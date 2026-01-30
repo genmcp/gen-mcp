@@ -25,7 +25,7 @@ type StreamableHTTPConfig struct {
 	BasePath string `json:"basePath,omitempty" jsonschema:"optional"`
 
 	// Indicates whether the server is stateless (default: true when unset).
-	Stateless bool `json:"stateless,omitempty" jsonschema:"optional"`
+	Stateless *bool `json:"stateless,omitempty" jsonschema:"optional"`
 
 	// OAuth 2.0 configuration for protected resources.
 	Auth *AuthConfig `json:"auth,omitempty" jsonschema:"optional"`
@@ -35,6 +35,15 @@ type StreamableHTTPConfig struct {
 
 	// Health check configuration for k8s probes.
 	Health *HealthConfig `json:"health,omitempty" jsonschema:"optional"`
+}
+
+// IsStateless returns whether the server is stateless.
+// Returns true if Stateless is nil (default) or explicitly set to true.
+func (s *StreamableHTTPConfig) IsStateless() bool {
+	if s == nil || s.Stateless == nil {
+		return true
+	}
+	return *s.Stateless
 }
 
 // TLSConfig defines paths to TLS certificate and private key files.
@@ -47,14 +56,24 @@ type TLSConfig struct {
 }
 
 type HealthConfig struct {
-	// Enable health endpoints (default: true when running HTTP)
-	Enabled bool `json:"enabled,omitempty" jsonschema:"optional"`
+	// Enable health endpoints (default: true when running HTTP).
+	// Use pointer to distinguish between unset (nil = true) and explicit false.
+	Enabled *bool `json:"enabled,omitempty" jsonschema:"optional"`
 
 	// Path for liveness probe (default: /healthz)
 	LivenessPath string `json:"livenessPath,omitempty" jsonschema:"optional"`
 
 	// Path for readiness probe (default: /readyz)
 	ReadinessPath string `json:"readinessPath,omitempty" jsonschema:"optional"`
+}
+
+// IsEnabled returns whether health endpoints are enabled.
+// Returns true if Enabled is nil (default) or explicitly set to true.
+func (h *HealthConfig) IsEnabled() bool {
+	if h == nil || h.Enabled == nil {
+		return true
+	}
+	return *h.Enabled
 }
 
 // ClientTLSConfig defines TLS settings for outbound HTTP requests.

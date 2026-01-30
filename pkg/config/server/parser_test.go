@@ -6,6 +6,7 @@ import (
 
 	"github.com/genmcp/gen-mcp/pkg/config"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/utils/ptr"
 )
 
 func TestParseMcpFile(t *testing.T) {
@@ -24,11 +25,11 @@ func TestParseMcpFile(t *testing.T) {
 					Runtime: &ServerRuntime{
 						TransportProtocol: TransportProtocolStreamableHttp,
 						StreamableHTTPConfig: &StreamableHTTPConfig{
-							Port:      3000,
+							Port:      DefaultPort,
 							BasePath:  DefaultBasePath,
-							Stateless: true,
+							Stateless: ptr.To(true),
 							Health: &HealthConfig{
-								Enabled:       true,
+								Enabled:       ptr.To(true),
 								ReadinessPath: "/readyz",
 								LivenessPath:  "/healthz",
 							},
@@ -47,10 +48,10 @@ func TestParseMcpFile(t *testing.T) {
 						TransportProtocol: TransportProtocolStreamableHttp,
 						StreamableHTTPConfig: &StreamableHTTPConfig{
 							BasePath:  DefaultBasePath,
-							Port:      3000,
-							Stateless: false,
+							Port:      3000, // explicitly set in YAML
+							Stateless: ptr.To(false),
 							Health: &HealthConfig{
-								Enabled:       true,
+								Enabled:       ptr.To(true),
 								ReadinessPath: "/readyz",
 								LivenessPath:  "/healthz",
 							},
@@ -81,9 +82,10 @@ func TestParseMcpFile(t *testing.T) {
 						TransportProtocol: TransportProtocolStreamableHttp,
 						StreamableHTTPConfig: &StreamableHTTPConfig{
 							Port:      8008,
-							Stateless: true,
+							BasePath:  DefaultBasePath,
+							Stateless: ptr.To(true),
 							Health: &HealthConfig{
-								Enabled:       true,
+								Enabled:       ptr.To(true),
 								ReadinessPath: "/readyz",
 								LivenessPath:  "/healthz",
 							},
@@ -102,13 +104,14 @@ func TestParseMcpFile(t *testing.T) {
 						TransportProtocol: TransportProtocolStreamableHttp,
 						StreamableHTTPConfig: &StreamableHTTPConfig{
 							Port:      7007,
-							Stateless: true,
+							BasePath:  DefaultBasePath,
+							Stateless: ptr.To(true),
 							TLS: &TLSConfig{
 								CertFile: "/path/to/server.crt",
 								KeyFile:  "/path/to/server.key",
 							},
 							Health: &HealthConfig{
-								Enabled:       true,
+								Enabled:       ptr.To(true),
 								ReadinessPath: "/readyz",
 								LivenessPath:  "/healthz",
 							},
@@ -133,6 +136,8 @@ func TestParseMcpFile(t *testing.T) {
 				assert.ErrorContains(t, err, testCase.errorContains, "the error should contain the right message")
 			} else {
 				assert.NoError(t, err, "parsing mcp file should succeed")
+				// Apply defaults after parsing (this is the new pattern: parse -> apply defaults -> validate)
+				mcpFile.ApplyDefaults()
 			}
 
 			assert.Equal(t, testCase.expected, mcpFile)

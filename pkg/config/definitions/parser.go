@@ -177,27 +177,3 @@ func (p *ResourceTemplate) UnmarshalJSON(data []byte) error {
 
 	return nil
 }
-
-func (s *StreamableHTTPConfig) UnmarshalJSON(data []byte) error {
-	type Doppleganger StreamableHTTPConfig
-
-	tmp := struct {
-		Stateless *bool `json:"stateless,omitempty"`
-		*Doppleganger
-	}{
-		Doppleganger: (*Doppleganger)(s),
-	}
-
-	err := json.Unmarshal(data, &tmp)
-	if err != nil {
-		return err
-	}
-
-	if tmp.Stateless != nil {
-		s.Stateless = *tmp.Stateless
-	} else {
-		s.Stateless = true
-	}
-
-	return nil
-}
