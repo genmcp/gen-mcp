@@ -210,8 +210,15 @@ func TestImageBuilder_Build(t *testing.T) {
 				configFile, err := img.ConfigFile()
 				assert.NoError(t, err)
 
+				// Verify config labels (for container runtime)
 				assert.Equal(t, "test-server", configFile.Config.Labels[McpServerNameLabel])
 				assert.Equal(t, "test-server", configFile.Config.Labels[ImageTitleLabel])
+
+				// Verify manifest annotations (for registry display like Quay.io)
+				manifest, err := img.Manifest()
+				assert.NoError(t, err)
+				assert.Equal(t, "test-server", manifest.Annotations[McpServerNameLabel])
+				assert.Equal(t, "test-server", manifest.Annotations[ImageTitleLabel])
 			},
 		},
 		{
