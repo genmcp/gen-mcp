@@ -88,7 +88,21 @@ func RunServer(ctx context.Context, toolDefinitionsPath, serverConfigPath string
 		MCPServerConfig:    serverConfigFile.MCPServerConfig,
 	}
 
-	// GetBaseLogger() handles nil Runtime by returning a nop logger
+	// Apply defaults first, then env overrides, then validate
+	// Flow: parse -> defaults -> env overrides -> validate -> run
+	mcpServer.ApplyDefaults()
+
+	// Apply runtime overrides from environment variables
+	envOverrider := serverconfig.NewEnvRuntimeOverrider()
+	if err := envOverrider.ApplyOverrides(mcpServer.Runtime); err != nil {
+		// GetBaseLogger() handles nil Runtime by returning a nop logger
+		logger := mcpServer.Runtime.GetBaseLogger()
+		logger.Warn("Failed to apply overrides from env vars to the mcp server",
+			zap.String("server_name", mcpServer.Name()),
+			zap.Error(err))
+	}
+
+	// Now we can safely get the logger (Runtime is guaranteed non-nil after ApplyDefaults)
 	logger := mcpServer.Runtime.GetBaseLogger()
 
 	// Log tool count and server config usage as promised in tutorials
@@ -103,6 +117,7 @@ func RunServer(ctx context.Context, toolDefinitionsPath, serverConfigPath string
 		zap.String("server_name", mcpServer.Name()),
 		zap.String("server_version", mcpServer.Version()))
 
+	// Validate after defaults and overrides are applied
 	if err := mcpServer.Validate(invocation.InvocationValidator); err != nil {
 		logger.Error("GenMCP config file validation failed",
 			zap.String("tool_definitions_path", toolDefinitionsPath),
@@ -112,15 +127,6 @@ func RunServer(ctx context.Context, toolDefinitionsPath, serverConfigPath string
 	}
 
 	logger.Debug("GenMCP config files validated successfully, creating server instance")
-
-	// Apply runtime overrides from environment variables
-	// if something goes wrong in the env vars, we warn but continue
-	envOverrider := serverconfig.NewEnvRuntimeOverrider()
-	if err := envOverrider.ApplyOverrides(mcpServer.Runtime); err != nil {
-		logger.Warn("Failed to apply overrides from env vars to the mcp server",
-			zap.String("server_name", mcpServer.Name()),
-			zap.Error(err))
-	}
 
 	return DoRunServer(ctx, mcpServer)
 }
