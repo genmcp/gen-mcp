@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
 )
@@ -35,7 +36,7 @@ func TestDefaultPort8080InOpenAPIV3Conversion(t *testing.T) {
 	assert.NotNil(t, convertedFiles)
 	assert.NotNil(t, convertedFiles.ServerConfig)
 
-	assert.Equal(t, 8080, convertedFiles.ServerConfig.Runtime.StreamableHTTPConfig.Port, "OpenAPI v3 conversion should default to port 8080")
+	assert.Equal(t, serverconfig.DefaultPort, convertedFiles.ServerConfig.Runtime.StreamableHTTPConfig.Port, "OpenAPI v3 conversion should default to port 8080")
 }
 
 func TestInvalidToolsAreSkippedButValidOnesIncluded(t *testing.T) {

@@ -33,6 +33,9 @@ func makeServerWithoutValidation(mcpServer *mcpserver.MCPServer) (*mcp.Server, e
 }
 
 func DoRunServer(ctx context.Context, mcpServer *mcpserver.MCPServer) error {
+	// Apply defaults to ensure all config values are set
+	mcpServer.ApplyDefaults()
+
 	logger := mcpServer.Runtime.GetBaseLogger()
 	logger.Info("Starting MCP server",
 		zap.String("server_name", mcpServer.Name()),
@@ -85,7 +88,21 @@ func RunServer(ctx context.Context, toolDefinitionsPath, serverConfigPath string
 		MCPServerConfig:    serverConfigFile.MCPServerConfig,
 	}
 
-	// Now we can get the logger from the runtime config
+	// Apply defaults first, then env overrides, then validate
+	// Flow: parse -> defaults -> env overrides -> validate -> run
+	mcpServer.ApplyDefaults()
+
+	// Apply runtime overrides from environment variables
+	envOverrider := serverconfig.NewEnvRuntimeOverrider()
+	if err := envOverrider.ApplyOverrides(mcpServer.Runtime); err != nil {
+		// GetBaseLogger() handles nil Runtime by returning a nop logger
+		logger := mcpServer.Runtime.GetBaseLogger()
+		logger.Warn("Failed to apply overrides from env vars to the mcp server",
+			zap.String("server_name", mcpServer.Name()),
+			zap.Error(err))
+	}
+
+	// Now we can safely get the logger (Runtime is guaranteed non-nil after ApplyDefaults)
 	logger := mcpServer.Runtime.GetBaseLogger()
 
 	// Log tool count and server config usage as promised in tutorials
@@ -100,6 +117,7 @@ func RunServer(ctx context.Context, toolDefinitionsPath, serverConfigPath string
 		zap.String("server_name", mcpServer.Name()),
 		zap.String("server_version", mcpServer.Version()))
 
+	// Validate after defaults and overrides are applied
 	if err := mcpServer.Validate(invocation.InvocationValidator); err != nil {
 		logger.Error("GenMCP config file validation failed",
 			zap.String("tool_definitions_path", toolDefinitionsPath),
@@ -109,15 +127,6 @@ func RunServer(ctx context.Context, toolDefinitionsPath, serverConfigPath string
 	}
 
 	logger.Debug("GenMCP config files validated successfully, creating server instance")
-
-	// Apply runtime overrides from environment variables
-	// if something goes wrong in the env vars, we warn but continue
-	envOverrider := serverconfig.NewEnvRuntimeOverrider()
-	if err := envOverrider.ApplyOverrides(mcpServer.Runtime); err != nil {
-		logger.Warn("Failed to apply overrides from env vars to the mcp server",
-			zap.String("server_name", mcpServer.Name()),
-			zap.Error(err))
-	}
 
 	return DoRunServer(ctx, mcpServer)
 }
@@ -134,21 +143,22 @@ func parseServerConfigFile(filePath string) (*serverconfig.MCPServerConfigFile, 
 
 func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpserver.MCPServer) error {
 	logger := mcpServerConfig.Runtime.GetBaseLogger()
-	port := mcpServerConfig.Runtime.StreamableHTTPConfig.Port
-	basePath := mcpServerConfig.Runtime.StreamableHTTPConfig.BasePath
-	stateless := mcpServerConfig.Runtime.StreamableHTTPConfig.Stateless
+	httpConfig := mcpServerConfig.Runtime.StreamableHTTPConfig
+	port := httpConfig.Port
+	basePath := httpConfig.BasePath
+	stateless := httpConfig.IsStateless()
 
 	healthChecker := health.NewChecker()
-	livenessPath := "/healthz"
-	readinessPath := "/readyz"
-
-	if mcpServerConfig.Runtime.StreamableHTTPConfig.Health != nil {
-		if mcpServerConfig.Runtime.StreamableHTTPConfig.Health.LivenessPath != "" {
-			livenessPath = mcpServerConfig.Runtime.StreamableHTTPConfig.Health.LivenessPath
-		}
-		if mcpServerConfig.Runtime.StreamableHTTPConfig.Health.ReadinessPath != "" {
-			readinessPath = mcpServerConfig.Runtime.StreamableHTTPConfig.Health.ReadinessPath
-		}
+	// Get health config with defensive nil check
+	healthConfig := httpConfig.Health
+	var livenessPath, readinessPath string
+	if healthConfig != nil {
+		livenessPath = healthConfig.LivenessPath
+		readinessPath = healthConfig.ReadinessPath
+	} else {
+		// Fallback to defaults if ApplyDefaults() wasn't called
+		livenessPath = serverconfig.DefaultLivenessPath
+		readinessPath = serverconfig.DefaultReadinessPath
 	}
 
 	logger.Info("Setting up streamable HTTP server",
@@ -161,11 +171,7 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpserver.MCP
 	mux := http.NewServeMux()
 
 	// Register health endpoints if enabled (default: true)
-	healthEnabled := true
-	if mcpServerConfig.Runtime.StreamableHTTPConfig.Health != nil {
-		healthEnabled = mcpServerConfig.Runtime.StreamableHTTPConfig.Health.Enabled
-	}
-	if healthEnabled {
+	if healthConfig.IsEnabled() {
 		mux.HandleFunc(livenessPath, healthChecker.LivenessHandler)
 		mux.HandleFunc(readinessPath, healthChecker.ReadinessHandler)
 		logger.Debug("Registered health endpoints",
@@ -234,7 +240,7 @@ func runStreamableHttpServer(ctx context.Context, mcpServerConfig *mcpserver.MCP
 
 		listener = tls.NewListener(listener, &tls.Config{
 			Certificates: []tls.Certificate{cert},
-			MinVersion: tls.VersionTLS12,
+			MinVersion:   tls.VersionTLS12,
 		})
 	}
 

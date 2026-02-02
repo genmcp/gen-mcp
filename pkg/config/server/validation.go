@@ -48,14 +48,11 @@ func (r *ServerRuntime) Validate() error {
 					TransportProtocolStreamableHttp,
 				),
 			)
-		}
-
-		if r.StreamableHTTPConfig.Port <= 0 {
-			err = errors.Join(err, fmt.Errorf("streamableHttpConfig.port must be greater than 0"))
-		}
-
-		if r.StreamableHTTPConfig.BasePath == "" {
-			r.StreamableHTTPConfig.BasePath = DefaultBasePath
+		} else {
+			// Only validate fields if StreamableHTTPConfig is set
+			if r.StreamableHTTPConfig.Port <= 0 {
+				err = errors.Join(err, fmt.Errorf("streamableHttpConfig.port must be greater than 0"))
+			}
 		}
 	}
 

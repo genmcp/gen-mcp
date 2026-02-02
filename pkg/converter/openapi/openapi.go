@@ -81,7 +81,7 @@ func McpFilesFromOpenApiV2Model(model *v2high.Swagger, host string) (*ConvertedM
 			Runtime: &serverconfig.ServerRuntime{
 				TransportProtocol: serverconfig.TransportProtocolStreamableHttp,
 				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
-					Port: 8080,
+					Port: serverconfig.DefaultPort,
 				},
 			},
 		},
@@ -292,7 +292,7 @@ func McpFilesFromOpenApiV3Model(model *v3high.Document, host string) (*Converted
 			Runtime: &serverconfig.ServerRuntime{
 				TransportProtocol: serverconfig.TransportProtocolStreamableHttp,
 				StreamableHTTPConfig: &serverconfig.StreamableHTTPConfig{
-					Port: 8080,
+					Port: serverconfig.DefaultPort,
 				},
 			},
 		},
