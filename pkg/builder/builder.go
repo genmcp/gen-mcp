@@ -420,7 +420,27 @@ func (b *ImageBuilder) assembleImage(
 		}
 	}
 
-	return mutate.ConfigFile(img, cfg)
+	img, err = mutate.ConfigFile(img, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set image config: %w", err)
+	}
+
+	// Also set manifest annotations so registries (like Quay.io) display them.
+	// Config labels are for container runtime; manifest annotations are for registry metadata.
+	annotations := map[string]string{
+		ImageTitleLabel:       defs.Name,
+		ImageDescriptionLabel: "GenMCP Server Image",
+		ImageCreatedLabel:     createTime.Format(time.RFC3339),
+		McpServerNameLabel:    defs.Name,
+	}
+	if opts.ImageTag != "" {
+		annotations[ImageRefNameLabel] = opts.ImageTag
+		if tag := extractTagFromReference(opts.ImageTag); tag != "" {
+			annotations[ImageVersionLabel] = tag
+		}
+	}
+
+	return mutate.Annotations(img, annotations).(v1.Image), nil
 }
 
 // createBinaryLayer creates a tarball layer with the genmcp-server binary at /usr/local/bin/genmcp-server
