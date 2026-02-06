@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- New `genmcp inspect` command to view detailed MCP server configuration. Displays server metadata, tools, prompts, resources, and resource templates with descriptions. Shows security status (TLS/Auth) for StreamableHTTP transport without exposing sensitive values (StdioConfig has no security configuration). Generates MCP client configuration JSON for easy client setup. Supports `--json` flag for machine-readable output and name-based lookup of running detached servers. (#299, fixes #280)
 - Support for liveness/readiness probes in the streamable HTTP server (#291).
 
 ## [v0.2.3]
