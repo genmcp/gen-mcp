@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/genmcp/gen-mcp/pkg/cli/utils"
 	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
@@ -55,7 +56,7 @@ func executeRunCmd(_ *cobra.Command, _ []string) {
 	}
 
 	// Parse and validate MCP file
-	_, err = definitions.ParseMCPFile(toolDefinitionsPath)
+	mcpFile, err := definitions.ParseMCPFile(toolDefinitionsPath)
 	if err != nil {
 		fmt.Printf("invalid MCP file: %s\n", err)
 		return
@@ -100,6 +101,32 @@ func executeRunCmd(_ *cobra.Command, _ []string) {
 	err = processManager.SaveProcessId(processIdentifier, cmd.Process.Pid)
 	if err != nil {
 		fmt.Printf("failed to save pid for genmcp server, to stop the server you will need to manually kill pid %d: %s\n", cmd.Process.Pid, err.Error())
+	}
+
+	// Save full process info for inspect command
+	port := 0
+	transport := serverconfig.TransportProtocolStreamableHttp
+	if serverConfigFile.Runtime != nil {
+		transport = serverConfigFile.Runtime.TransportProtocol
+		if serverConfigFile.Runtime.StreamableHTTPConfig != nil {
+			port = serverConfigFile.Runtime.StreamableHTTPConfig.Port
+		}
+	}
+	processInfo := utils.ProcessInfo{
+		PID:              cmd.Process.Pid,
+		Name:             mcpFile.Name,
+		Version:          mcpFile.Version,
+		Transport:        transport,
+		Port:             port,
+		ToolCount:        len(mcpFile.Tools),
+		PromptCount:      len(mcpFile.Prompts),
+		ResourceCount:    len(mcpFile.Resources) + len(mcpFile.ResourceTemplates),
+		StartedAt:        time.Now(),
+		MCPFilePath:      toolDefinitionsPath,
+		ServerConfigPath: serverConfigPath,
+	}
+	if err := processManager.SaveProcess(processIdentifier, processInfo); err != nil {
+		fmt.Printf("warning: failed to save process info: %s\n", err.Error())
 	}
 
 	fmt.Printf("successfully started gen-mcp server...\n")

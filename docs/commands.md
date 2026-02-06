@@ -12,13 +12,14 @@ The `genmcp` CLI provides commands for managing MCP servers, converting API spec
 
 ## Quick Reference
 
-| Command               | Description            | Common Usage                                                        |
-|-----------------------|------------------------|---------------------------------------------------------------------|
-| [`run`](#run)         | Start an MCP server    | `genmcp run -f mcpfile.yaml -s mcpserver.yaml`                      |
-| [`stop`](#stop)       | Stop a running server  | `genmcp stop -f mcpfile.yaml`                                       |
-| [`convert`](#convert) | Convert OpenAPI to MCP | `genmcp convert openapi.json`                                       |
-| [`build`](#build)     | Build container image  | `genmcp build -f mcpfile.yaml -s mcpserver.yaml --tag myapi:latest` |
-| [`version`](#version) | Display version info   | `genmcp version`                                                    |
+| Command               | Description             | Common Usage                                                        |
+|-----------------------|-------------------------|---------------------------------------------------------------------|
+| [`run`](#run)         | Start an MCP server     | `genmcp run -f mcpfile.yaml -s mcpserver.yaml`                      |
+| [`stop`](#stop)       | Stop a running server   | `genmcp stop -f mcpfile.yaml`                                       |
+| [`inspect`](#inspect) | Show server details     | `genmcp inspect -s mcpserver.yaml`                                  |
+| [`convert`](#convert) | Convert OpenAPI to MCP  | `genmcp convert openapi.json`                                       |
+| [`build`](#build)     | Build container image   | `genmcp build -f mcpfile.yaml -s mcpserver.yaml --tag myapi:latest` |
+| [`version`](#version) | Display version info    | `genmcp version`                                                    |
 
 ---
 
@@ -155,6 +156,164 @@ genmcp stop -f myapi.yaml
 - **File path must match**: The MCP file path used with `stop` must match the path used with `run --detach`
 - **Only works with detached servers**: Servers running in foreground mode can be stopped with Ctrl+C
 - **Manual cleanup**: If the process was manually killed outside gen-mcp, you may need to manually clean up the saved PID file
+
+---
+
+## <span style="color: #E6622A;">inspect</span>
+
+Display detailed information about an MCP server configuration.
+
+#### Usage
+
+```bash
+genmcp inspect [name] [flags]
+```
+
+#### Arguments
+
+| Argument | Description                                           |
+|----------|-------------------------------------------------------|
+| `[name]` | Optional name of a running server to inspect          |
+
+#### Flags
+
+| Flag              | Short | Default          | Description                                      |
+|-------------------|-------|------------------|--------------------------------------------------|
+| `--file`          | `-f`  | `mcpfile.yaml`   | Path to the MCP file                             |
+| `--server-config` | `-s`  | `mcpserver.yaml` | Path to the server config file                   |
+| `--json`          |       | `false`          | Output in JSON format for machine-readable output|
+
+#### How It Works
+
+The `inspect` command:
+
+1. **Loads configuration** - Parses both the MCP file and server config file
+2. **Displays server info** - Shows name, version, and transport configuration
+3. **Lists capabilities** - Shows all tools, prompts, resources, and resource templates with descriptions
+4. **Shows security status** - Indicates whether TLS and OAuth authentication are configured
+5. **Generates client config** - Outputs valid JSON for configuring MCP clients to connect
+
+**Lookup by Name:**
+When a server name is provided as an argument, the command looks up running servers by name from the process registry (servers started with `genmcp run --detach`).
+
+**Smart Path Resolution:**
+When only `-s` is specified without `-f`, the command automatically looks for `mcpfile.yaml` in the same directory as the server config file.
+
+#### Examples
+
+**Basic usage:**
+```bash
+# Inspect using default files (mcpfile.yaml and mcpserver.yaml)
+genmcp inspect
+
+# Inspect with specific server config (auto-finds mcpfile.yaml in same directory)
+genmcp inspect -s examples/http-conversion/mcpserver.yaml
+
+# Inspect with explicit file paths
+genmcp inspect -f myapi.yaml -s myapi-server.yaml
+```
+
+**JSON output for scripting:**
+```bash
+# Get machine-readable output
+genmcp inspect -s mcpserver.yaml --json
+
+# Extract specific fields with jq
+genmcp inspect -s mcpserver.yaml --json | jq '.tools[].name'
+
+# Get MCP client configuration
+genmcp inspect -s mcpserver.yaml --json | jq '.mcpClientConfig'
+```
+
+**Inspect a running server:**
+```bash
+# Start a server in background
+genmcp run -f myapi.yaml -s myapi-server.yaml --detach
+
+# Inspect by server name
+genmcp inspect "My API Server"
+
+# If server not found, shows available running servers
+genmcp inspect "Unknown Server"
+# Output: no running server found with name: Unknown Server
+#         Available running servers:
+#           - My API Server (PID: 12345)
+```
+
+#### Output Format
+
+**Human-readable output:**
+```
+Server: Feature Request API (v1.0.0)
+Transport: streamablehttp
+Endpoint: http://localhost:8080/mcp
+
+Security:
+  TLS: disabled
+  Auth: enabled (OAuth 2.0)
+
+Health Endpoints:
+  Liveness: /healthz
+  Readiness: /readyz
+
+Capabilities:
+  Tools (5):
+    - get_features: Returns a list of all features
+    - post_features: Create a new feature request
+    ...
+  Prompts (1):
+    - feature-analysis: Analyze feature requests
+  Resources (1):
+    - feature-report: Feature progress report (uri: http://...)
+
+MCP Client Configuration:
+  {
+    "mcpServers": {
+      "Feature Request API": {
+        "type": "http",
+        "url": "http://localhost:8080/mcp"
+      }
+    }
+  }
+```
+
+**JSON output (`--json`):**
+```json
+{
+  "server": {
+    "name": "Feature Request API",
+    "version": "1.0.0"
+  },
+  "transport": {
+    "protocol": "streamablehttp",
+    "port": 8080,
+    "basePath": "/mcp"
+  },
+  "security": {
+    "auth": {
+      "enabled": true,
+      "jwksUri": "https://auth.example.com/.well-known/jwks.json"
+    }
+  },
+  "tools": [...],
+  "prompts": [...],
+  "resources": [...],
+  "mcpClientConfig": {
+    "mcpServers": {
+      "Feature Request API": {
+        "type": "http",
+        "url": "http://localhost:8080/mcp"
+      }
+    }
+  }
+}
+```
+
+#### Notes
+
+- **MCP Client Configuration**: The generated JSON can be used directly with Claude Desktop, Claude Code, or other MCP clients
+- **Security display**: Shows whether TLS and Auth are enabled without exposing sensitive values like keys or secrets
+- **Transport-aware**: Generates appropriate client config for both HTTP and stdio transports
 
 ---
 
