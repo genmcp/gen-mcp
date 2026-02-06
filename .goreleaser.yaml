@@ -1,0 +1,146 @@
+version: 2
+
+git:
+  tag_sort: -version:refname
+  prerelease_suffix: "-"
+  ignore_tags:
+    - nightly
+
+builds:
+  - id: genmcp
+    main: ./cmd/genmcp
+    binary: genmcp
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{.Tag}}
+
+  - id: genmcp-server
+    main: ./cmd/genmcp-server
+    binary: genmcp-server
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+
+archives:
+  - id: genmcp-archive
+    ids:
+      - genmcp
+    formats:
+      - zip
+    name_template: "genmcp-{{ .Os }}-{{ .Arch }}"
+
+  - id: genmcp-server-archive
+    ids:
+      - genmcp-server
+    formats:
+      - zip
+    name_template: "genmcp-server-{{ .Os }}-{{ .Arch }}"
+
+signs:
+  - cmd: cosign
+    signature: "${artifact}.bundle"
+    args:
+      - sign-blob
+      - --yes
+      - --bundle=${signature}
+      - ${artifact}
+    artifacts: archive
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  use: github-native
+
+release:
+  github:
+    owner: genmcp
+    name: gen-mcp
+  draft: false
+  prerelease: auto
+
+homebrew_casks:
+  - name: genmcp
+    ids:
+      - genmcp-archive
+    directory: Casks
+    repository:
+      owner: genmcp
+      name: homebrew-genmcp
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    url:
+      verified: github.com/genmcp/gen-mcp
+    homepage: https://github.com/genmcp/gen-mcp
+    description: Framework and runtime for declarative MCP servers
+    license: Apache-2.0
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/genmcp"]
+          end
+
+  - name: genmcp-server
+    ids:
+      - genmcp-server-archive
+    directory: Casks
+    repository:
+      owner: genmcp
+      name: homebrew-genmcp
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    url:
+      verified: github.com/genmcp/gen-mcp
+    homepage: https://github.com/genmcp/gen-mcp
+    description: MCP server runtime for gen-mcp
+    license: Apache-2.0
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/genmcp-server"]
+          end
+
+nfpms:
+  - id: genmcp-nfpm
+    package_name: genmcp
+    ids:
+      - genmcp
+    vendor: genmcp
+    homepage: https://github.com/genmcp/gen-mcp
+    maintainer: genmcp
+    description: Framework and runtime for declarative MCP servers
+    license: Apache-2.0
+    formats:
+      - rpm
+      - deb
+    bindir: /usr/bin
+
+  - id: genmcp-server-nfpm
+    package_name: genmcp-server
+    ids:
+      - genmcp-server
+    vendor: genmcp
+    homepage: https://github.com/genmcp/gen-mcp
+    maintainer: genmcp
+    description: MCP server runtime for gen-mcp
+    license: Apache-2.0
+    formats:
+      - rpm
+      - deb
+    bindir: /usr/bin
