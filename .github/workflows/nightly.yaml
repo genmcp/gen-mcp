@@ -1,0 +1,103 @@
+name: Nightly Release
+
+on:
+  schedule:
+    - cron: '0 2 * * 1-5'
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-release
+  cancel-in-progress: true
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check for unreleased commits
+        id: check_commits
+        run: |
+          # Find the latest release tag (any x.y.z release)
+          LATEST_RELEASE=$(git tag -l 'v*.*.*' --sort=-version:refname | grep -v 'prerelease' | grep -v '^nightly' | head -n1)
+
+          if [ -z "$LATEST_RELEASE" ]; then
+            echo "No existing releases found, creating first nightly"
+            COMMITS_SINCE_RELEASE=$(git rev-list HEAD --count)
+            LATEST_RELEASE_COMMIT=""
+          else
+            echo "Latest release: $LATEST_RELEASE"
+            COMMITS_SINCE_RELEASE=$(git rev-list ${LATEST_RELEASE}..HEAD --count)
+            LATEST_RELEASE_COMMIT="$LATEST_RELEASE"
+          fi
+
+          echo "Commits since latest release: $COMMITS_SINCE_RELEASE"
+
+          if [ "$COMMITS_SINCE_RELEASE" -eq "0" ]; then
+            echo "No new commits since latest release, skipping nightly"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CURRENT_COMMIT=$(git rev-parse HEAD)
+
+          # Check for existing nightly with same commit
+          EXISTING_NIGHTLY_COMMIT=""
+          if git rev-parse --verify nightly >/dev/null 2>&1; then
+            EXISTING_NIGHTLY_COMMIT=$(git rev-list -n 1 nightly 2>/dev/null || echo "")
+          fi
+
+          if [ "$EXISTING_NIGHTLY_COMMIT" = "$CURRENT_COMMIT" ]; then
+            echo "Nightly release already exists for current commit"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Go
+        if: steps.check_commits.outputs.skip != 'true'
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Run tests
+        if: steps.check_commits.outputs.skip != 'true'
+        run: make test
+
+      - name: Install cosign
+        if: steps.check_commits.outputs.skip != 'true'
+        uses: sigstore/cosign-installer@v3
+
+      - name: Prepare nightly release
+        if: steps.check_commits.outputs.skip != 'true'
+        run: |
+          gh release delete nightly --yes --cleanup-tag || true
+          gh release create nightly \
+            --title "Nightly ($(date -u +%Y-%m-%d) - $(git rev-parse --short HEAD))" \
+            --generate-notes \
+            --prerelease
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run GoReleaser
+        if: steps.check_commits.outputs.skip != 'true'
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --snapshot --clean --skip=homebrew,publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        if: steps.check_commits.outputs.skip != 'true'
+        run: gh release upload nightly dist/*.zip dist/*.bundle dist/*.deb dist/*.rpm dist/checksums.txt --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
