@@ -3,17 +3,17 @@ module github.com/genmcp/gen-mcp
 go 1.25.6
 
 require (
-	github.com/google/go-containerregistry v0.21.0
+	github.com/google/go-containerregistry v0.21.2
 	github.com/google/jsonschema-go v0.4.2
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/invopop/jsonschema v0.13.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lestrrat-go/jwx/v3 v3.0.13
-	github.com/modelcontextprotocol/go-sdk v1.3.1
+	github.com/modelcontextprotocol/go-sdk v1.4.0
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/openai/openai-go/v2 v2.7.1
-	github.com/pb33f/libopenapi v0.33.11
+	github.com/pb33f/libopenapi v0.34.0
 	github.com/sigstore/sigstore-go v1.1.4
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
