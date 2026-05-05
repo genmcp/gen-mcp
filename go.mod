@@ -4,32 +4,30 @@ go 1.25.7
 
 require (
 	github.com/google/go-containerregistry v0.21.5
-	github.com/google/jsonschema-go v0.4.2
+	github.com/google/jsonschema-go v0.4.3
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
-	github.com/invopop/jsonschema v0.13.0
+	github.com/invopop/jsonschema v0.14.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lestrrat-go/jwx/v3 v3.1.0
-	github.com/modelcontextprotocol/go-sdk v1.5.0
-	github.com/onsi/ginkgo/v2 v2.28.1
-	github.com/onsi/gomega v1.39.1
+	github.com/modelcontextprotocol/go-sdk v1.6.0
+	github.com/onsi/ginkgo/v2 v2.28.3
+	github.com/onsi/gomega v1.40.0
 	github.com/openai/openai-go/v2 v2.7.1
-	github.com/pb33f/libopenapi v0.36.1
+	github.com/pb33f/libopenapi v0.36.3
 	github.com/sigstore/sigstore-go v1.1.4
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/yosida95/uritemplate/v3 v3.0.2
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/yaml v1.6.0
 )
 
 require (
-	github.com/mailru/easyjson v0.9.0 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
-	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 )
 
 require (
@@ -82,7 +80,7 @@ require (
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/google/certificate-transparency-go v1.3.2 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83 // indirect
+	github.com/google/pprof v0.0.0-20260402051712-545e8a4df936 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.3 // indirect
 	github.com/in-toto/attestation v1.1.2 // indirect
