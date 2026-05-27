@@ -12,7 +12,6 @@
   "paths": {
     "/no-description-1": {
       "get": {
-        "summary": "No description endpoint 1",
         "operationId": "getNoDescription1",
         "responses": {
           "200": {
@@ -23,7 +22,6 @@
     },
     "/no-description-2": {
       "post": {
-        "summary": "No description endpoint 2",
         "operationId": "postNoDescription2",
         "responses": {
           "200": {

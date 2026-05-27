@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
@@ -44,17 +45,17 @@ func TestInvalidToolsAreSkippedButValidOnesIncluded(t *testing.T) {
 
 	convertedFiles, err := DocumentToMcpFile(docBytes, "")
 
-	// We should get an error about the invalid tool but still get valid GenMCP config files
-	assert.Error(t, err, "conversion should report errors about invalid tools")
+	// With summary fallback, all tools should now be valid (summary fills in missing description)
+	assert.NoError(t, err, "conversion should not report errors when summary fallback is available")
 	assert.NotNil(t, convertedFiles, "GenMCP config files should still be generated")
 	assert.NotNil(t, convertedFiles.ToolDefinitions, "tool definitions should be generated")
 
 	assert.NotNil(t, convertedFiles.ToolDefinitions.Tools, "tool definitions should have tools")
 
-	// Should have exactly 2 valid tools (the ones with descriptions)
-	assert.Len(t, convertedFiles.ToolDefinitions.Tools, 2, "should have exactly 2 valid tools")
+	// All 3 tools should now be valid (the previously-invalid one gets summary as description)
+	assert.Len(t, convertedFiles.ToolDefinitions.Tools, 3, "should have exactly 3 valid tools")
 
-	// Check that the valid tools are present
+	// Check that all tools are present
 	toolNames := make([]string, len(convertedFiles.ToolDefinitions.Tools))
 	for i, tool := range convertedFiles.ToolDefinitions.Tools {
 		toolNames[i] = tool.Name
@@ -62,11 +63,8 @@ func TestInvalidToolsAreSkippedButValidOnesIncluded(t *testing.T) {
 	}
 
 	assert.Contains(t, toolNames, "get_valid-endpoint", "should include the valid GET endpoint")
+	assert.Contains(t, toolNames, "get_invalid-endpoint", "should include the endpoint that fell back to summary")
 	assert.Contains(t, toolNames, "post_another-valid-endpoint", "should include the valid POST endpoint")
-
-	// Check that the error message contains information about the skipped tool
-	assert.Contains(t, err.Error(), "get_invalid-endpoint", "error should mention the skipped tool")
-	assert.Contains(t, err.Error(), "description is required", "error should mention why the tool was skipped")
 }
 
 func TestAllToolsInvalidStillReturnsEmptyMcpFile(t *testing.T) {
@@ -84,6 +82,40 @@ func TestAllToolsInvalidStillReturnsEmptyMcpFile(t *testing.T) {
 	// Check that error mentions both skipped tools
 	assert.Contains(t, err.Error(), "get_no-description-1", "error should mention first skipped tool")
 	assert.Contains(t, err.Error(), "post_no-description-2", "error should mention second skipped tool")
+}
+
+func TestSummaryFallbackWhenDescriptionAbsent(t *testing.T) {
+	docBytes, _ := os.ReadFile("testdata/openapi_v3_summary_only.json")
+
+	convertedFiles, err := DocumentToMcpFile(docBytes, "")
+	assert.NoError(t, err, "conversion should not produce errors")
+	assert.NotNil(t, convertedFiles, "GenMCP config files should be generated")
+	assert.NotNil(t, convertedFiles.ToolDefinitions, "tool definitions should be generated")
+
+	// All 3 tools should be generated (none skipped)
+	assert.Len(t, convertedFiles.ToolDefinitions.Tools, 3, "should have exactly 3 valid tools")
+
+	// Build a map of tool name -> tool for easier assertions
+	toolsByName := make(map[string]*definitions.Tool)
+	for _, tool := range convertedFiles.ToolDefinitions.Tools {
+		toolsByName[tool.Name] = tool
+	}
+
+	// Summary-only operations should use summary as description
+	listUsers := toolsByName["get_users"]
+	assert.NotNil(t, listUsers, "should have get_users tool")
+	assert.Equal(t, "List all users", listUsers.Description, "summary-only tool should use summary as description")
+	assert.Equal(t, "List all users", listUsers.Title, "title should still be the summary")
+
+	getUser := toolsByName["get_users-userId"]
+	assert.NotNil(t, getUser, "should have get_users-userId tool")
+	assert.Equal(t, "Get a user by ID", getUser.Description, "summary-only tool should use summary as description")
+
+	// Operation with both summary and description should use description
+	health := toolsByName["get_health"]
+	assert.NotNil(t, health, "should have get_health tool")
+	assert.Equal(t, "Returns the health status of the service", health.Description, "tool with both fields should use description")
+	assert.Equal(t, "Health check endpoint", health.Title, "title should be the summary")
 }
 
 func TestOpenAPIV2BodyParameterHandling(t *testing.T) {
