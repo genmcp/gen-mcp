@@ -5,8 +5,10 @@ import (
 	"os"
 	"testing"
 
+	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/yaml"
 )
 
@@ -44,17 +46,18 @@ func TestInvalidToolsAreSkippedButValidOnesIncluded(t *testing.T) {
 
 	convertedFiles, err := DocumentToMcpFile(docBytes, "")
 
-	// We should get an error about the invalid tool but still get valid GenMCP config files
-	assert.Error(t, err, "conversion should report errors about invalid tools")
+	// One tool has neither summary nor description, so we expect an error about it being skipped
+	require.Error(t, err, "conversion should report an error for the tool with no summary or description")
+	assert.Contains(t, err.Error(), "get_truly-invalid-endpoint", "error should mention the skipped tool")
 	assert.NotNil(t, convertedFiles, "GenMCP config files should still be generated")
 	assert.NotNil(t, convertedFiles.ToolDefinitions, "tool definitions should be generated")
 
 	assert.NotNil(t, convertedFiles.ToolDefinitions.Tools, "tool definitions should have tools")
 
-	// Should have exactly 2 valid tools (the ones with descriptions)
-	assert.Len(t, convertedFiles.ToolDefinitions.Tools, 2, "should have exactly 2 valid tools")
+	// 3 valid tools: two with descriptions, one with summary fallback; the truly-invalid one is skipped
+	assert.Len(t, convertedFiles.ToolDefinitions.Tools, 3, "should have exactly 3 valid tools")
 
-	// Check that the valid tools are present
+	// Check that all valid tools are present
 	toolNames := make([]string, len(convertedFiles.ToolDefinitions.Tools))
 	for i, tool := range convertedFiles.ToolDefinitions.Tools {
 		toolNames[i] = tool.Name
@@ -62,11 +65,8 @@ func TestInvalidToolsAreSkippedButValidOnesIncluded(t *testing.T) {
 	}
 
 	assert.Contains(t, toolNames, "get_valid-endpoint", "should include the valid GET endpoint")
+	assert.Contains(t, toolNames, "get_invalid-endpoint", "should include the endpoint that fell back to summary")
 	assert.Contains(t, toolNames, "post_another-valid-endpoint", "should include the valid POST endpoint")
-
-	// Check that the error message contains information about the skipped tool
-	assert.Contains(t, err.Error(), "get_invalid-endpoint", "error should mention the skipped tool")
-	assert.Contains(t, err.Error(), "description is required", "error should mention why the tool was skipped")
 }
 
 func TestAllToolsInvalidStillReturnsEmptyMcpFile(t *testing.T) {
@@ -75,7 +75,7 @@ func TestAllToolsInvalidStillReturnsEmptyMcpFile(t *testing.T) {
 	convertedFiles, err := DocumentToMcpFile(docBytes, "")
 
 	// Should get an error about all invalid tools
-	assert.Error(t, err, "conversion should report errors about all invalid tools")
+	require.Error(t, err, "conversion should report errors about all invalid tools")
 	assert.NotNil(t, convertedFiles, "GenMCP config files should still be generated")
 	assert.NotNil(t, convertedFiles.ToolDefinitions, "tool definitions should be generated")
 
@@ -84,6 +84,60 @@ func TestAllToolsInvalidStillReturnsEmptyMcpFile(t *testing.T) {
 	// Check that error mentions both skipped tools
 	assert.Contains(t, err.Error(), "get_no-description-1", "error should mention first skipped tool")
 	assert.Contains(t, err.Error(), "post_no-description-2", "error should mention second skipped tool")
+}
+
+func TestSummaryFallbackWhenDescriptionAbsent(t *testing.T) {
+	docBytes, _ := os.ReadFile("testdata/openapi_v3_summary_only.json")
+
+	convertedFiles, err := DocumentToMcpFile(docBytes, "")
+	assert.NoError(t, err, "conversion should not produce errors")
+	assert.NotNil(t, convertedFiles, "GenMCP config files should be generated")
+	assert.NotNil(t, convertedFiles.ToolDefinitions, "tool definitions should be generated")
+
+	// All 3 tools should be generated (none skipped)
+	assert.Len(t, convertedFiles.ToolDefinitions.Tools, 3, "should have exactly 3 valid tools")
+
+	// Build a map of tool name -> tool for easier assertions
+	toolsByName := make(map[string]*definitions.Tool)
+	for _, tool := range convertedFiles.ToolDefinitions.Tools {
+		toolsByName[tool.Name] = tool
+	}
+
+	tests := []struct {
+		name          string
+		toolKey       string
+		expectedDesc  string
+		expectedTitle string
+	}{
+		{
+			name:          "summary-only uses summary as description",
+			toolKey:       "get_users",
+			expectedDesc:  "List all users",
+			expectedTitle: "List all users",
+		},
+		{
+			name:         "summary-only without title check",
+			toolKey:      "get_users-userId",
+			expectedDesc: "Get a user by ID",
+		},
+		{
+			name:          "both summary and description uses description",
+			toolKey:       "get_health",
+			expectedDesc:  "Returns the health status of the service",
+			expectedTitle: "Health check endpoint",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tool := toolsByName[tc.toolKey]
+			require.NotNil(t, tool, "should have %s tool", tc.toolKey)
+			assert.Equal(t, tc.expectedDesc, tool.Description)
+			if tc.expectedTitle != "" {
+				assert.Equal(t, tc.expectedTitle, tool.Title)
+			}
+		})
+	}
 }
 
 func TestOpenAPIV2BodyParameterHandling(t *testing.T) {

@@ -160,10 +160,15 @@ func McpFilesFromOpenApiV2Model(model *v2high.Swagger, host string) (*ConvertedM
 				continue
 			}
 
+			description := operation.Description
+			if description == "" {
+				description = operation.Summary
+			}
+
 			tool := &definitions.Tool{
 				Name:        toolName(pathName, operationMethod),
 				Title:       operation.Summary,
-				Description: operation.Description,
+				Description: description,
 				InputSchema: &jsonschema.Schema{
 					Type:       invocation.JsonSchemaTypeObject,
 					Properties: make(map[string]*jsonschema.Schema),
@@ -358,10 +363,15 @@ func McpFilesFromOpenApiV3Model(model *v3high.Document, host string) (*Converted
 				continue
 			}
 
+			description := operation.Description
+			if description == "" {
+				description = operation.Summary
+			}
+
 			tool := &definitions.Tool{
 				Name:        toolName(pathName, operationMethod),
 				Title:       operation.Summary,
-				Description: operation.Description,
+				Description: description,
 				InputSchema: &jsonschema.Schema{
 					Type:       invocation.JsonSchemaTypeObject,
 					Properties: make(map[string]*jsonschema.Schema),
