@@ -45,17 +45,18 @@ func TestInvalidToolsAreSkippedButValidOnesIncluded(t *testing.T) {
 
 	convertedFiles, err := DocumentToMcpFile(docBytes, "")
 
-	// With summary fallback, all tools should now be valid (summary fills in missing description)
-	assert.NoError(t, err, "conversion should not report errors when summary fallback is available")
+	// One tool has neither summary nor description, so we expect an error about it being skipped
+	assert.Error(t, err, "conversion should report an error for the tool with no summary or description")
+	assert.Contains(t, err.Error(), "get_truly-invalid-endpoint", "error should mention the skipped tool")
 	assert.NotNil(t, convertedFiles, "GenMCP config files should still be generated")
 	assert.NotNil(t, convertedFiles.ToolDefinitions, "tool definitions should be generated")
 
 	assert.NotNil(t, convertedFiles.ToolDefinitions.Tools, "tool definitions should have tools")
 
-	// All 3 tools should now be valid (the previously-invalid one gets summary as description)
+	// 3 valid tools: two with descriptions, one with summary fallback; the truly-invalid one is skipped
 	assert.Len(t, convertedFiles.ToolDefinitions.Tools, 3, "should have exactly 3 valid tools")
 
-	// Check that all tools are present
+	// Check that all valid tools are present
 	toolNames := make([]string, len(convertedFiles.ToolDefinitions.Tools))
 	for i, tool := range convertedFiles.ToolDefinitions.Tools {
 		toolNames[i] = tool.Name

@@ -33,6 +33,16 @@
         }
       }
     },
+    "/truly-invalid-endpoint": {
+      "get": {
+        "operationId": "getTrulyInvalidEndpoint",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/another-valid-endpoint": {
       "post": {
         "summary": "Another valid endpoint",
