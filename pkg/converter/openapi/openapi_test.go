@@ -8,6 +8,7 @@ import (
 	definitions "github.com/genmcp/gen-mcp/pkg/config/definitions"
 	serverconfig "github.com/genmcp/gen-mcp/pkg/config/server"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/yaml"
 )
 
@@ -46,7 +47,7 @@ func TestInvalidToolsAreSkippedButValidOnesIncluded(t *testing.T) {
 	convertedFiles, err := DocumentToMcpFile(docBytes, "")
 
 	// One tool has neither summary nor description, so we expect an error about it being skipped
-	assert.Error(t, err, "conversion should report an error for the tool with no summary or description")
+	require.Error(t, err, "conversion should report an error for the tool with no summary or description")
 	assert.Contains(t, err.Error(), "get_truly-invalid-endpoint", "error should mention the skipped tool")
 	assert.NotNil(t, convertedFiles, "GenMCP config files should still be generated")
 	assert.NotNil(t, convertedFiles.ToolDefinitions, "tool definitions should be generated")
@@ -74,7 +75,7 @@ func TestAllToolsInvalidStillReturnsEmptyMcpFile(t *testing.T) {
 	convertedFiles, err := DocumentToMcpFile(docBytes, "")
 
 	// Should get an error about all invalid tools
-	assert.Error(t, err, "conversion should report errors about all invalid tools")
+	require.Error(t, err, "conversion should report errors about all invalid tools")
 	assert.NotNil(t, convertedFiles, "GenMCP config files should still be generated")
 	assert.NotNil(t, convertedFiles.ToolDefinitions, "tool definitions should be generated")
 
@@ -102,21 +103,41 @@ func TestSummaryFallbackWhenDescriptionAbsent(t *testing.T) {
 		toolsByName[tool.Name] = tool
 	}
 
-	// Summary-only operations should use summary as description
-	listUsers := toolsByName["get_users"]
-	assert.NotNil(t, listUsers, "should have get_users tool")
-	assert.Equal(t, "List all users", listUsers.Description, "summary-only tool should use summary as description")
-	assert.Equal(t, "List all users", listUsers.Title, "title should still be the summary")
+	tests := []struct {
+		name          string
+		toolKey       string
+		expectedDesc  string
+		expectedTitle string
+	}{
+		{
+			name:          "summary-only uses summary as description",
+			toolKey:       "get_users",
+			expectedDesc:  "List all users",
+			expectedTitle: "List all users",
+		},
+		{
+			name:         "summary-only without title check",
+			toolKey:      "get_users-userId",
+			expectedDesc: "Get a user by ID",
+		},
+		{
+			name:          "both summary and description uses description",
+			toolKey:       "get_health",
+			expectedDesc:  "Returns the health status of the service",
+			expectedTitle: "Health check endpoint",
+		},
+	}
 
-	getUser := toolsByName["get_users-userId"]
-	assert.NotNil(t, getUser, "should have get_users-userId tool")
-	assert.Equal(t, "Get a user by ID", getUser.Description, "summary-only tool should use summary as description")
-
-	// Operation with both summary and description should use description
-	health := toolsByName["get_health"]
-	assert.NotNil(t, health, "should have get_health tool")
-	assert.Equal(t, "Returns the health status of the service", health.Description, "tool with both fields should use description")
-	assert.Equal(t, "Health check endpoint", health.Title, "title should be the summary")
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tool := toolsByName[tc.toolKey]
+			require.NotNil(t, tool, "should have %s tool", tc.toolKey)
+			assert.Equal(t, tc.expectedDesc, tool.Description)
+			if tc.expectedTitle != "" {
+				assert.Equal(t, tc.expectedTitle, tool.Title)
+			}
+		})
+	}
 }
 
 func TestOpenAPIV2BodyParameterHandling(t *testing.T) {
