@@ -1,6 +1,6 @@
 module github.com/genmcp/gen-mcp
 
-go 1.25.7
+go 1.25.8
 
 require (
 	github.com/google/go-containerregistry v0.21.7
@@ -14,7 +14,7 @@ require (
 	github.com/onsi/gomega v1.42.1
 	github.com/openai/openai-go/v2 v2.7.1
 	github.com/pb33f/libopenapi v0.38.5
-	github.com/sigstore/sigstore-go v1.2.1
+	github.com/sigstore/sigstore-go v1.2.2
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/yosida95/uritemplate/v3 v3.0.2
@@ -55,27 +55,27 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.25.2 // indirect
-	github.com/go-openapi/errors v0.22.7 // indirect
+	github.com/go-openapi/errors v0.22.8 // indirect
 	github.com/go-openapi/jsonpointer v0.23.1 // indirect
 	github.com/go-openapi/jsonreference v0.21.6 // indirect
-	github.com/go-openapi/loads v0.23.3 // indirect
-	github.com/go-openapi/runtime v0.32.3 // indirect
+	github.com/go-openapi/loads v0.24.0 // indirect
+	github.com/go-openapi/runtime v0.32.4 // indirect
 	github.com/go-openapi/runtime/server-middleware v0.30.0 // indirect
-	github.com/go-openapi/spec v0.22.5 // indirect
-	github.com/go-openapi/strfmt v0.26.3 // indirect
-	github.com/go-openapi/swag v0.26.0 // indirect
-	github.com/go-openapi/swag/cmdutils v0.26.0 // indirect
-	github.com/go-openapi/swag/conv v0.26.0 // indirect
-	github.com/go-openapi/swag/fileutils v0.26.0 // indirect
-	github.com/go-openapi/swag/jsonname v0.26.0 // indirect
-	github.com/go-openapi/swag/jsonutils v0.26.0 // indirect
-	github.com/go-openapi/swag/loading v0.26.0 // indirect
-	github.com/go-openapi/swag/mangling v0.26.0 // indirect
-	github.com/go-openapi/swag/netutils v0.26.0 // indirect
-	github.com/go-openapi/swag/stringutils v0.26.0 // indirect
-	github.com/go-openapi/swag/typeutils v0.26.0 // indirect
-	github.com/go-openapi/swag/yamlutils v0.26.0 // indirect
-	github.com/go-openapi/validate v0.25.3 // indirect
+	github.com/go-openapi/spec v0.22.6 // indirect
+	github.com/go-openapi/strfmt v0.26.4 // indirect
+	github.com/go-openapi/swag v0.26.1 // indirect
+	github.com/go-openapi/swag/cmdutils v0.26.1 // indirect
+	github.com/go-openapi/swag/conv v0.27.0 // indirect
+	github.com/go-openapi/swag/fileutils v0.26.1 // indirect
+	github.com/go-openapi/swag/jsonname v0.26.1 // indirect
+	github.com/go-openapi/swag/jsonutils v0.26.1 // indirect
+	github.com/go-openapi/swag/loading v0.26.1 // indirect
+	github.com/go-openapi/swag/mangling v0.26.1 // indirect
+	github.com/go-openapi/swag/netutils v0.26.1 // indirect
+	github.com/go-openapi/swag/stringutils v0.26.1 // indirect
+	github.com/go-openapi/swag/typeutils v0.27.0 // indirect
+	github.com/go-openapi/swag/yamlutils v0.26.1 // indirect
+	github.com/go-openapi/validate v0.26.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
@@ -109,14 +109,14 @@ require (
 	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/shibumi/go-pathspec v1.3.0 // indirect
 	github.com/sigstore/protobuf-specs v0.5.1 // indirect
-	github.com/sigstore/rekor v1.5.2 // indirect
-	github.com/sigstore/rekor-tiles/v2 v2.2.2-0.20260601073857-5d098a2b6443 // indirect
+	github.com/sigstore/rekor v1.5.3 // indirect
+	github.com/sigstore/rekor-tiles/v2 v2.3.0 // indirect
 	github.com/sigstore/sigstore v1.10.8 // indirect
 	github.com/sigstore/timestamp-authority/v2 v2.1.2 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/theupdateframework/go-tuf/v2 v2.4.2-0.20260407074541-7e8f69f906ef // indirect
+	github.com/theupdateframework/go-tuf/v2 v2.4.2 // indirect
 	github.com/transparency-dev/formats v0.1.1 // indirect
 	github.com/transparency-dev/merkle v0.0.2 // indirect
 	github.com/valyala/fastjson v1.6.10 // indirect
@@ -141,7 +141,7 @@ require (
 	golang.org/x/tools v0.46.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260523011958-0a33c5d7ca68 // indirect
-	google.golang.org/grpc v1.81.1 // indirect
+	google.golang.org/grpc v1.82.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
