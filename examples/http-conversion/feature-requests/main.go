@@ -528,10 +528,10 @@ func getFeatureProgressReport(w http.ResponseWriter, _ *http.Request) {
 		if feature.Completed {
 			status = "✅ Completed"
 		}
-		report.WriteString(fmt.Sprintf("## %s\n\n", feature.Title))
-		report.WriteString(fmt.Sprintf("**Status:** %s | **Upvotes:** %d\n\n", status, feature.Upvotes))
-		report.WriteString(fmt.Sprintf("%s\n\n", feature.Description))
-		report.WriteString(fmt.Sprintf("### Details\n\n%s\n\n---\n\n", feature.Details))
+		fmt.Fprintf(&report, "## %s\n\n", feature.Title)
+		fmt.Fprintf(&report, "**Status:** %s | **Upvotes:** %d\n\n", status, feature.Upvotes)
+		fmt.Fprintf(&report, "%s\n\n", feature.Description)
+		fmt.Fprintf(&report, "### Details\n\n%s\n\n---\n\n", feature.Details)
 	}
 
 	w.Header().Set("Content-Type", "text/markdown")
