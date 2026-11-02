@@ -22,6 +22,7 @@ const (
 	LevelEmergency = zapcore.FatalLevel
 )
 
+//nolint:staticcheck // SA1019: MCP server logging is deprecated as of protocol 2026-07-28 (SEP-2577) but stays functional during the deprecation window.
 var zapToMCP = map[zapcore.Level]mcp.LoggingLevel{
 	LevelDebug:     "debug",
 	LevelInfo:      "info",
@@ -99,6 +100,7 @@ func (m *mcpLogger) Write(ent zapcore.Entry, fields []zapcore.Field) error {
 	logData["ts"] = ent.Time
 	logData["msg"] = ent.Message
 
+	//nolint:staticcheck // SA1019: MCP server logging is deprecated as of protocol 2026-07-28 (SEP-2577) but stays functional during the deprecation window.
 	return m.ss.Log(m.ctx, &mcp.LoggingMessageParams{
 		Data:   logData,
 		Level:  zapToMCP[ent.Level],

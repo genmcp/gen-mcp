@@ -116,11 +116,14 @@ var _ = Describe("TLS Integration", Ordered, func() {
 
 				By("receiving successful response (even if unauthorized for missing auth)")
 				// The server should respond (not reject the TLS connection)
-				// It may return 401 if auth is required, but the TLS handshake should succeed
+				// It may return 401 if auth is required, but the TLS handshake should succeed.
+				// A stateless streamable HTTP server offers no SSE stream, so a GET without
+				// SSE support is answered with 405 (MCP spec / RFC 9110 Allow header).
 				Expect(resp.StatusCode).To(SatisfyAny(
 					Equal(http.StatusOK),
 					Equal(http.StatusUnauthorized),
 					Equal(http.StatusBadRequest),
+					Equal(http.StatusMethodNotAllowed),
 				))
 			})
 
