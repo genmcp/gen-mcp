@@ -535,10 +535,24 @@ func makeServerWithTools(mcpServer *mcpserver.MCPServer, tools []*definitions.To
 		zap.Int("num_resources", len(mcpServer.Resources)),
 		zap.Int("num_resource_templates", len(mcpServer.ResourceTemplates)))
 
+	capabilities := &mcp.ServerCapabilities{
+		//nolint:staticcheck // SA1019: MCP server logging is deprecated as of protocol 2026-07-28 (SEP-2577) but stays functional during the deprecation window.
+		Logging: &mcp.LoggingCapabilities{},
+	}
+	// Advertise capabilities even when the filtered tool list is empty, matching the
+	// previous HasTools/HasPrompts/HasResources behavior.
+	if len(mcpServer.Tools) > 0 {
+		capabilities.Tools = &mcp.ToolCapabilities{ListChanged: true}
+	}
+	if len(mcpServer.Prompts) > 0 {
+		capabilities.Prompts = &mcp.PromptCapabilities{ListChanged: true}
+	}
+	if len(mcpServer.Resources)+len(mcpServer.ResourceTemplates) > 0 {
+		capabilities.Resources = &mcp.ResourceCapabilities{ListChanged: true}
+	}
+
 	opts := &mcp.ServerOptions{
-		HasTools:     len(mcpServer.Tools) > 0,
-		HasPrompts:   len(mcpServer.Prompts) > 0,
-		HasResources: len(mcpServer.Resources)+len(mcpServer.ResourceTemplates) > 0,
+		Capabilities: capabilities,
 	}
 	if mcpServer.Instructions() != "" {
 		logger.Debug("Adding server instructions")

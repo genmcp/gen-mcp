@@ -19,10 +19,10 @@ func applyExtend(base, ext any) error {
 	baseVal := reflect.ValueOf(base)
 	extVal := reflect.ValueOf(ext)
 
-	if baseVal.Kind() != reflect.Ptr || baseVal.IsNil() {
+	if baseVal.Kind() != reflect.Pointer || baseVal.IsNil() {
 		return fmt.Errorf("base must be a non-nil pointer")
 	}
-	if extVal.Kind() != reflect.Ptr || extVal.IsNil() {
+	if extVal.Kind() != reflect.Pointer || extVal.IsNil() {
 		return fmt.Errorf("ext must be a non-nil pointer")
 	}
 
@@ -83,10 +83,10 @@ func applyOverride(base, override any) error {
 	baseVal := reflect.ValueOf(base)
 	overrideVal := reflect.ValueOf(override)
 
-	if baseVal.Kind() != reflect.Ptr || baseVal.IsNil() {
+	if baseVal.Kind() != reflect.Pointer || baseVal.IsNil() {
 		return fmt.Errorf("base must be a non-nil pointer")
 	}
-	if overrideVal.Kind() != reflect.Ptr || overrideVal.IsNil() {
+	if overrideVal.Kind() != reflect.Pointer || overrideVal.IsNil() {
 		return fmt.Errorf("override must be a non-nil pointer")
 	}
 
@@ -126,10 +126,10 @@ func applyRemove(base, remove any) error {
 	baseVal := reflect.ValueOf(base)
 	removeVal := reflect.ValueOf(remove)
 
-	if baseVal.Kind() != reflect.Ptr || baseVal.IsNil() {
+	if baseVal.Kind() != reflect.Pointer || baseVal.IsNil() {
 		return fmt.Errorf("base must be a non-nil pointer")
 	}
-	if removeVal.Kind() != reflect.Ptr || removeVal.IsNil() {
+	if removeVal.Kind() != reflect.Pointer || removeVal.IsNil() {
 		return fmt.Errorf("remove must be a non-nil pointer")
 	}
 
@@ -205,13 +205,13 @@ func validateOperations(extend, override, remove any) error {
 	overrideVal := reflect.ValueOf(override)
 	removeVal := reflect.ValueOf(remove)
 
-	if extendVal.Kind() != reflect.Ptr || extendVal.IsNil() {
+	if extendVal.Kind() != reflect.Pointer || extendVal.IsNil() {
 		return fmt.Errorf("extend must be a non-nil pointer")
 	}
-	if overrideVal.Kind() != reflect.Ptr || overrideVal.IsNil() {
+	if overrideVal.Kind() != reflect.Pointer || overrideVal.IsNil() {
 		return fmt.Errorf("override must be a non-nil pointer")
 	}
-	if removeVal.Kind() != reflect.Ptr || removeVal.IsNil() {
+	if removeVal.Kind() != reflect.Pointer || removeVal.IsNil() {
 		return fmt.Errorf("remove must be a non-nil pointer")
 	}
 
@@ -260,7 +260,7 @@ func unmarshalRemoveConfig(data json.RawMessage, config any) error {
 
 	configVal := reflect.ValueOf(config)
 
-	if configVal.Kind() != reflect.Ptr || configVal.IsNil() {
+	if configVal.Kind() != reflect.Pointer || configVal.IsNil() {
 		return fmt.Errorf("config must be a non-nil pointer")
 	}
 

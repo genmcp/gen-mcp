@@ -40,7 +40,7 @@ func fixRequiredFields(schema *jsonschema.Schema, types []schemaType) {
 	// For each type we reflected, examine its struct tags and fix the required fields
 	for _, item := range types {
 		t := reflect.TypeOf(item.Type)
-		if t.Kind() == reflect.Ptr {
+		if t.Kind() == reflect.Pointer {
 			t = t.Elem()
 		}
 
@@ -96,7 +96,7 @@ func fixRequiredFieldsForType(schema *jsonschema.Schema, t reflect.Type) {
 		// Handle inline embeds - merge their required fields
 		if jsonName == "" && strings.Contains(jsonTag, "inline") {
 			fieldType := field.Type
-			if fieldType.Kind() == reflect.Ptr {
+			if fieldType.Kind() == reflect.Pointer {
 				fieldType = fieldType.Elem()
 			}
 			if fieldType.Kind() == reflect.Struct && fieldType != t {
@@ -115,7 +115,7 @@ func fixRequiredFieldsForType(schema *jsonschema.Schema, t reflect.Type) {
 			}
 
 			fieldType := field.Type
-			if fieldType.Kind() == reflect.Ptr {
+			if fieldType.Kind() == reflect.Pointer {
 				fieldType = fieldType.Elem()
 			}
 			if fieldType.Kind() == reflect.Struct && fieldType != t {
