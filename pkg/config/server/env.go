@@ -46,7 +46,7 @@ func processStruct(val reflect.Value, prefix string) (bool, error) {
 			continue
 		}
 
-		if fieldVal.Kind() == reflect.Ptr && fieldVal.Type().Elem().Kind() == reflect.Struct {
+		if fieldVal.Kind() == reflect.Pointer && fieldVal.Type().Elem().Kind() == reflect.Struct {
 			wasNil := false
 			if fieldVal.IsNil() {
 				fieldVal.Set(reflect.New(fieldVal.Type().Elem()))
@@ -137,7 +137,7 @@ func setField(field reflect.Value, value string) error {
 		} else {
 			return fmt.Errorf("unsupported field type: %v", field.Kind())
 		}
-	case reflect.Ptr:
+	case reflect.Pointer:
 		// Handle pointers to basic types (e.g., *bool, *string, *int)
 		if field.IsNil() {
 			field.Set(reflect.New(field.Type().Elem()))
